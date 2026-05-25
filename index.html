@@ -314,7 +314,7 @@ button{font-family:'Baloo 2',sans-serif;cursor:pointer}
 <div class="screen" id="scr-profile" style="padding-bottom:30px">
   <div style="background:#1C1B2E;padding:16px 20px 12px">
     <div style="max-width:600px;margin:0 auto;display:flex;align-items:center;gap:10px">
-      <button onclick="showScreen('home')" style="background:rgba(255,255,255,.1);border:none;border-radius:50px;padding:4px 12px;font-weight:700;font-size:11px;color:#9896B8;cursor:pointer">← Home</button>
+      <button onclick="renderHome();showScreen('home')" style="background:rgba(255,255,255,.1);border:none;border-radius:50px;padding:4px 12px;font-weight:700;font-size:11px;color:#9896B8;cursor:pointer">← Home</button>
       <span style="font-weight:800;font-size:17px;color:#fff">Il mio profilo</span>
     </div>
   </div>
@@ -399,7 +399,7 @@ button{font-family:'Baloo 2',sans-serif;cursor:pointer}
 <div class="screen" id="scr-drawpass" style="background:#F7F5FF;padding-bottom:40px">
   <div style="background:linear-gradient(135deg,#1C1B2E,#2d2a4a);padding:20px 20px 30px">
     <div style="max-width:600px;margin:0 auto">
-      <button onclick="showScreen(A.prevScreen||'home')" style="background:rgba(255,255,255,.1);border:none;border-radius:50px;padding:4px 12px;color:#9896B8;font-weight:700;font-size:11px;cursor:pointer;margin-bottom:16px">&#8592; Indietro</button>
+      <button onclick="renderHome();showScreen(A.prevScreen||'home')" style="background:rgba(255,255,255,.1);border:none;border-radius:50px;padding:4px 12px;color:#9896B8;font-weight:700;font-size:11px;cursor:pointer;margin-bottom:16px">&#8592; Indietro</button>
       <div style="text-align:center">
         <div style="font-size:52px;margin-bottom:8px">🎟️</div>
         <h1 style="font-weight:800;font-size:24px;color:#fff;margin-bottom:4px">DrawPass</h1>
@@ -722,9 +722,6 @@ function showScreen(name){
     s.classList.add("on");
   }
   A.screen=name;
-  // Auto-refresh content when navigating back
-  if(name==="home" && A.user) renderHome();
-  if(name==="category" && A.cat) renderCategory();
   if(name==="checkout"){
     // Update plan info display
     var info=document.getElementById("checkout-plan-info");
@@ -1042,6 +1039,10 @@ function renderHome(){
   }
   var heroName=document.getElementById("hero-name");
   if(heroName) heroName.textContent=A.user.name;
+  var heroEmail=document.getElementById("hero-email");
+  if(heroEmail) heroEmail.textContent=A.user.email||"";
+  var statLes=document.getElementById("stat-lessons-done");
+  if(statLes) statLes.textContent=done;
   var heroIcon=document.getElementById("hero-level-icon");
   if(heroIcon) heroIcon.textContent=lv.icon;
   var heroLvName=document.getElementById("hero-level-name");
@@ -1115,7 +1116,11 @@ function renderHome(){
       loadTutorialsFromDB().then(function(){
         var fresh=CATS.find(function(c){return c.id===cat.id;});
         if(fresh) A.cat=fresh;
-        renderCategory(); showScreen("category");
+        renderCategory();
+        showScreen("category");
+      }).catch(function(){
+        renderCategory();
+        showScreen("category");
       });
     };
     grid.appendChild(div);
@@ -2010,13 +2015,13 @@ function closePhoto(){
 
 
 function goBackFromLesson(){
-  // Save last position before leaving
   if(A.cat && A.lesson){
     localSet("dl:last", JSON.stringify({
       catId:A.cat.id, lesId:A.lesson.id, step:A.step,
-      title:A.lesson.title, icon:A.lesson.icon||"📝", catIcon:A.cat.icon
+      title:A.lesson.title, icon:A.lesson.icon||"", catIcon:A.cat.icon
     }));
   }
+  renderCategory();
   showScreen("category");
 }
 
@@ -2119,13 +2124,13 @@ async function checkOAuthCallback(){
 
 
 function goBackFromLesson(){
-  // Save last position before leaving
   if(A.cat && A.lesson){
     localSet("dl:last", JSON.stringify({
       catId:A.cat.id, lesId:A.lesson.id, step:A.step,
-      title:A.lesson.title, icon:A.lesson.icon||"📝", catIcon:A.cat.icon
+      title:A.lesson.title, icon:A.lesson.icon||"", catIcon:A.cat.icon
     }));
   }
+  renderCategory();
   showScreen("category");
 }
 
