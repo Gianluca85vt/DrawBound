@@ -34,6 +34,13 @@ button{font-family:'Baloo 2',sans-serif;cursor:pointer}
 </style>
   <!-- PayPal SDK: sostituisci YOUR_PAYPAL_CLIENT_ID con il tuo Client ID da developer.paypal.com -->
   <!-- PayPal SDK loaded dynamically when needed -->
+  <!-- PWA -->
+  <meta name="theme-color" content="#1C1B2E"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="DrawLearn"/>
+  <link rel="manifest" href="data:application/json,{&quot;name&quot;:&quot;DrawLearn&quot;,&quot;short_name&quot;:&quot;DrawLearn&quot;,&quot;start_url&quot;:&quot;.&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;background_color&quot;:&quot;%231C1B2E&quot;,&quot;theme_color&quot;:&quot;%231C1B2E&quot;,&quot;icons&quot;:[{&quot;src&quot;:&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231C1B2E'/%3E%3Ctext y='.9em' font-size='80'%3E%E2%9C%8F%EF%B8%8F%3C/text%3E%3C/svg%3E&quot;,&quot;sizes&quot;:&quot;any&quot;,&quot;type&quot;:&quot;image/svg+xml&quot;}]}"/>
 </head>
 <body>
 <div class="toast" id="toast"></div>
@@ -331,7 +338,7 @@ button{font-family:'Baloo 2',sans-serif;cursor:pointer}
     <div style="background:linear-gradient(135deg,#2d2a4a,#3d3a5a);border-radius:20px;padding:24px;text-align:center;margin-bottom:18px">
       <div id="profile-avatar-display" style="width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:38px;margin:0 auto 12px;background:#3d3a5a"></div>
       <div id="profile-name" style="font-weight:800;font-size:20px;color:#fff;margin-bottom:2px"></div>
-      <div id="profile-email" style="font-size:12px;color:#9896B8;margin-bottom:14px"></div>
+      <div id="profile-email" style="font-size:12px;color:#9896B8;margin-top:2px"></div><div id="profile-bio" style="font-size:12px;color:#e0ddf5;margin:6px 0 12px;min-height:16px;font-style:italic"></div><button onclick="openBioEdit()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:50px;padding:5px 16px;color:#9896B8;font-size:11px;font-weight:700;cursor:pointer;margin-bottom:12px">✏️ Modifica bio</button>
       <div style="display:flex;justify-content:center;gap:20px">
         <div style="text-align:center"><div id="prof-stat-lessons" style="font-weight:800;font-size:22px;color:#C8F5E0">0</div><div style="font-size:10px;color:#9896B8">Lezioni</div></div>
         <div style="width:1px;background:rgba(255,255,255,.1)"></div>
@@ -406,6 +413,11 @@ button{font-family:'Baloo 2',sans-serif;cursor:pointer}
 
 <!-- FEED SOCIAL -->
 <div class="screen" id="scr-feed" style="background:#0F0E1A;min-height:100vh;padding-bottom:70px">
+  <!-- Feed top bar with search -->
+  <div style="background:#161525;border-bottom:1px solid rgba(255,255,255,.08);padding:10px 16px;display:flex;align-items:center;justify-content:space-between">
+    <span style="font-weight:800;font-size:18px;color:#fff">DrawLearn</span>
+    <button onclick="navTo('explore')" style="background:rgba(255,255,255,.08);border:none;border-radius:50%;width:36px;height:36px;font-size:18px;cursor:pointer">🔍</button>
+  </div>
   <!-- Stories bar -->
   <div style="background:#161525;border-bottom:1px solid rgba(255,255,255,.06);padding:10px 16px;overflow-x:auto;white-space:nowrap">
     <div style="display:inline-flex;gap:12px;align-items:center">
@@ -528,6 +540,43 @@ button{font-family:'Baloo 2',sans-serif;cursor:pointer}
       <div id="suggested-users"></div>
     </div>
     <div id="search-output" style="display:none"></div>
+  </div>
+</div>
+
+
+<!-- ESPLORA -->
+<div class="screen" id="scr-explore" style="background:#0F0E1A;min-height:100vh;padding-bottom:70px">
+  <div style="background:#161525;border-bottom:1px solid rgba(255,255,255,.08);padding:12px 16px;position:sticky;top:0;z-index:10">
+    <div style="max-width:640px;margin:0 auto;display:flex;align-items:center;gap:10px">
+      <button onclick="navTo('feed')" style="background:rgba(255,255,255,.08);border:none;border-radius:50%;width:34px;height:34px;color:#fff;font-size:16px;cursor:pointer;flex-shrink:0">←</button>
+      <div style="flex:1;position:relative">
+        <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px">🔍</span>
+        <input id="explore-search" type="text" placeholder="Cerca utenti o #hashtag..."
+          oninput="onSearchInput(this.value)"
+          style="width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:50px;padding:10px 14px 10px 38px;color:#fff;font-family:'Baloo 2',sans-serif;font-size:14px;outline:none"/>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter pills -->
+  <div style="display:flex;gap:8px;padding:12px 16px;overflow-x:auto;white-space:nowrap;background:#161525">
+    <button id="exp-all" onclick="setExploreFilter('all')" style="background:#8B5CF6;border:none;border-radius:50px;padding:6px 16px;color:#fff;font-weight:700;font-size:12px;cursor:pointer;flex-shrink:0">🔥 Trending</button>
+    <button id="exp-recent" onclick="setExploreFilter('recent')" style="background:rgba(255,255,255,.08);border:none;border-radius:50px;padding:6px 16px;color:#9896B8;font-weight:700;font-size:12px;cursor:pointer;flex-shrink:0">🆕 Recenti</button>
+    <button id="exp-animals" onclick="setExploreFilter('animals')" style="background:rgba(255,255,255,.08);border:none;border-radius:50px;padding:6px 16px;color:#9896B8;font-weight:700;font-size:12px;cursor:pointer;flex-shrink:0">🐾 Animali</button>
+    <button id="exp-faces" onclick="setExploreFilter('faces')" style="background:rgba(255,255,255,.08);border:none;border-radius:50px;padding:6px 16px;color:#9896B8;font-weight:700;font-size:12px;cursor:pointer;flex-shrink:0">🎨 Visi</button>
+    <button id="exp-nature" onclick="setExploreFilter('nature')" style="background:rgba(255,255,255,.08);border:none;border-radius:50px;padding:6px 16px;color:#9896B8;font-weight:700;font-size:12px;cursor:pointer;flex-shrink:0">🌿 Natura</button>
+  </div>
+
+  <!-- Search results (reuse from search screen) -->
+  <div id="explore-search-results" style="display:none;max-width:640px;margin:0 auto;padding:16px">
+    <div id="explore-search-output"></div>
+  </div>
+
+  <!-- Posts grid -->
+  <div id="explore-grid" style="max-width:640px;margin:0 auto">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px;padding:2px" id="explore-posts-grid">
+      <div style="grid-column:1/-1;text-align:center;padding:40px;color:#9896B8">Caricamento...</div>
+    </div>
   </div>
 </div>
 
@@ -1216,6 +1265,8 @@ function renderHome(){
   if(heroName) heroName.textContent=A.user.name;
   var heroEmail=document.getElementById("hero-email");
   if(heroEmail) heroEmail.textContent=A.user.email||"";
+  var profileBio = document.getElementById("profile-bio");
+  if(profileBio) profileBio.textContent = A.user.bio||"Nessuna bio ancora — aggiungine una!";
   var statLes=document.getElementById("stat-lessons-done");
   if(statLes) statLes.textContent=done;
   var heroIcon=document.getElementById("hero-level-icon");
@@ -1676,7 +1727,7 @@ var _currentPostId = null;
 
 /* Navigation */
 function navTo(screen){
-  var allScreens = ["feed","home","category","lesson","profile","drawpass","notif","search","pubprofile"];
+  var allScreens = ["feed","home","category","lesson","profile","drawpass","notif","search","pubprofile","explore"];
   allScreens.forEach(function(s){ var el=document.getElementById("scr-"+s); if(el) el.style.display="none"; });
   // Special renders
   if(screen==="feed"){ renderFeed(); showScreen("feed"); }
@@ -1685,14 +1736,13 @@ function navTo(screen){
   else if(screen==="drawpass"){ renderDrawPass(); showScreen("drawpass"); }
   else if(screen==="notif"){ loadNotifications(); showScreen("notif"); }
   else if(screen==="search"){ showScreen("search"); loadTrending(); setTimeout(function(){var si=document.getElementById("search-input");if(si)si.focus();},100); }
+  else if(screen==="explore"){ showScreen("explore"); loadExplore(); setTimeout(function(){var si=document.getElementById("explore-search");if(si)si.focus();},100); }
   else showScreen(screen);
   // Update nav tabs
   ["feed","home","profile","notif"].forEach(function(s){
-    var el=document.getElementById("nav-"+s)||(s==="feed"?document.getElementById("nav-feed"):null);
+    var el=document.getElementById("nav-"+s);
     if(el) el.classList.toggle("active", s===screen);
   });
-  var searchBtn = document.getElementById("nav-search-btn");
-  if(searchBtn) searchBtn.classList.toggle("active", screen==="search");
   // Update avatar icon in nav
   var ni=document.getElementById("nav-avatar-icon");
   if(ni) ni.textContent=getAvatarIcon();
@@ -1990,6 +2040,145 @@ async function deletePost(postId){
 }
 
 
+
+
+
+/* ═══════════════ BIO EDITING ═══════════════ */
+function openBioEdit(){
+  var input = document.getElementById("bio-input");
+  if(input) input.value = A.user.bio||"";
+  var m = document.getElementById("modal-bio");
+  if(m) m.style.display="flex";
+}
+function closeBioEdit(){
+  var m = document.getElementById("modal-bio");
+  if(m) m.style.display="none";
+}
+async function saveBio(){
+  var input = document.getElementById("bio-input");
+  var bio = input ? input.value.trim() : "";
+  if(A.user) A.user.bio = bio;
+  // Save to Supabase
+  if(sbReady()&&A.user){
+    try { await sbFetch("PATCH","dl_users?id=eq."+A.user.id,{body:{bio:bio}}); } catch(e){}
+  }
+  localSet("dl:uid", A.user.id); // refresh
+  closeBioEdit();
+  renderProfile();
+  showToast("Bio aggiornata!","✅");
+}
+
+/* ═══════════════ ESPLORA ═══════════════ */
+var _exploreFilter = "all";
+
+function setExploreFilter(f){
+  _exploreFilter = f;
+  ["all","recent","animals","faces","nature"].forEach(function(id){
+    var btn = document.getElementById("exp-"+id);
+    if(!btn) return;
+    var active = id===f;
+    btn.style.background = active?"#8B5CF6":"rgba(255,255,255,.08)";
+    btn.style.color = active?"#fff":"#9896B8";
+  });
+  loadExplore();
+}
+
+async function loadExplore(){
+  var grid = document.getElementById("explore-posts-grid");
+  if(!grid||!sbReady()) return;
+  grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:#9896B8"><div style="width:24px;height:24px;border:3px solid rgba(255,255,255,.1);border-top:3px solid #8B5CF6;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px"></div>Caricamento...</div>';
+  try {
+    var opts = {limit:30};
+    if(_exploreFilter==="all")    opts.order="likes_count.desc";
+    else if(_exploreFilter==="recent") opts.order="created_at.desc";
+    else opts = {filters:"tags=ilike.*"+_exploreFilter+"*", order:"likes_count.desc", limit:30};
+
+    var posts = await sbFetch("GET","dl_posts",opts);
+    if(!posts||!posts.length){
+      grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:60px 20px"><div style="font-size:48px;margin-bottom:12px">🎨</div><div style="color:#fff;font-weight:800;margin-bottom:8px">Nessun post ancora</div><div style="color:#9896B8;font-size:13px">Sii il primo a pubblicare!</div></div>';
+      return;
+    }
+    // Bento-style grid: first post large, rest small
+    var html2 = "";
+    posts.forEach(function(p, i){
+      var large = i===0;
+      var style = large
+        ? "grid-column:1/3;grid-row:1/3;aspect-ratio:1;overflow:hidden;cursor:pointer;position:relative"
+        : "aspect-ratio:1;overflow:hidden;cursor:pointer;position:relative";
+      html2 += '<div onclick="openPostDetail(\"'+p.id+'\")" style="'+style+'">'+
+        '<img src="'+p.image_url+'" style="width:100%;height:100%;object-fit:cover" loading="lazy"/>'+
+        (large?
+          '<div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.6));padding:12px 10px 8px">'+
+          '<div style="font-weight:700;font-size:13px;color:#fff">'+p.user_name+'</div>'+
+          '<div style="font-size:11px;color:rgba(255,255,255,.7)">'+p.likes_count+' ❤️ · '+p.comments_count+' 💬</div></div>' : '')+
+        (p.likes_count>0&&!large?'<div style="position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,.5);border-radius:4px;padding:2px 5px;font-size:9px;color:#fff">❤️'+p.likes_count+'</div>':'' )+
+      '</div>';
+    });
+    grid.innerHTML = html2;
+  } catch(e){
+    grid.innerHTML='<div style="grid-column:1/-1;padding:20px;text-align:center;color:#9896B8">Errore: '+e.message+'</div>';
+  }
+}
+
+// Override search to work in explore screen too
+var _origOnSearchInput = onSearchInput;
+function onSearchInput(q){
+  // Update both search screens
+  var exploreOut = document.getElementById("explore-search-results");
+  var exploreGrid = document.getElementById("explore-grid");
+  if(A.screen==="explore"){
+    if(q&&q.trim()){
+      if(exploreOut) exploreOut.style.display="block";
+      if(exploreGrid) exploreGrid.style.display="none";
+      var out = document.getElementById("explore-search-output");
+      if(out) { out.innerHTML='<div style="text-align:center;padding:20px;color:#9896B8">Ricerca...</div>'; }
+      clearTimeout(_searchTimer);
+      _searchTimer = setTimeout(async function(){
+        var result = await doSearchReturn(q.trim());
+        if(out) out.innerHTML = result;
+      },400);
+    } else {
+      if(exploreOut) exploreOut.style.display="none";
+      if(exploreGrid) exploreGrid.style.display="block";
+    }
+    return;
+  }
+  // Default search screen behavior
+  var trending = document.getElementById("search-trending");
+  var output = document.getElementById("search-output");
+  if(!q||!q.trim()){ if(trending) trending.style.display="block"; if(output) output.style.display="none"; return; }
+  if(trending) trending.style.display="none";
+  if(output){ output.style.display="block"; output.innerHTML='<div style="text-align:center;padding:20px;color:#9896B8">Ricerca...</div>'; }
+  clearTimeout(_searchTimer);
+  _searchTimer = setTimeout(async function(){
+    var result = await doSearchReturn(q.trim());
+    if(output) output.innerHTML = result;
+  }, 400);
+}
+
+async function doSearchReturn(q){
+  try {
+    var isTag = q.startsWith("#");
+    if(isTag){
+      var posts = await sbFetch("GET","dl_posts",{filters:"tags=ilike.*"+encodeURIComponent(q)+"*",order:"created_at.desc",limit:20});
+      if(!posts||!posts.length) return '<div style="text-align:center;padding:30px;color:#9896B8">Nessun post per '+q+'</div>';
+      return '<div style="font-size:11px;font-weight:800;color:#9896B8;letter-spacing:1px;margin-bottom:10px">POST CON '+q.toUpperCase()+'</div>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px">'+
+        posts.map(function(p){ return '<div onclick="openPostDetail(\"'+p.id+'\")" style="aspect-ratio:1;overflow:hidden;cursor:pointer"><img src="'+p.image_url+'" style="width:100%;height:100%;object-fit:cover" loading="lazy"/></div>'; }).join("")+
+        '</div>';
+    } else {
+      var users = await sbFetch("GET","dl_users",{filters:"name=ilike.*"+encodeURIComponent(q)+"*",limit:20});
+      if(!users||!users.length) return '<div style="text-align:center;padding:30px;color:#9896B8">Nessun utente trovato</div>';
+      return '<div style="font-size:11px;font-weight:800;color:#9896B8;letter-spacing:1px;margin-bottom:10px">UTENTI</div>'+
+        users.map(function(u){
+          return '<div onclick="openPubProfile(\"'+u.id+'\",\"'+u.name+'\")" style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer">'+
+            '<div style="width:44px;height:44px;border-radius:50%;background:#2d2a4a;display:flex;align-items:center;justify-content:center;font-size:22px">'+( u.avatar||"👤")+'</div>'+
+            '<div style="flex:1"><div style="font-weight:800;font-size:14px;color:#fff">'+u.name+'</div>'+
+            '<div style="font-size:11px;color:#9896B8">'+( u.followers_count||0)+' follower</div></div></div>';
+        }).join("");
+    }
+  } catch(e){ return '<div style="padding:20px;color:#9896B8">Errore ricerca</div>'; }
+}
 
 /* ═══════════════ NOTIFICHE ═══════════════ */
 var _unreadCount = 0;
@@ -3132,12 +3321,12 @@ init();
 <div id="bottom-nav" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#161525;border-top:1px solid rgba(255,255,255,.08);z-index:100;padding:0 8px;padding-bottom:env(safe-area-inset-bottom,0)">
   <div style="max-width:640px;margin:0 auto;display:flex;align-items:stretch">
     <button class="nav-tab" id="nav-feed" onclick="navTo('feed')">
-      <span class="nav-icon">🏠</span>
-      <span class="nav-label">Home</span>
+      <span class="nav-icon">🖼️</span>
+      <span class="nav-label">Galleria</span>
     </button>
-    <button class="nav-tab" id="nav-search-btn" onclick="navTo('search')">
-      <span class="nav-icon">🔍</span>
-      <span class="nav-label">Cerca</span>
+    <button class="nav-tab" id="nav-home" onclick="navTo('home')">
+      <span class="nav-icon">🎨</span>
+      <span class="nav-label">Impara</span>
     </button>
     <button class="nav-tab" id="nav-new" onclick="showNewPost()" style="position:relative">
       <div style="width:44px;height:44px;background:linear-gradient(135deg,#8B5CF6,#3DBE7A);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;margin-top:-14px;box-shadow:0 4px 16px rgba(139,92,246,.4)">➕</div>
@@ -3152,6 +3341,20 @@ init();
       <span class="nav-icon" id="nav-avatar-icon">👤</span>
       <span class="nav-label">Profilo</span>
     </button>
+  </div>
+</div>
+
+
+<!-- BIO EDIT MODAL -->
+<div id="modal-bio" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:990;align-items:flex-end;justify-content:center">
+  <div style="background:#1e1b3a;border-radius:20px 20px 0 0;width:100%;max-width:600px;padding:20px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <span style="font-weight:800;font-size:16px;color:#fff">Modifica bio</span>
+      <button onclick="closeBioEdit()" style="background:rgba(255,255,255,.1);border:none;border-radius:50%;width:30px;height:30px;color:#fff;cursor:pointer">✕</button>
+    </div>
+    <textarea id="bio-input" maxlength="120" placeholder="Descrivi te stesso come artista... (max 120 caratteri)"
+      style="width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:12px;color:#fff;font-family:'Baloo 2',sans-serif;font-size:14px;resize:none;height:80px;outline:none;margin-bottom:12px"></textarea>
+    <button onclick="saveBio()" style="width:100%;padding:12px;background:linear-gradient(135deg,#8B5CF6,#6d28d9);border:none;border-radius:12px;color:#fff;font-weight:800;font-size:14px;cursor:pointer">Salva</button>
   </div>
 </div>
 
