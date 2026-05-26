@@ -235,7 +235,7 @@ button{font-family:'Baloo 2',sans-serif;cursor:pointer}
       <div style="display:flex;align-items:center;gap:6px">
         <div id="pro-badge"></div>
         <button onclick="showDrawPass()" style="background:rgba(255,214,10,.15);border:1px solid rgba(255,214,10,.3);border-radius:50px;padding:4px 10px;font-weight:800;font-size:11px;color:#FFD60A;cursor:pointer;display:flex;align-items:center;gap:4px">
-          <span>🪙</span><span id="home-token-balance">0</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;flex-shrink:0"><path d="M12 1L23 10L12 23L1 10Z" fill="#FFD60A" stroke="#C8A000" stroke-width="1.5"/><path d="M12 8L18 13L12 23L6 13Z" fill="#C8A000"/><line x1="12" y1="15" x2="12" y2="23" stroke="#1C1B2E" stroke-width="2" stroke-linecap="round"/></svg><span id="home-token-balance" style="margin-left:3px">0</span>
         </button>
         <button onclick="navTo('notif')" style="position:relative;background:rgba(255,255,255,.08);border:none;border-radius:50%;width:34px;height:34px;font-size:17px;cursor:pointer">
           🔔<div id="notif-badge" style="display:none;position:absolute;top:-2px;right:-2px;background:#e74c3c;border-radius:50%;width:14px;height:14px;font-size:8px;font-weight:800;color:#fff;display:flex;align-items:center;justify-content:center"></div>
@@ -296,7 +296,7 @@ button{font-family:'Baloo 2',sans-serif;cursor:pointer}
           <div style="font-size:9px;color:#9896B8">Categorie</div>
         </div>
         <div style="background:rgba(255,255,255,.06);border-radius:10px;padding:8px;text-align:center;cursor:pointer" onclick="showDrawPass()">
-          <div id="stat-tokens-big" style="font-weight:800;font-size:18px;color:#FF9500">0</div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:4px;font-weight:800;font-size:18px;color:#FF9500"><svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;flex-shrink:0"><path d="M12 1L23 10L12 23L1 10Z" fill="#FFD60A" stroke="#C8A000" stroke-width="1.5"/><path d="M12 8L18 13L12 23L6 13Z" fill="#C8A000"/><line x1="12" y1="15" x2="12" y2="23" stroke="#1C1B2E" stroke-width="2" stroke-linecap="round"/></svg><span id="stat-tokens-big">0</span></div>
           <div style="font-size:9px;color:#9896B8">Token</div>
         </div>
       </div>
@@ -339,7 +339,7 @@ button{font-family:'Baloo 2',sans-serif;cursor:pointer}
         <div id="home-rewards-free" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px"></div>
         <div style="font-size:10px;font-weight:800;color:#9896B8;letter-spacing:1px;margin:10px 0 8px">PREMI PREMIUM</div>
         <div id="home-rewards-premium" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px"></div>
-        <button onclick="showDrawPass()" style="width:100%;margin-top:10px;padding:8px;background:rgba(255,214,10,.1);border:1px solid rgba(255,214,10,.25);border-radius:10px;color:#FFD60A;font-weight:800;font-size:11px;cursor:pointer">🪙 DrawPass Shop</button>
+        <button onclick="showDrawPass()" style="width:100%;margin-top:10px;padding:8px;background:rgba(255,214,10,.1);border:1px solid rgba(255,214,10,.25);border-radius:10px;color:#FFD60A;font-weight:800;font-size:11px;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;flex-shrink:0"><path d="M12 1L23 10L12 23L1 10Z" fill="#FFD60A" stroke="#C8A000" stroke-width="1.5"/><path d="M12 8L18 13L12 23L6 13Z" fill="#C8A000"/><line x1="12" y1="15" x2="12" y2="23" stroke="#1C1B2E" stroke-width="2" stroke-linecap="round"/></svg> DrawPass Shop</button>
       </div>
     </div>
 
@@ -4383,300 +4383,73 @@ function setHomeView(view){
     if(cg)cg.style.display="none";
     if(fc)fc.style.display="none";
     if(st)st.textContent="Skill Tree";
-    if(tv){tv.style.display="block";try{renderSkillTreeView(tv);}catch(e){console.error("SkillTree:",e);tv.innerHTML="<div style='padding:20px;color:#9896B8'>Caricamento skill tree...</div>";}}
-  }
-}
-
-/* ═══════════════ INIT ═══════════════ */
-
-
-
-function goBackFromLesson(){
-  if(A.cat && A.lesson){
-    localSet("dl:last", JSON.stringify({
-      catId:A.cat.id, lesId:A.lesson.id, step:A.step,
-      title:A.lesson.title, icon:A.lesson.icon||"", catIcon:A.cat.icon
-    }));
-  }
-  renderCategory();
-  showScreen("category");
-}
-
-function continueLastLesson(){
-  var last=localGet("dl:last");
-  if(!last) return;
-  try{ last=JSON.parse(last); }catch(e){ return; }
-  var cat=CATS.find(function(c){return c.id===last.catId;});
-  if(!cat) return;
-  var les=cat.levels.find(function(l){return l.id===last.lesId;});
-  if(!les) return;
-  A.cat=cat; A.lesson=les;
-  A.step=Math.max(0,(last.step||0));
-  renderLesson(); showScreen("lesson");
-}
-
-/* ═══════════════ LEVEL SYSTEM ═══════════════ */
-var LEVELS = [
-  {min:0,  max:0,  name:"Principiante", icon:"🌱", color:"#9896B8"},
-  {min:1,  max:2,  name:"Apprendista",  icon:"✏️", color:"#3DBE7A"},
-  {min:3,  max:5,  name:"Intermedio",   icon:"🖌️", color:"#3B9FD4"},
-  {min:6,  max:9,  name:"Avanzato",     icon:"🎨", color:"#8B5CF6"},
-  {min:10, max:13, name:"Esperto",      icon:"⭐", color:"#D4A200"},
-  {min:14, max:17, name:"Maestro",      icon:"🏆", color:"#FF8C4B"},
-  {min:18, max:18, name:"Leggenda",     icon:"👑", color:"#FFD60A"},
-];
-
-function getLevel(done){
-  for(var i=LEVELS.length-1;i>=0;i--){
-    if(done>=LEVELS[i].min) return LEVELS[i];
-  }
-  return LEVELS[0];
-}
-
-function getLevelProgress(done){
-  var lv=getLevel(done);
-  if(done>=18) return 100;
-  var range=lv.max-lv.min+1;
-  var progress=done-lv.min;
-  return Math.round((progress/range)*100);
-}
-
-/* ═══════════════ OAUTH (Google via Supabase Auth) ═══════════════ */
-function loginWithGoogle(){
-  var redirectTo = encodeURIComponent(window.location.origin + window.location.pathname);
-  window.location.href = SB_URL + "/auth/v1/authorize?provider=google&redirect_to=" + redirectTo;
-}
-
-function loginWithApple(){
-  var redirectTo = encodeURIComponent(window.location.origin + window.location.pathname);
-  window.location.href = SB_URL + "/auth/v1/authorize?provider=apple&redirect_to=" + redirectTo;
-}
-
-async function checkOAuthCallback(){
-  var hash = window.location.hash;
-  if(!hash || !hash.includes("access_token")) return false;
-  try {
-    var params = new URLSearchParams(hash.substring(1));
-    var accessToken = params.get("access_token");
-    if(!accessToken) return false;
-    showScreen("splash");
-    setStatus("Accesso social...");
-    // Get user info from Supabase Auth
-    var res = await fetch(SB_URL + "/auth/v1/user", {
-      headers: {"Authorization":"Bearer "+accessToken,"apikey":SB_KEY}
-    });
-    if(!res.ok) return false;
-    var authUser = await res.json();
-    var meta = authUser.user_metadata || {};
-    var userId = "oauth-" + (authUser.id||"").substring(0,12);
-    var provider = (authUser.app_metadata||{}).provider || "google";
-    var avatarMap = {google:"🔵", apple:"⚫", facebook:"🔷"};
-    var user = {
-      id: userId,
-      name: meta.full_name || meta.name || authUser.email.split("@")[0],
-      email: authUser.email,
-      avatar: avatarMap[provider] || "👤",
-      provider: provider,
-      r: new Date().toISOString()
-    };
-    // Save to dl_users (upsert)
-    await sbFetch("POST","dl_users",{body:{id:user.id,name:user.name,email:user.email,pwd_hash:"",avatar:user.avatar,provider:user.provider,created_at:user.r}});
-    localSet("dl:uid", user.id);
-    A.user = user;
-    // Clean URL
-    history.replaceState(null, null, window.location.pathname);
-    setStatus("");
-    await onLogin();
-    showToast("Benvenuto, "+user.name.split(" ")[0]+"!","");
-    return true;
-  } catch(e) {
-    console.error("OAuth callback error:", e);
-    setStatus("");
-    return false;
+    if(tv){tv.style.display="block";try{renderSkillTreeView(tv);}catch(e){console.error("SkillTree:",e);tv.innerHTML="<div style='padding:20px;color:#9896B8;text-align:center'>Errore skill tree: "+e.message+"</div>";}}
   }
 }
 
 
-/* ═══════════════ XP SYSTEM ═══════════════ */
-var XP_LEVELS=[0,100,250,500,1000,2000,4000,8000];
-function getXP(){return parseInt(localGet("dl:xp")||"0");}
-function getXPLevel(xp){var l=0;for(var i=0;i<XP_LEVELS.length;i++){if(xp>=XP_LEVELS[i])l=i;}return l;}
-function addXP(amt){
-  var prev=getXP(),next=prev+amt;
-  localSet("dl:xp",next);
-  var pl=getXPLevel(prev),nl=getXPLevel(next);
-  if(nl>pl){setTokens(getTokens()+(nl-pl));showParticles();setTimeout(function(){showToast("Livello "+(nl)+"! +"+(nl-pl)+" token","");},400);}
-  updateXPBar();
-}
-function updateXPBar(){
-  var xp=getXP(),lv=getXPLevel(xp);
-  var nxt=XP_LEVELS[Math.min(lv+1,XP_LEVELS.length-1)];
-  var prv=XP_LEVELS[lv];
-  var pct=nxt>prv?Math.round((xp-prv)/(nxt-prv)*100):100;
-  var el=document.getElementById("xp-bar");
-  var el2=document.getElementById("xp-text");
-  if(el)el.style.width=pct+"%";
-  if(el2)el2.textContent="Lv."+lv+" \xb7 "+xp+" XP";
+/* ═══════════════ NIB ICON ═══════════════ */
+function nibIcon(size){
+  size=size||16;
+  return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;flex-shrink:0"><path d="M12 1L23 10L12 23L1 10Z" fill="#FFD60A" stroke="#C8A000" stroke-width="1.5"/><path d="M12 8L18 13L12 23L6 13Z" fill="#C8A000"/><line x1="12" y1="15" x2="12" y2="23" stroke="#1C1B2E" stroke-width="2" stroke-linecap="round"/></svg>';
 }
 
-/* ═══════════════ 3-STAR MASTERY ═══════════════ */
-function getStars(catId,lesId){var k=catId+"-"+lesId;var d=JSON.parse(localGet("dl:stars")||"{}");return d[k]||{s1:false,s2:false,s3:false};}
-function setStars(catId,lesId,stars){var k=catId+"-"+lesId;var d=JSON.parse(localGet("dl:stars")||"{}");var prev=d[k]||{s1:false,s2:false,s3:false};d[k]=Object.assign(prev,stars);localSet("dl:stars",JSON.stringify(d));if(!prev.s1&&d[k].s1)addXP(50);if(!prev.s2&&d[k].s2)addXP(75);if(!prev.s3&&d[k].s3)addXP(100);}
-function getTotalStars(){var d=JSON.parse(localGet("dl:stars")||"{}");var t=0;Object.values(d).forEach(function(s){if(s.s1)t++;if(s.s2)t++;if(s.s3)t++;});return t;}
-function starStr(n){var r="";for(var i=0;i<3;i++)r+=(i<n?"⭐":"☆");return r;}
+/* ═══════════════ SKILL TREE RENDERER ═══════════════ */
 
-/* ═══════════════ PARTICLE EFFECTS ═══════════════ */
-function showParticles(x,y){
-  var c=document.createElement("div");
-  c.style.cssText="position:fixed;pointer-events:none;z-index:9999;top:0;left:0;width:100%;height:100%";
-  var cols=["#FFD60A","#8B5CF6","#3DBE7A","#FF6B00","#e74c3c","#3B9FD4"];
-  var cx=x||window.innerWidth/2,cy=y||200;
-  for(var i=0;i<20;i++){
-    var p=document.createElement("div");
-    var col=cols[i%cols.length];
-    var ang=Math.random()*Math.PI*2,spd=50+Math.random()*100,sz=4+Math.random()*5;
-    p.style.cssText="position:absolute;width:"+sz+"px;height:"+sz+"px;background:"+col+";border-radius:"+(Math.random()>0.5?"50%":"2px")+";left:"+cx+"px;top:"+cy+"px;";
-    var vx=Math.cos(ang)*spd,vy=Math.sin(ang)*spd-60,st=Date.now();
-    c.appendChild(p);
-    (function(el,vx2,vy2,s){
-      function a(){var t=(Date.now()-s)/1000,op=Math.max(0,1-t*1.8);
-        if(op<=0){el.remove();return;}
-        el.style.transform="translate("+vx2*t+"px,"+(vy2*t+150*t*t)+"px) rotate("+(t*360)+"deg)";
-        el.style.opacity=op;requestAnimationFrame(a);}
-      requestAnimationFrame(a);
-    })(p,vx,vy,st);
-  }
-  document.body.appendChild(c);setTimeout(function(){c.remove();},2000);
-}
-
-/* ═══════════════ STREAK BANNER ═══════════════ */
-function renderStreakBanner(){
-  var s=getStreakData();
-  var today=new Date().toISOString().slice(0,10);
-  var doneToday=s.last===today;
-  var banner=document.getElementById("streak-banner");
-  var countEl=document.getElementById("streak-count-big");
-  var multEl=document.getElementById("streak-mult-label");
-  var todayEl=document.getElementById("streak-today");
-  var badgeEl=document.getElementById("streak-badge");
-  if(s.count>0){
-    if(banner)banner.style.display="flex";
-    var m=getStreakMultiplier(s.count);
-    if(countEl)countEl.textContent=s.count;
-    if(multEl)multEl.textContent=m.label;
-    if(todayEl){todayEl.textContent=doneToday?"✅ Oggi completato!":"⚠️ Disegna oggi!";todayEl.style.background=doneToday?"rgba(61,190,122,.3)":"rgba(255,100,0,.3)";}
-    if(badgeEl){
-      badgeEl.style.display="inline-flex";
-      badgeEl.innerHTML='<div style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,107,0,.2);border:1px solid rgba(255,107,0,.4);border-radius:50px;padding:3px 8px"><span style="font-size:11px">🔥</span><span style="font-size:10px;font-weight:800;color:#FF6B00">'+s.count+'g \xb7 '+m.label+'</span></div>';
-    }
-  } else {
-    if(banner)banner.style.display="none";
-    if(badgeEl)badgeEl.style.display="none";
-  }
-}
-
-/* ═══════════════ STREAK FREEZE ═══════════════ */
-function offerStreakFreeze(){
-  var s=getStreakData();
-  if(s.count<3)return;
-  var today=new Date().toISOString().slice(0,10);
-  var yesterday=new Date(Date.now()-86400000).toISOString().slice(0,10);
-  if(s.last===today||s.last===yesterday)return;
-  if(getTokens()<2)return;
-  if(confirm("🔥 Streak di "+s.count+" giorni a rischio!\n\nSpendi 2 token per congelarlo?")){
-    if(getTokens()>=2){setTokens(getTokens()-2);var d=JSON.parse(localGet("dl:streak")||"{}");d.last=today;localSet("dl:streak",JSON.stringify(d));showToast("Streak congelato! 🧊","");}
-  }
-}
-
-/* ═══════════════ VIRAL SHARE 9:16 ═══════════════ */
-async function shareResult(imageUrl,caption){
-  showToast("Creazione card...","");
-  var canvas=document.createElement("canvas");
-  canvas.width=1080;canvas.height=1920;
-  var ctx=canvas.getContext("2d");
-  var grad=ctx.createLinearGradient(0,0,0,1920);
-  grad.addColorStop(0,"#0F0E1A");grad.addColorStop(0.5,"#1e1b3a");grad.addColorStop(1,"#0F0E1A");
-  ctx.fillStyle=grad;ctx.fillRect(0,0,1080,1920);
-  ctx.fillStyle="rgba(139,92,246,0.12)";ctx.beginPath();ctx.arc(200,400,300,0,Math.PI*2);ctx.fill();
-  if(imageUrl){
-    await new Promise(function(res){
-      var img=new Image();img.crossOrigin="anonymous";
-      img.onload=function(){ctx.drawImage(img,90,400,900,900);res();};
-      img.onerror=res;img.src=imageUrl;
-    });
-  }
-  ctx.font="bold 52px Arial";ctx.fillStyle="#fff";ctx.textAlign="center";
-  ctx.fillText(A.user?A.user.name:"DrawBound Artist",540,290);
-  ctx.font="36px Arial";ctx.fillStyle="#9896B8";
-  ctx.fillText("Ha imparato a disegnare su DrawBound",540,345);
-  if(caption){ctx.font="bold 40px Arial";ctx.fillStyle="#fff";ctx.fillText(caption.substring(0,40),540,1380);}
-  ctx.fillStyle="rgba(139,92,246,0.3)";ctx.fillRect(0,1750,1080,170);
-  ctx.font="bold 52px Arial";ctx.fillStyle="#fff";ctx.textAlign="center";
-  ctx.fillText("✏️ DrawBound",540,1830);
-  ctx.font="36px Arial";ctx.fillStyle="#9896B8";
-  ctx.fillText("Impara a disegnare · drawbound.app",540,1885);
-  canvas.toBlob(async function(blob){
-    var file=new File([blob],"drawbound-share.png",{type:"image/png"});
-    if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
-      try{await navigator.share({title:"DrawBound",text:caption||"Il mio disegno su DrawBound!",files:[file]});return;}catch(e){}
-    }
-    var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="drawbound-share.png";a.click();
-    showToast("Card scaricata per TikTok/Instagram!","🎨");
-  },"image/png");
-}
-
-/* ═══════════════ PRO BENEFITS POPUP ═══════════════ */
-function showProBenefits(){
-  var modal=document.createElement("div");
-  modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:990;display:flex;align-items:center;justify-content:center;padding:20px";
-  var benefits=[
-    ["🎨","Tutte le lezioni avanzate","Accesso immediato a tutti i corsi"],
-    ["🪙","5 token mensili inclusi","Ricevi DrawToken ogni mese"],
-    ["👑","Badge PRO sul profilo","Mostra il tuo status"],
-    ["🖼️","Cornici esclusive","Solo per gli abbonati"],
-    ["🏆","Certificati digitali","Per ogni categoria completata"],
-    ["📊","Analytics apprendimento","Statistiche dettagliate"],
-    ["🚫","Senza interruzioni","Esperienza pulita"],
-  ];
-  modal.innerHTML='<div style="background:linear-gradient(135deg,#1e1b3a,#2d2a4a);border-radius:20px;width:100%;max-width:380px;max-height:90vh;overflow-y:auto;padding:24px;border:1px solid rgba(255,214,10,.3)">'+
-    '<div style="text-align:center;margin-bottom:16px"><div style="font-size:44px;margin-bottom:6px">👑</div><div style="font-weight:800;font-size:22px;color:#FFD60A">DrawBound PRO</div><div style="color:#9896B8;font-size:12px;margin-top:4px">Tutto incluso nel piano</div></div>'+
-    '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px">'+
-    benefits.map(function(b){return '<div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.06);border-radius:10px;padding:10px 12px"><span style="font-size:18px;flex-shrink:0">'+b[0]+'</span><div style="flex:1"><div style="font-weight:700;font-size:13px;color:#fff">'+b[1]+'</div><div style="font-size:11px;color:#9896B8">'+b[2]+'</div></div><span style="color:#3DBE7A;font-size:16px">✓</span></div>';}).join("")+
-    '</div>'+
-    '<button onclick="showScreen(\'paywall\');document.querySelector(\'[data-pro-modal]\').remove()" style="width:100%;padding:14px;background:linear-gradient(135deg,#FFD60A,#FF9500);border:none;border-radius:12px;color:#fff;font-weight:800;font-size:15px;cursor:pointer;margin-bottom:8px">Abbonati — da €4,99/mese</button>'+
-    '<button onclick="this.closest(\'[data-pro-modal]\').remove()" style="width:100%;padding:10px;background:none;border:none;color:#9896B8;font-size:12px;cursor:pointer">Chiudi</button>'+
-    '</div>';
-  modal.setAttribute("data-pro-modal","1");
-  document.body.appendChild(modal);
-}
-
-
-/* ═══════════════ SKILL VIEW TOGGLE ═══════════════ */
-var _skillView="list";
-function setHomeView(view){
-  _skillView=view;
-  var lb=document.getElementById("view-list-btn"),tb=document.getElementById("view-tree-btn");
-  var cg=document.getElementById("cat-grid"),tv=document.getElementById("skill-tree-view");
-  var fc=document.getElementById("home-feature-cards"),st=document.getElementById("section-title");
-  if(view==="list"){
-    if(lb){lb.style.background="#8B5CF6";lb.style.color="#fff";}
-    if(tb){tb.style.background="rgba(255,255,255,.08)";tb.style.color="#9896B8";}
-    if(cg)cg.style.display="grid";
-    if(tv)tv.style.display="none";
-    if(fc)fc.style.display="grid";
-    if(st)st.textContent="Categorie";
-  } else {
-    if(tb){tb.style.background="#8B5CF6";tb.style.color="#fff";}
-    if(lb){lb.style.background="rgba(255,255,255,.08)";lb.style.color="#9896B8";}
-    if(cg)cg.style.display="none";
-    if(fc)fc.style.display="none";
-    if(st)st.textContent="Skill Tree";
-    if(tv){tv.style.display="block";try{renderSkillTreeView(tv);}catch(e){console.error("SkillTree:",e);tv.innerHTML="<div style='padding:20px;color:#9896B8'>Caricamento skill tree...</div>";}}
-  }
-}
-
-/* ═══════════════ INIT ═══════════════ */
 function setStatus(msg){ var el=document.getElementById("splash-status"); if(el) el.textContent=msg; }
+
+
+/* ═══════════════ SKILL TREE RENDERER ═══════════════ */
+function renderSkillTreeView(container){
+  if(!container) return;
+  container.innerHTML="";
+  var S=SKILL_TREE;
+  if(!S||!S.trunk){container.innerHTML="<div style='padding:20px;color:#9896B8;text-align:center'>Skill tree non disponibile</div>";return;}
+  function ld(lessons){if(!lessons||!lessons.length)return false;return lessons.every(function(l){var p=l.split("-");if(p.length<2)return false;var k=pk(p[0],parseInt(p[1]));return A.progress[k]&&A.progress[k].completed;});}
+  function tDone(){return S.trunk.nodes.every(function(n){return ld(n.lessons);});}
+  function nStars(id){var s=getStars("skill",id);return(s.s1?1:0)+(s.s2?1:0)+(s.s3?1:0);}
+  function starRow(n){var r="";for(var i=0;i<3;i++)r+=i<n?"⭐":"☆";return r;}
+  var trunkOK=tDone();
+  // TRUNK
+  var trunk=document.createElement("div");
+  trunk.style.cssText="background:linear-gradient(135deg,rgba(61,190,122,.12),rgba(61,190,122,.04));border:1px solid rgba(61,190,122,.35);border-radius:16px;padding:14px;margin-bottom:16px";
+  var hdr=document.createElement("div");
+  hdr.style.cssText="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid rgba(61,190,122,.2)";
+  hdr.innerHTML="<div style='width:42px;height:42px;background:rgba(61,190,122,.2);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px'>🌱</div><div style='flex:1'><div style='font-weight:800;font-size:15px;color:#fff'>Fondamentali</div><div style='font-size:11px;color:#9896B8'>Percorso obbligatorio — completa per sbloccare i rami</div></div>"+(trunkOK?"<span style='font-size:22px'>🏆</span>":"");
+  trunk.appendChild(hdr);
+  S.trunk.nodes.forEach(function(node,i){
+    var done=ld(node.lessons),prev=i===0||ld(S.trunk.nodes[i-1].lessons||[]),stars=nStars(node.id);
+    var row=document.createElement("div");
+    row.style.cssText="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,"+(prev?".08":".03")+");border-radius:10px;padding:10px 12px;opacity:"+(prev?1:.4)+";cursor:"+(prev&&node.lessons&&node.lessons.length?"pointer":"default")+";margin-bottom:5px";
+    row.innerHTML="<div style='width:38px;height:38px;border-radius:50%;background:"+(done?"#3DBE7A":prev?"rgba(61,190,122,.2)":"rgba(255,255,255,.06)")+";display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;border:2px solid "+(done?"#3DBE7A":prev?"rgba(61,190,122,.4)":"rgba(255,255,255,.1)")+"'>"+(done?"✅":node.icon)+"</div><div style='flex:1'><div style='font-weight:700;font-size:13px;color:"+(prev?"#fff":"#9896B8")+"'>"+node.label+"</div><div style='font-size:10px;color:#9896B8'>"+starRow(stars)+"</div></div><div style='font-size:11px;font-weight:700;color:"+(done?"#3DBE7A":"#9896B8")+"'>"+(done?"✓":prev&&node.lessons&&node.lessons.length?"→":"")+"</div>";
+    if(prev&&node.lessons&&node.lessons.length)(function(lid){row.onclick=function(){startFirstLesson(lid);};})(node.lessons[0]);
+    trunk.appendChild(row);
+  });
+  container.appendChild(trunk);
+  // CONNECTOR
+  var conn=document.createElement("div");
+  conn.style.cssText="display:flex;flex-direction:column;align-items:center;margin-bottom:14px";
+  conn.innerHTML="<div style='width:2px;height:16px;background:"+(trunkOK?"#3DBE7A":"rgba(255,255,255,.12)")+"'></div><div style='border-radius:50px;padding:4px 14px;font-size:11px;font-weight:700;border:1px solid "+(trunkOK?"rgba(61,190,122,.5)":"rgba(255,255,255,.1)")+";color:"+(trunkOK?"#3DBE7A":"#9896B8")+";background:"+(trunkOK?"rgba(61,190,122,.15)":"rgba(255,255,255,.05)")+"'>"+(trunkOK?"🔓 Rami sbloccati":"🔒 Completa il tronco per sbloccare")+"</div><div style='width:2px;height:16px;background:rgba(255,255,255,.1)'></div>";
+  container.appendChild(conn);
+  // BRANCHES
+  S.branches.forEach(function(branch){
+    var bEl=document.createElement("div");
+    bEl.style.cssText="border-radius:16px;padding:14px;margin-bottom:12px;border:1px solid rgba(255,255,255,"+(trunkOK?".1":".04")+");opacity:"+(trunkOK?1:.55);
+    var bHdr=document.createElement("div");
+    bHdr.style.cssText="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.06)";
+    bHdr.innerHTML="<div style='width:42px;height:42px;background:"+branch.bg+"22;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px'>"+branch.icon+"</div><div style='flex:1'><div style='font-weight:800;font-size:15px;color:#fff'>"+branch.label+"</div><div style='font-size:10px;font-weight:600;color:"+(trunkOK?branch.color:"#9896B8")+"'>"+(trunkOK?"Sbloccato ✓":"🔒 Completa i Fondamentali prima")+"</div></div>";
+    bEl.appendChild(bHdr);
+    branch.nodes.forEach(function(node){
+      var done=ld(node.lessons||[]),open=trunkOK&&!node.locked,stars=nStars(node.id);
+      var nRow=document.createElement("div");
+      nRow.style.cssText="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,"+(open?".07":".02")+");border-left:3px solid "+(done?branch.color:open?"rgba(255,255,255,.2)":"rgba(255,255,255,.05)")+";border-radius:0 10px 10px 0;padding:9px 12px;opacity:"+(open?1:.4)+";cursor:"+(open&&node.lessons&&node.lessons.length?"pointer":"default")+";margin-bottom:5px";
+      nRow.innerHTML="<div style='font-size:20px;width:28px;text-align:center'>"+(node.locked?"🔒":done?"✅":node.icon)+"</div><div style='flex:1'><div style='font-weight:700;font-size:12px;color:"+(open?"#fff":"#9896B8")+"'>"+node.label+"</div><div style='font-size:9px;color:#9896B8'>"+(node.locked?"Prerequisiti mancanti":starRow(stars))+"</div></div>"+(done?"<span style='color:"+branch.color+";font-size:11px;font-weight:700'>✓</span>":open&&node.lessons&&node.lessons.length?"<span style='color:#9896B8'>→</span>":"");
+      if(open&&node.lessons&&node.lessons.length)(function(lid){nRow.onclick=function(){startFirstLesson(lid);};})(node.lessons[0]);
+      bEl.appendChild(nRow);
+    });
+    container.appendChild(bEl);
+  });
+}
 
 function init(){
   applyTheme(); // Apply saved theme
