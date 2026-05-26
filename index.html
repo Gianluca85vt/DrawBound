@@ -527,7 +527,7 @@ button{font-family:'Baloo 2',sans-serif;cursor:pointer}
         <div style="width:1px;background:rgba(255,255,255,.1)"></div>
         <div style="text-align:center"><div id="prof-stat-cats" style="font-weight:800;font-size:22px;color:#FFD60A">0</div><div style="font-size:10px;color:#9896B8">Categorie</div></div>
         <div style="width:1px;background:rgba(255,255,255,.1)"></div>
-        <div style="text-align:center"><div id="prof-stat-pct" style="font-weight:800;font-size:22px;color:#FF9500">0%</div><div style="font-size:10px;color:#9896B8">Completato</div></div>
+        <div style="text-align:center"><div id="prof-stat-pct" style="font-weight:800;font-size:22px;color:#FF9500">0</div><div style="font-size:10px;color:#9896B8">Lezioni</div></div>
       </div>
     </div>
     <!-- Avatar selector -->
@@ -1539,11 +1539,11 @@ function renderHome(){
   if(cc&&last&&last.catId){ cc.style.display="flex"; var ci=document.getElementById("continue-icon"); if(ci) ci.textContent=last.icon||"📝"; var ct=document.getElementById("continue-title"); if(ct) ct.textContent=last.title||"Lezione"; var cs=document.getElementById("continue-step"); if(cs) cs.textContent="Passo "+(last.step+1); }
   else if(cc) cc.style.display="none";
 
-  // Streak banner + XP
-  renderStreakBanner();
+  // Streak banner + XP (safe guards)
+  try{renderStreakBanner();}catch(e){}
   updateTokenUI();
-  updateXPBar();
-  offerStreakFreeze();
+  try{updateXPBar();}catch(e){}
+  try{offerStreakFreeze();}catch(e){}
 
   // Category grid
   var grid=document.getElementById("cat-grid"); grid.innerHTML="";
@@ -1564,8 +1564,8 @@ function renderHome(){
     grid.appendChild(div);
   });
 
-  // Keep skill view
-  if(_skillView==="tree") setHomeView("tree");
+  // Restore skill view toggle state
+  try{ if(_skillView==="tree") setHomeView("tree"); } catch(e){}
 }
 
 /* ═══════════════ CATEGORY ═══════════════ */
@@ -1846,6 +1846,8 @@ function renderProfile(){
   document.getElementById("profile-name").textContent=A.user.name;
   document.getElementById("profile-email").textContent=A.user.email;
   document.getElementById("prof-stat-lessons").textContent=done;
+  var pspct=document.getElementById("prof-stat-pct"); if(pspct) pspct.textContent=done;
+  var profBio=document.getElementById("profile-bio"); if(profBio){profBio.textContent=A.user.bio||"Nessuna bio ancora";profBio.style.color=A.user.bio?"#e0ddf5":"#9896B8";}
   // Load social stats async
   if(sbReady()&&A.user){
     sbFetch("GET","dl_users",{filters:"id=eq."+A.user.id,select:"followers_count,following_count"}).then(function(r){
@@ -2179,6 +2181,15 @@ async function publishPost(){
       created_at: new Date().toISOString()
     }});
 
+    // If this is a challenge entry, save it
+    if(_activeChallengeId){
+      sbFetch("POST","dl_challenge_entries",{body:{
+        challenge_id:_activeChallengeId,
+        user_id:A.user.id,user_name:A.user.name,user_avatar:A.user.avatar||"👤",
+        image_url:imageUrl,votes:0,created_at:new Date().toISOString()
+      }}).catch(function(){});
+      _activeChallengeId=null;
+    }
     closeNewPost();
     showToast("Post pubblicato!","🎨");
     navTo("feed");
@@ -2420,9 +2431,15 @@ var _activeChallengeId=null;
 function joinChallenge(challengeId){
   if(!A.user){ showToast("Accedi per partecipare",""); return; }
   _activeChallengeId=challengeId;
-  // Reuse the new post flow but mark as challenge entry
   showNewPost();
-  showToast("Scatta il tuo disegno e pubblicalo!","🎨");
+  // Pre-fill caption with challenge tag
+  setTimeout(function(){
+    var cap=document.getElementById("post-caption");
+    var tags=document.getElementById("post-tags");
+    if(cap) cap.value="La mia versione per la sfida DrawBound!";
+    if(tags) tags.value="#DrawBound #DTIYS #sfida";
+    showToast("Scatta il tuo disegno e pubblica!","🎨");
+  },300);
 }
 
 async function viewChallengeEntries(challengeId, title){
@@ -4191,6 +4208,185 @@ async function checkOAuthCallback(){
   }
 }
 
+
+/* ═══════════════ XP SYSTEM ═══════════════ */
+var XP_LEVELS=[0,100,250,500,1000,2000,4000,8000];
+function getXP(){return parseInt(localGet("dl:xp")||"0");}
+function getXPLevel(xp){var l=0;for(var i=0;i<XP_LEVELS.length;i++){if(xp>=XP_LEVELS[i])l=i;}return l;}
+function addXP(amt){
+  var prev=getXP(),next=prev+amt;
+  localSet("dl:xp",next);
+  var pl=getXPLevel(prev),nl=getXPLevel(next);
+  if(nl>pl){setTokens(getTokens()+(nl-pl));showParticles();setTimeout(function(){showToast("Livello "+(nl)+"! +"+(nl-pl)+" token","");},400);}
+  updateXPBar();
+}
+function updateXPBar(){
+  var xp=getXP(),lv=getXPLevel(xp);
+  var nxt=XP_LEVELS[Math.min(lv+1,XP_LEVELS.length-1)];
+  var prv=XP_LEVELS[lv];
+  var pct=nxt>prv?Math.round((xp-prv)/(nxt-prv)*100):100;
+  var el=document.getElementById("xp-bar");
+  var el2=document.getElementById("xp-text");
+  if(el)el.style.width=pct+"%";
+  if(el2)el2.textContent="Lv."+lv+" \xb7 "+xp+" XP";
+}
+
+/* ═══════════════ 3-STAR MASTERY ═══════════════ */
+function getStars(catId,lesId){var k=catId+"-"+lesId;var d=JSON.parse(localGet("dl:stars")||"{}");return d[k]||{s1:false,s2:false,s3:false};}
+function setStars(catId,lesId,stars){var k=catId+"-"+lesId;var d=JSON.parse(localGet("dl:stars")||"{}");var prev=d[k]||{s1:false,s2:false,s3:false};d[k]=Object.assign(prev,stars);localSet("dl:stars",JSON.stringify(d));if(!prev.s1&&d[k].s1)addXP(50);if(!prev.s2&&d[k].s2)addXP(75);if(!prev.s3&&d[k].s3)addXP(100);}
+function getTotalStars(){var d=JSON.parse(localGet("dl:stars")||"{}");var t=0;Object.values(d).forEach(function(s){if(s.s1)t++;if(s.s2)t++;if(s.s3)t++;});return t;}
+function starStr(n){var r="";for(var i=0;i<3;i++)r+=(i<n?"⭐":"☆");return r;}
+
+/* ═══════════════ PARTICLE EFFECTS ═══════════════ */
+function showParticles(x,y){
+  var c=document.createElement("div");
+  c.style.cssText="position:fixed;pointer-events:none;z-index:9999;top:0;left:0;width:100%;height:100%";
+  var cols=["#FFD60A","#8B5CF6","#3DBE7A","#FF6B00","#e74c3c","#3B9FD4"];
+  var cx=x||window.innerWidth/2,cy=y||200;
+  for(var i=0;i<20;i++){
+    var p=document.createElement("div");
+    var col=cols[i%cols.length];
+    var ang=Math.random()*Math.PI*2,spd=50+Math.random()*100,sz=4+Math.random()*5;
+    p.style.cssText="position:absolute;width:"+sz+"px;height:"+sz+"px;background:"+col+";border-radius:"+(Math.random()>0.5?"50%":"2px")+";left:"+cx+"px;top:"+cy+"px;";
+    var vx=Math.cos(ang)*spd,vy=Math.sin(ang)*spd-60,st=Date.now();
+    c.appendChild(p);
+    (function(el,vx2,vy2,s){
+      function a(){var t=(Date.now()-s)/1000,op=Math.max(0,1-t*1.8);
+        if(op<=0){el.remove();return;}
+        el.style.transform="translate("+vx2*t+"px,"+(vy2*t+150*t*t)+"px) rotate("+(t*360)+"deg)";
+        el.style.opacity=op;requestAnimationFrame(a);}
+      requestAnimationFrame(a);
+    })(p,vx,vy,st);
+  }
+  document.body.appendChild(c);setTimeout(function(){c.remove();},2000);
+}
+
+/* ═══════════════ STREAK BANNER ═══════════════ */
+function renderStreakBanner(){
+  var s=getStreakData();
+  var today=new Date().toISOString().slice(0,10);
+  var doneToday=s.last===today;
+  var banner=document.getElementById("streak-banner");
+  var countEl=document.getElementById("streak-count-big");
+  var multEl=document.getElementById("streak-mult-label");
+  var todayEl=document.getElementById("streak-today");
+  var badgeEl=document.getElementById("streak-badge");
+  if(s.count>0){
+    if(banner)banner.style.display="flex";
+    var m=getStreakMultiplier(s.count);
+    if(countEl)countEl.textContent=s.count;
+    if(multEl)multEl.textContent=m.label;
+    if(todayEl){todayEl.textContent=doneToday?"✅ Oggi completato!":"⚠️ Disegna oggi!";todayEl.style.background=doneToday?"rgba(61,190,122,.3)":"rgba(255,100,0,.3)";}
+    if(badgeEl){
+      badgeEl.style.display="inline-flex";
+      badgeEl.innerHTML='<div style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,107,0,.2);border:1px solid rgba(255,107,0,.4);border-radius:50px;padding:3px 8px"><span style="font-size:11px">🔥</span><span style="font-size:10px;font-weight:800;color:#FF6B00">'+s.count+'g \xb7 '+m.label+'</span></div>';
+    }
+  } else {
+    if(banner)banner.style.display="none";
+    if(badgeEl)badgeEl.style.display="none";
+  }
+}
+
+/* ═══════════════ STREAK FREEZE ═══════════════ */
+function offerStreakFreeze(){
+  var s=getStreakData();
+  if(s.count<3)return;
+  var today=new Date().toISOString().slice(0,10);
+  var yesterday=new Date(Date.now()-86400000).toISOString().slice(0,10);
+  if(s.last===today||s.last===yesterday)return;
+  if(getTokens()<2)return;
+  if(confirm("🔥 Streak di "+s.count+" giorni a rischio!\n\nSpendi 2 token per congelarlo?")){
+    if(getTokens()>=2){setTokens(getTokens()-2);var d=JSON.parse(localGet("dl:streak")||"{}");d.last=today;localSet("dl:streak",JSON.stringify(d));showToast("Streak congelato! 🧊","");}
+  }
+}
+
+/* ═══════════════ VIRAL SHARE 9:16 ═══════════════ */
+async function shareResult(imageUrl,caption){
+  showToast("Creazione card...","");
+  var canvas=document.createElement("canvas");
+  canvas.width=1080;canvas.height=1920;
+  var ctx=canvas.getContext("2d");
+  var grad=ctx.createLinearGradient(0,0,0,1920);
+  grad.addColorStop(0,"#0F0E1A");grad.addColorStop(0.5,"#1e1b3a");grad.addColorStop(1,"#0F0E1A");
+  ctx.fillStyle=grad;ctx.fillRect(0,0,1080,1920);
+  ctx.fillStyle="rgba(139,92,246,0.12)";ctx.beginPath();ctx.arc(200,400,300,0,Math.PI*2);ctx.fill();
+  if(imageUrl){
+    await new Promise(function(res){
+      var img=new Image();img.crossOrigin="anonymous";
+      img.onload=function(){ctx.drawImage(img,90,400,900,900);res();};
+      img.onerror=res;img.src=imageUrl;
+    });
+  }
+  ctx.font="bold 52px Arial";ctx.fillStyle="#fff";ctx.textAlign="center";
+  ctx.fillText(A.user?A.user.name:"DrawBound Artist",540,290);
+  ctx.font="36px Arial";ctx.fillStyle="#9896B8";
+  ctx.fillText("Ha imparato a disegnare su DrawBound",540,345);
+  if(caption){ctx.font="bold 40px Arial";ctx.fillStyle="#fff";ctx.fillText(caption.substring(0,40),540,1380);}
+  ctx.fillStyle="rgba(139,92,246,0.3)";ctx.fillRect(0,1750,1080,170);
+  ctx.font="bold 52px Arial";ctx.fillStyle="#fff";ctx.textAlign="center";
+  ctx.fillText("✏️ DrawBound",540,1830);
+  ctx.font="36px Arial";ctx.fillStyle="#9896B8";
+  ctx.fillText("Impara a disegnare · drawbound.app",540,1885);
+  canvas.toBlob(async function(blob){
+    var file=new File([blob],"drawbound-share.png",{type:"image/png"});
+    if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+      try{await navigator.share({title:"DrawBound",text:caption||"Il mio disegno su DrawBound!",files:[file]});return;}catch(e){}
+    }
+    var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="drawbound-share.png";a.click();
+    showToast("Card scaricata per TikTok/Instagram!","🎨");
+  },"image/png");
+}
+
+/* ═══════════════ PRO BENEFITS POPUP ═══════════════ */
+function showProBenefits(){
+  var modal=document.createElement("div");
+  modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:990;display:flex;align-items:center;justify-content:center;padding:20px";
+  var benefits=[
+    ["🎨","Tutte le lezioni avanzate","Accesso immediato a tutti i corsi"],
+    ["🪙","5 token mensili inclusi","Ricevi DrawToken ogni mese"],
+    ["👑","Badge PRO sul profilo","Mostra il tuo status"],
+    ["🖼️","Cornici esclusive","Solo per gli abbonati"],
+    ["🏆","Certificati digitali","Per ogni categoria completata"],
+    ["📊","Analytics apprendimento","Statistiche dettagliate"],
+    ["🚫","Senza interruzioni","Esperienza pulita"],
+  ];
+  modal.innerHTML='<div style="background:linear-gradient(135deg,#1e1b3a,#2d2a4a);border-radius:20px;width:100%;max-width:380px;max-height:90vh;overflow-y:auto;padding:24px;border:1px solid rgba(255,214,10,.3)">'+
+    '<div style="text-align:center;margin-bottom:16px"><div style="font-size:44px;margin-bottom:6px">👑</div><div style="font-weight:800;font-size:22px;color:#FFD60A">DrawBound PRO</div><div style="color:#9896B8;font-size:12px;margin-top:4px">Tutto incluso nel piano</div></div>'+
+    '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px">'+
+    benefits.map(function(b){return '<div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.06);border-radius:10px;padding:10px 12px"><span style="font-size:18px;flex-shrink:0">'+b[0]+'</span><div style="flex:1"><div style="font-weight:700;font-size:13px;color:#fff">'+b[1]+'</div><div style="font-size:11px;color:#9896B8">'+b[2]+'</div></div><span style="color:#3DBE7A;font-size:16px">✓</span></div>';}).join("")+
+    '</div>'+
+    '<button onclick="showScreen(\'paywall\');document.querySelector(\'[data-pro-modal]\').remove()" style="width:100%;padding:14px;background:linear-gradient(135deg,#FFD60A,#FF9500);border:none;border-radius:12px;color:#fff;font-weight:800;font-size:15px;cursor:pointer;margin-bottom:8px">Abbonati — da €4,99/mese</button>'+
+    '<button onclick="this.closest(\'[data-pro-modal]\').remove()" style="width:100%;padding:10px;background:none;border:none;color:#9896B8;font-size:12px;cursor:pointer">Chiudi</button>'+
+    '</div>';
+  modal.setAttribute("data-pro-modal","1");
+  document.body.appendChild(modal);
+}
+
+
+/* ═══════════════ SKILL VIEW TOGGLE ═══════════════ */
+var _skillView="list";
+function setHomeView(view){
+  _skillView=view;
+  var lb=document.getElementById("view-list-btn"),tb=document.getElementById("view-tree-btn");
+  var cg=document.getElementById("cat-grid"),tv=document.getElementById("skill-tree-view");
+  var fc=document.getElementById("home-feature-cards"),st=document.getElementById("section-title");
+  if(view==="list"){
+    if(lb){lb.style.background="#8B5CF6";lb.style.color="#fff";}
+    if(tb){tb.style.background="rgba(255,255,255,.08)";tb.style.color="#9896B8";}
+    if(cg)cg.style.display="grid";
+    if(tv)tv.style.display="none";
+    if(fc)fc.style.display="grid";
+    if(st)st.textContent="Categorie";
+  } else {
+    if(tb){tb.style.background="#8B5CF6";tb.style.color="#fff";}
+    if(lb){lb.style.background="rgba(255,255,255,.08)";lb.style.color="#9896B8";}
+    if(cg)cg.style.display="none";
+    if(fc)fc.style.display="none";
+    if(st)st.textContent="Skill Tree";
+    if(tv){tv.style.display="block";try{renderSkillTreeView(tv);}catch(e){console.error("SkillTree:",e);tv.innerHTML="<div style='padding:20px;color:#9896B8'>Caricamento skill tree...</div>";}}
+  }
+}
+
 /* ═══════════════ INIT ═══════════════ */
 
 
@@ -4297,6 +4493,185 @@ async function checkOAuthCallback(){
     console.error("OAuth callback error:", e);
     setStatus("");
     return false;
+  }
+}
+
+
+/* ═══════════════ XP SYSTEM ═══════════════ */
+var XP_LEVELS=[0,100,250,500,1000,2000,4000,8000];
+function getXP(){return parseInt(localGet("dl:xp")||"0");}
+function getXPLevel(xp){var l=0;for(var i=0;i<XP_LEVELS.length;i++){if(xp>=XP_LEVELS[i])l=i;}return l;}
+function addXP(amt){
+  var prev=getXP(),next=prev+amt;
+  localSet("dl:xp",next);
+  var pl=getXPLevel(prev),nl=getXPLevel(next);
+  if(nl>pl){setTokens(getTokens()+(nl-pl));showParticles();setTimeout(function(){showToast("Livello "+(nl)+"! +"+(nl-pl)+" token","");},400);}
+  updateXPBar();
+}
+function updateXPBar(){
+  var xp=getXP(),lv=getXPLevel(xp);
+  var nxt=XP_LEVELS[Math.min(lv+1,XP_LEVELS.length-1)];
+  var prv=XP_LEVELS[lv];
+  var pct=nxt>prv?Math.round((xp-prv)/(nxt-prv)*100):100;
+  var el=document.getElementById("xp-bar");
+  var el2=document.getElementById("xp-text");
+  if(el)el.style.width=pct+"%";
+  if(el2)el2.textContent="Lv."+lv+" \xb7 "+xp+" XP";
+}
+
+/* ═══════════════ 3-STAR MASTERY ═══════════════ */
+function getStars(catId,lesId){var k=catId+"-"+lesId;var d=JSON.parse(localGet("dl:stars")||"{}");return d[k]||{s1:false,s2:false,s3:false};}
+function setStars(catId,lesId,stars){var k=catId+"-"+lesId;var d=JSON.parse(localGet("dl:stars")||"{}");var prev=d[k]||{s1:false,s2:false,s3:false};d[k]=Object.assign(prev,stars);localSet("dl:stars",JSON.stringify(d));if(!prev.s1&&d[k].s1)addXP(50);if(!prev.s2&&d[k].s2)addXP(75);if(!prev.s3&&d[k].s3)addXP(100);}
+function getTotalStars(){var d=JSON.parse(localGet("dl:stars")||"{}");var t=0;Object.values(d).forEach(function(s){if(s.s1)t++;if(s.s2)t++;if(s.s3)t++;});return t;}
+function starStr(n){var r="";for(var i=0;i<3;i++)r+=(i<n?"⭐":"☆");return r;}
+
+/* ═══════════════ PARTICLE EFFECTS ═══════════════ */
+function showParticles(x,y){
+  var c=document.createElement("div");
+  c.style.cssText="position:fixed;pointer-events:none;z-index:9999;top:0;left:0;width:100%;height:100%";
+  var cols=["#FFD60A","#8B5CF6","#3DBE7A","#FF6B00","#e74c3c","#3B9FD4"];
+  var cx=x||window.innerWidth/2,cy=y||200;
+  for(var i=0;i<20;i++){
+    var p=document.createElement("div");
+    var col=cols[i%cols.length];
+    var ang=Math.random()*Math.PI*2,spd=50+Math.random()*100,sz=4+Math.random()*5;
+    p.style.cssText="position:absolute;width:"+sz+"px;height:"+sz+"px;background:"+col+";border-radius:"+(Math.random()>0.5?"50%":"2px")+";left:"+cx+"px;top:"+cy+"px;";
+    var vx=Math.cos(ang)*spd,vy=Math.sin(ang)*spd-60,st=Date.now();
+    c.appendChild(p);
+    (function(el,vx2,vy2,s){
+      function a(){var t=(Date.now()-s)/1000,op=Math.max(0,1-t*1.8);
+        if(op<=0){el.remove();return;}
+        el.style.transform="translate("+vx2*t+"px,"+(vy2*t+150*t*t)+"px) rotate("+(t*360)+"deg)";
+        el.style.opacity=op;requestAnimationFrame(a);}
+      requestAnimationFrame(a);
+    })(p,vx,vy,st);
+  }
+  document.body.appendChild(c);setTimeout(function(){c.remove();},2000);
+}
+
+/* ═══════════════ STREAK BANNER ═══════════════ */
+function renderStreakBanner(){
+  var s=getStreakData();
+  var today=new Date().toISOString().slice(0,10);
+  var doneToday=s.last===today;
+  var banner=document.getElementById("streak-banner");
+  var countEl=document.getElementById("streak-count-big");
+  var multEl=document.getElementById("streak-mult-label");
+  var todayEl=document.getElementById("streak-today");
+  var badgeEl=document.getElementById("streak-badge");
+  if(s.count>0){
+    if(banner)banner.style.display="flex";
+    var m=getStreakMultiplier(s.count);
+    if(countEl)countEl.textContent=s.count;
+    if(multEl)multEl.textContent=m.label;
+    if(todayEl){todayEl.textContent=doneToday?"✅ Oggi completato!":"⚠️ Disegna oggi!";todayEl.style.background=doneToday?"rgba(61,190,122,.3)":"rgba(255,100,0,.3)";}
+    if(badgeEl){
+      badgeEl.style.display="inline-flex";
+      badgeEl.innerHTML='<div style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,107,0,.2);border:1px solid rgba(255,107,0,.4);border-radius:50px;padding:3px 8px"><span style="font-size:11px">🔥</span><span style="font-size:10px;font-weight:800;color:#FF6B00">'+s.count+'g \xb7 '+m.label+'</span></div>';
+    }
+  } else {
+    if(banner)banner.style.display="none";
+    if(badgeEl)badgeEl.style.display="none";
+  }
+}
+
+/* ═══════════════ STREAK FREEZE ═══════════════ */
+function offerStreakFreeze(){
+  var s=getStreakData();
+  if(s.count<3)return;
+  var today=new Date().toISOString().slice(0,10);
+  var yesterday=new Date(Date.now()-86400000).toISOString().slice(0,10);
+  if(s.last===today||s.last===yesterday)return;
+  if(getTokens()<2)return;
+  if(confirm("🔥 Streak di "+s.count+" giorni a rischio!\n\nSpendi 2 token per congelarlo?")){
+    if(getTokens()>=2){setTokens(getTokens()-2);var d=JSON.parse(localGet("dl:streak")||"{}");d.last=today;localSet("dl:streak",JSON.stringify(d));showToast("Streak congelato! 🧊","");}
+  }
+}
+
+/* ═══════════════ VIRAL SHARE 9:16 ═══════════════ */
+async function shareResult(imageUrl,caption){
+  showToast("Creazione card...","");
+  var canvas=document.createElement("canvas");
+  canvas.width=1080;canvas.height=1920;
+  var ctx=canvas.getContext("2d");
+  var grad=ctx.createLinearGradient(0,0,0,1920);
+  grad.addColorStop(0,"#0F0E1A");grad.addColorStop(0.5,"#1e1b3a");grad.addColorStop(1,"#0F0E1A");
+  ctx.fillStyle=grad;ctx.fillRect(0,0,1080,1920);
+  ctx.fillStyle="rgba(139,92,246,0.12)";ctx.beginPath();ctx.arc(200,400,300,0,Math.PI*2);ctx.fill();
+  if(imageUrl){
+    await new Promise(function(res){
+      var img=new Image();img.crossOrigin="anonymous";
+      img.onload=function(){ctx.drawImage(img,90,400,900,900);res();};
+      img.onerror=res;img.src=imageUrl;
+    });
+  }
+  ctx.font="bold 52px Arial";ctx.fillStyle="#fff";ctx.textAlign="center";
+  ctx.fillText(A.user?A.user.name:"DrawBound Artist",540,290);
+  ctx.font="36px Arial";ctx.fillStyle="#9896B8";
+  ctx.fillText("Ha imparato a disegnare su DrawBound",540,345);
+  if(caption){ctx.font="bold 40px Arial";ctx.fillStyle="#fff";ctx.fillText(caption.substring(0,40),540,1380);}
+  ctx.fillStyle="rgba(139,92,246,0.3)";ctx.fillRect(0,1750,1080,170);
+  ctx.font="bold 52px Arial";ctx.fillStyle="#fff";ctx.textAlign="center";
+  ctx.fillText("✏️ DrawBound",540,1830);
+  ctx.font="36px Arial";ctx.fillStyle="#9896B8";
+  ctx.fillText("Impara a disegnare · drawbound.app",540,1885);
+  canvas.toBlob(async function(blob){
+    var file=new File([blob],"drawbound-share.png",{type:"image/png"});
+    if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+      try{await navigator.share({title:"DrawBound",text:caption||"Il mio disegno su DrawBound!",files:[file]});return;}catch(e){}
+    }
+    var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="drawbound-share.png";a.click();
+    showToast("Card scaricata per TikTok/Instagram!","🎨");
+  },"image/png");
+}
+
+/* ═══════════════ PRO BENEFITS POPUP ═══════════════ */
+function showProBenefits(){
+  var modal=document.createElement("div");
+  modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:990;display:flex;align-items:center;justify-content:center;padding:20px";
+  var benefits=[
+    ["🎨","Tutte le lezioni avanzate","Accesso immediato a tutti i corsi"],
+    ["🪙","5 token mensili inclusi","Ricevi DrawToken ogni mese"],
+    ["👑","Badge PRO sul profilo","Mostra il tuo status"],
+    ["🖼️","Cornici esclusive","Solo per gli abbonati"],
+    ["🏆","Certificati digitali","Per ogni categoria completata"],
+    ["📊","Analytics apprendimento","Statistiche dettagliate"],
+    ["🚫","Senza interruzioni","Esperienza pulita"],
+  ];
+  modal.innerHTML='<div style="background:linear-gradient(135deg,#1e1b3a,#2d2a4a);border-radius:20px;width:100%;max-width:380px;max-height:90vh;overflow-y:auto;padding:24px;border:1px solid rgba(255,214,10,.3)">'+
+    '<div style="text-align:center;margin-bottom:16px"><div style="font-size:44px;margin-bottom:6px">👑</div><div style="font-weight:800;font-size:22px;color:#FFD60A">DrawBound PRO</div><div style="color:#9896B8;font-size:12px;margin-top:4px">Tutto incluso nel piano</div></div>'+
+    '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px">'+
+    benefits.map(function(b){return '<div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.06);border-radius:10px;padding:10px 12px"><span style="font-size:18px;flex-shrink:0">'+b[0]+'</span><div style="flex:1"><div style="font-weight:700;font-size:13px;color:#fff">'+b[1]+'</div><div style="font-size:11px;color:#9896B8">'+b[2]+'</div></div><span style="color:#3DBE7A;font-size:16px">✓</span></div>';}).join("")+
+    '</div>'+
+    '<button onclick="showScreen(\'paywall\');document.querySelector(\'[data-pro-modal]\').remove()" style="width:100%;padding:14px;background:linear-gradient(135deg,#FFD60A,#FF9500);border:none;border-radius:12px;color:#fff;font-weight:800;font-size:15px;cursor:pointer;margin-bottom:8px">Abbonati — da €4,99/mese</button>'+
+    '<button onclick="this.closest(\'[data-pro-modal]\').remove()" style="width:100%;padding:10px;background:none;border:none;color:#9896B8;font-size:12px;cursor:pointer">Chiudi</button>'+
+    '</div>';
+  modal.setAttribute("data-pro-modal","1");
+  document.body.appendChild(modal);
+}
+
+
+/* ═══════════════ SKILL VIEW TOGGLE ═══════════════ */
+var _skillView="list";
+function setHomeView(view){
+  _skillView=view;
+  var lb=document.getElementById("view-list-btn"),tb=document.getElementById("view-tree-btn");
+  var cg=document.getElementById("cat-grid"),tv=document.getElementById("skill-tree-view");
+  var fc=document.getElementById("home-feature-cards"),st=document.getElementById("section-title");
+  if(view==="list"){
+    if(lb){lb.style.background="#8B5CF6";lb.style.color="#fff";}
+    if(tb){tb.style.background="rgba(255,255,255,.08)";tb.style.color="#9896B8";}
+    if(cg)cg.style.display="grid";
+    if(tv)tv.style.display="none";
+    if(fc)fc.style.display="grid";
+    if(st)st.textContent="Categorie";
+  } else {
+    if(tb){tb.style.background="#8B5CF6";tb.style.color="#fff";}
+    if(lb){lb.style.background="rgba(255,255,255,.08)";lb.style.color="#9896B8";}
+    if(cg)cg.style.display="none";
+    if(fc)fc.style.display="none";
+    if(st)st.textContent="Skill Tree";
+    if(tv){tv.style.display="block";try{renderSkillTreeView(tv);}catch(e){console.error("SkillTree:",e);tv.innerHTML="<div style='padding:20px;color:#9896B8'>Caricamento skill tree...</div>";}}
   }
 }
 
