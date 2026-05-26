@@ -1371,15 +1371,11 @@ function buildPostCard(post, liked){
   var shareBtn = document.createElement("button");
   shareBtn.style.cssText = "background:none;border:none;cursor:pointer;padding:4px;display:flex;align-items:center;justify-content:center";
   shareBtn.title = "Condividi";
-  shareBtn.innerHTML = "<svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='#9896B8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='18' cy='5' r='3'/><circle cx='6' cy='12' r='3'/><circle cx='18' cy='19' r='3'/><line x1='8.59' y1='13.51' x2='15.42' y2='17.49'/><line x1='15.41' y1='6.51' x2='8.59' y2='10.49'/></svg>";
-  shareBtn.onclick = function(){ sharePostNative(post.image_url, post.caption||""); };
+  shareBtn.innerHTML = "<svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='#9896B8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8'/><polyline points='16 6 12 2 8 6'/><line x1='12' y1='2' x2='12' y2='15'/></svg>";
+shareBtn.title = "Condividi su WhatsApp, Instagram, Telegram...";
+  shareBtn.onclick = function(){ showShareSheet(post.image_url, post.caption||""); };
   rightBtns.appendChild(shareBtn);
-  var storyBtn = document.createElement("button");
-  storyBtn.style.cssText = "background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.3);border-radius:50px;padding:4px 10px;color:#8B5CF6;font-size:11px;font-weight:700;cursor:pointer";
-  storyBtn.textContent = "📲 Story";
-  storyBtn.title = "Genera card 9:16 con watermark per TikTok/Instagram";
-  storyBtn.onclick = function(){ shareResult(post.image_url, post.caption||""); };
-  rightBtns.appendChild(storyBtn);
+
   btnRow.appendChild(rightBtns);
   actions.appendChild(btnRow);
 
@@ -3115,6 +3111,7 @@ async function openRedline(postId, imageUrl){
   var canvas=document.getElementById("redline-canvas");
   if(canvas){ canvas.getContext("2d").clearRect(0,0,canvas.width,canvas.height); }
   modal.style.display="flex";
+  setTimeout(initRedlineCanvas, 100);
 }
 
 async function shareResult(imageUrl, caption){
@@ -3253,6 +3250,202 @@ function renderSkillTreeView(c){
       if(open&&node.lessons&&node.lessons.length)(function(l){d.onclick=function(){startFirstLesson(l);};})(node.lessons[0]);bEl.appendChild(d);
     });c.appendChild(bEl);
   });
+}
+
+/* ═══════════ SOCIAL SHARE SHEET ═══════════ */
+function showShareSheet(imageUrl, caption){
+  // Rimuovi eventuali sheet precedenti
+  var old = document.getElementById("share-sheet");
+  if(old) old.remove();
+
+  var overlay = document.createElement("div");
+  overlay.id = "share-sheet";
+  overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:990;display:flex;align-items:flex-end;justify-content:center";
+  overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
+
+  var platforms = [
+    {id:"whatsapp", icon:"<svg width='28' height='28' viewBox='0 0 24 24' fill='#25D366'><path d='M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z'/><path d='M11.996 2.003C6.476 2.003 2 6.479 2 12c0 1.744.45 3.381 1.236 4.808L2 22l5.332-1.219A9.94 9.94 0 0 0 11.996 22C17.516 22 22 17.524 22 12c0-5.525-4.484-9.997-10.004-9.997z'/></svg>", label:"WhatsApp",  color:"#25D366"},
+    {id:"telegram", icon:"<svg width='28' height='28' viewBox='0 0 24 24' fill='#2CA5E0'><path d='M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.05 9.66c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L6.26 14.4l-2.95-.924c-.642-.2-.654-.642.136-.95l11.532-4.448c.535-.194 1.003.13.584 2.17z'/></svg>", label:"Telegram", color:"#2CA5E0"},
+    {id:"facebook", icon:"<svg width='28' height='28' viewBox='0 0 24 24' fill='#1877F2'><path d='M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z'/></svg>", label:"Facebook", color:"#1877F2"},
+    {id:"instagram", icon:"<svg width='28' height='28' viewBox='0 0 24 24' fill='url(#ig-grad)'><defs><linearGradient id='ig-grad' x1='0%' y1='100%' x2='100%' y2='0%'><stop offset='0%' stop-color='#f09433'/><stop offset='25%' stop-color='#e6683c'/><stop offset='50%' stop-color='#dc2743'/><stop offset='75%' stop-color='#cc2366'/><stop offset='100%' stop-color='#bc1888'/></linearGradient></defs><path d='M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z'/></svg>", label:"Instagram", color:"#E1306C"},
+    {id:"tiktok", icon:"<svg width='28' height='28' viewBox='0 0 24 24' fill='#fff'><path d='M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.67a8.18 8.18 0 0 0 4.78 1.52V6.75a4.85 4.85 0 0 1-1.01-.06z'/></svg>", label:"TikTok", color:"#1C1B2E"},
+    {id:"copy",     icon:"<svg width='28' height='28' viewBox='0 0 24 24' fill='none' stroke='#9896B8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='9' y='9' width='13' height='13' rx='2' ry='2'/><path d='M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1'/></svg>", label:"Copia link", color:"#9896B8"}
+  ];
+
+  var panel = document.createElement("div");
+  panel.style.cssText = "background:#1e1b3a;border-radius:24px 24px 0 0;width:100%;max-width:540px;padding:20px 20px 32px";
+
+  var handle = document.createElement("div");
+  handle.style.cssText = "width:36px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:0 auto 16px";
+  panel.appendChild(handle);
+
+  var title = document.createElement("div");
+  title.style.cssText = "font-weight:800;font-size:15px;color:#fff;margin-bottom:16px;text-align:center";
+  title.textContent = "Condividi su...";
+  panel.appendChild(title);
+
+  var grid = document.createElement("div");
+  grid.style.cssText = "display:flex;justify-content:space-around;gap:4px;margin-bottom:16px";
+
+  platforms.forEach(function(p){
+    var btn = document.createElement("button");
+    btn.style.cssText = "background:rgba(255,255,255,.06);border:none;border-radius:16px;padding:12px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:52px";
+    btn.innerHTML = '<div style="width:44px;height:44px;border-radius:12px;background:'+(p.id==="tiktok"?"#000":"rgba(255,255,255,.08)")+';display:flex;align-items:center;justify-content:center">'+p.icon+'</div><span style="font-size:10px;color:#9896B8;font-weight:600;white-space:nowrap">'+p.label+'</span>';
+    btn.onclick = function(){ overlay.remove(); handleShareTo(p.id, imageUrl, caption); };
+    grid.appendChild(btn);
+  });
+  panel.appendChild(grid);
+
+  // Cancel
+  var cancelBtn = document.createElement("button");
+  cancelBtn.style.cssText = "width:100%;padding:12px;background:rgba(255,255,255,.06);border:none;border-radius:12px;color:#9896B8;font-weight:700;font-size:14px;cursor:pointer";
+  cancelBtn.textContent = "Annulla";
+  cancelBtn.onclick = function(){ overlay.remove(); };
+  panel.appendChild(cancelBtn);
+
+  overlay.appendChild(panel);
+  document.body.appendChild(overlay);
+}
+
+async function handleShareTo(platform, imageUrl, caption){
+  var text = (caption||"Guarda questo disegno su DrawBound! 🎨")+" #DrawBound #Arte";
+  var postUrl = imageUrl;
+
+  if(platform==="copy"){
+    try{ await navigator.clipboard.writeText(imageUrl); showToast("Link copiato!",""); }
+    catch(e){ showToast("Non riesco a copiare automaticamente",""); }
+    return;
+  }
+
+  // Prova Web Share API con immagine (funziona su Android Chrome)
+  if((platform==="whatsapp"||platform==="telegram"||platform==="instagram"||platform==="tiktok") && navigator.canShare){
+    try {
+      var res = await fetch(imageUrl);
+      var blob = await res.blob();
+      var ext = blob.type.includes("png")?"png":"jpg";
+      var file = new File([blob], "drawbound."+ext, {type:blob.type});
+      if(navigator.canShare({files:[file]})){
+        await navigator.share({files:[file], text:text, title:"DrawBound"});
+        return;
+      }
+    } catch(e){ /* fallback a link */ }
+  }
+
+  // Fallback per ogni piattaforma
+  var url = "";
+  var enc = encodeURIComponent;
+  if(platform==="whatsapp")  url = "https://wa.me/?text="+enc(text+" "+postUrl);
+  else if(platform==="telegram") url = "https://t.me/share/url?url="+enc(postUrl)+"&text="+enc(text);
+  else if(platform==="facebook") url = "https://www.facebook.com/sharer/sharer.php?u="+enc(postUrl);
+  else if(platform==="instagram"){
+    // Instagram non supporta share diretto via URL — scarica e mostra istruzioni
+    downloadImageAndPrompt(imageUrl, "instagram");
+    return;
+  }
+  else if(platform==="tiktok"){
+    downloadImageAndPrompt(imageUrl, "tiktok");
+    return;
+  }
+  if(url) window.open(url, "_blank");
+}
+
+function downloadImageAndPrompt(imageUrl, platform){
+  var appName = platform==="instagram"?"Instagram":"TikTok";
+  var appIcon = platform==="instagram"?"📷":"🎵";
+  // Scarica immagine
+  fetch(imageUrl).then(function(r){return r.blob();}).then(function(blob){
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a"); a.href=url; a.download="drawbound.jpg"; a.click();
+    setTimeout(function(){URL.revokeObjectURL(url);},1000);
+  }).catch(function(){});
+  // Mostra istruzioni
+  showToast(appIcon+" Immagine salvata! Aprila da "+appName+" → Nuovo post","");
+  // Deep link dopo 1s
+  setTimeout(function(){
+    if(platform==="instagram") window.location.href="instagram://";
+    else window.location.href="snssdk1233://";
+  },1200);
+}
+
+/* ═══════════ REDLINE CANVAS ═══════════ */
+var _rlTool = "draw";
+var _rlDrawing = false;
+var _rlLastX = 0, _rlLastY = 0;
+var _redlinePostId = null;
+var _redlinePostImg = null;
+
+function setRedlineTool(tool){
+  _rlTool = tool;
+  var drawBtn = document.getElementById("rl-btn-draw");
+  var eraseBtn = document.getElementById("rl-btn-erase");
+  if(drawBtn) drawBtn.style.background = tool==="draw"?"#e74c3c":"rgba(255,255,255,.08)";
+  if(drawBtn) drawBtn.style.color = tool==="draw"?"#fff":"#9896B8";
+  if(eraseBtn) eraseBtn.style.background = tool==="erase"?"#8B5CF6":"rgba(255,255,255,.08)";
+  if(eraseBtn) eraseBtn.style.color = tool==="erase"?"#fff":"#9896B8";
+}
+
+function redlineClear(){
+  var c = document.getElementById("redline-canvas");
+  if(c) c.getContext("2d").clearRect(0,0,c.width,c.height);
+}
+
+function initRedlineCanvas(){
+  var canvas = document.getElementById("redline-canvas");
+  if(!canvas || canvas._rlInit) return;
+  canvas._rlInit = true;
+  function resize(){
+    var rect = canvas.parentElement.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+  }
+  resize();
+  window.addEventListener("resize", resize);
+
+  function getPos(e){
+    var rect = canvas.getBoundingClientRect();
+    var src = e.touches ? e.touches[0] : e;
+    return {x:(src.clientX-rect.left)*(canvas.width/rect.width), y:(src.clientY-rect.top)*(canvas.height/rect.height)};
+  }
+  function startDraw(e){ e.preventDefault(); _rlDrawing=true; var p=getPos(e); _rlLastX=p.x; _rlLastY=p.y; }
+  function draw(e){
+    if(!_rlDrawing)return; e.preventDefault();
+    var p=getPos(e);
+    var ctx=canvas.getContext("2d");
+    var size=parseInt(document.getElementById("rl-size")||{value:5}).value||5;
+    ctx.lineWidth = _rlTool==="erase"?size*3:size;
+    ctx.lineCap="round"; ctx.lineJoin="round";
+    ctx.globalCompositeOperation = _rlTool==="erase"?"destination-out":"source-over";
+    ctx.strokeStyle="#e74c3c";
+    ctx.beginPath(); ctx.moveTo(_rlLastX,_rlLastY); ctx.lineTo(p.x,p.y); ctx.stroke();
+    _rlLastX=p.x; _rlLastY=p.y;
+  }
+  function endDraw(){ _rlDrawing=false; }
+  canvas.addEventListener("mousedown",startDraw); canvas.addEventListener("mousemove",draw); canvas.addEventListener("mouseup",endDraw);
+  canvas.addEventListener("touchstart",startDraw,{passive:false}); canvas.addEventListener("touchmove",draw,{passive:false}); canvas.addEventListener("touchend",endDraw);
+}
+
+async function submitRedline(){
+  var canvas=document.getElementById("redline-canvas");
+  var bgImg=document.getElementById("redline-bg");
+  if(!canvas||!bgImg){showToast("Errore canvas","");return;}
+  // Componi immagine finale (sfondo + overlay rosso)
+  var out=document.createElement("canvas");
+  out.width=canvas.width; out.height=canvas.height;
+  var ctx=out.getContext("2d");
+  ctx.drawImage(bgImg,0,0,out.width,out.height);
+  ctx.drawImage(canvas,0,0);
+  out.toBlob(async function(blob){
+    if(!blob){showToast("Errore creazione immagine","");return;}
+    showToast("Pubblicazione redline...","");
+    var url=await sbUpload("Posts",A.user.id+"_rl_"+Date.now()+".jpg",blob);
+    if(url){
+      var caption="Redline per @"+(A.user.name||"")+" ✏️ #redline #DrawBound";
+      await sbFetch("POST","dl_posts",{body:{user_id:A.user.id,user_name:A.user.name,user_avatar:A.user.avatar||"👤",image_url:url,caption:caption,tags:"#redline",likes_count:0,comments_count:0}});
+      document.getElementById("modal-redline").style.display="none";
+      showToast("Redline pubblicato!","");
+      renderFeed();
+    } else { showToast("Errore upload",""); }
+  },"image/jpeg",0.92);
 }
 
 function init(){
