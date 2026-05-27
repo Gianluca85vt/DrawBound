@@ -1,13 +1,12 @@
+var APP_VERSION="2.2.0";
+console.log("%c DrawBound v2.2.0 ✓","color:#8B5CF6;font-weight:bold;font-size:14px");
 /* DrawBound — app.js */
 
 
 /* ═══════════════ CONSTANTS ═══════════════ */
-const BG={fondamentali:"#C8F5E0",character:"#E0D4F5",environment:"#C8E8F5",prop:"#FFE0C8"};
-const AC={fondamentali:"#3DBE7A",character:"#8B5CF6",environment:"#3B9FD4",prop:"#FF8C4B"};
+const BG = {animals:"#C8F5E0",faces:"#FFF3C8",architecture:"#C8E8F5",chiaroscuro:"#E0D4F5",nature:"#D0F0E4",food:"#FFE0C8"};
+const AC = {animals:"#3DBE7A",faces:"#D4A200",architecture:"#3B9FD4",chiaroscuro:"#8B5CF6",nature:"#2E9E6B",food:"#FF8C4B"};
 
-
-var APP_VERSION="2.1.4";
-console.log("%c DrawBound v2.1.4 caricato ✓","color:#8B5CF6;font-weight:bold");
 /* ═══════════════ STATE ═══════════════ */
 const A = {screen:'splash',user:null,pro:false,progress:{},cat:null,lesson:null,step:0,payPlan:'monthly',allUsers:[]};
 
@@ -426,202 +425,33 @@ function foodSvg(lid,p,a){
 }
 
 var SVG_FNS = {"animals-1":function(s,a){return animalSvg(1,s,a);},"animals-2":function(s,a){return animalSvg(2,s,a);},"animals-3":function(s,a){return animalSvg(3,s,a);},"faces-1":function(s,a){return faceSvg(1,s,a);},"faces-2":function(s,a){return faceSvg(2,s,a);},"faces-3":function(s,a){return faceSvg(3,s,a);},"architecture-1":function(s,a){return archSvg(1,s,a);},"architecture-2":function(s,a){return archSvg(2,s,a);},"architecture-3":function(s,a){return archSvg(3,s,a);},"chiaroscuro-1":function(s,a){return shadeSvg(1,s,a);},"chiaroscuro-2":function(s,a){return shadeSvg(2,s,a);},"chiaroscuro-3":function(s,a){return shadeSvg(3,s,a);},"nature-1":function(s,a){return natureSvg(1,s,a);},"nature-2":function(s,a){return natureSvg(2,s,a);},"nature-3":function(s,a){return natureSvg(3,s,a);},"food-1":function(s,a){return foodSvg(1,s,a);},"food-2":function(s,a){return foodSvg(2,s,a);},"food-3":function(s,a){return foodSvg(3,s,a);},
-  "fondamentali-1":function(s,ac){
-  return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11">'+
-    '<rect width="400" height="300" fill="'+ac+'08"/>'+
-    '<text x="200" y="130" text-anchor="middle" font-size="72">📐</text>'+
-    '<text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold" font-family="sans-serif">Passo '+(s+1)+'</text>'+
-    '</svg>';
-},
-  "fondamentali-2":function(s,ac){
-  return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11">'+
-    '<rect width="400" height="300" fill="'+ac+'08"/>'+
-    '<text x="200" y="130" text-anchor="middle" font-size="72">🔲</text>'+
-    '<text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold" font-family="sans-serif">Passo '+(s+1)+'</text>'+
-    '</svg>';
-},
-  "fondamentali-3":function(s,ac){
-  return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11">'+
-    '<rect width="400" height="300" fill="'+ac+'08"/>'+
-    '<text x="200" y="130" text-anchor="middle" font-size="72">↔️</text>'+
-    '<text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold" font-family="sans-serif">Passo '+(s+1)+'</text>'+
-    '</svg>';
-},
-  "fondamentali-4":function(s,ac){
-  return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11">'+
-    '<rect width="400" height="300" fill="'+ac+'08"/>'+
-    '<text x="200" y="130" text-anchor="middle" font-size="72">📏</text>'+
-    '<text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold" font-family="sans-serif">Passo '+(s+1)+'</text>'+
-    '</svg>';
-},
-  "fondamentali-5":function(s,ac){
-  return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11">'+
-    '<rect width="400" height="300" fill="'+ac+'08"/>'+
-    '<text x="200" y="130" text-anchor="middle" font-size="72">🌑</text>'+
-    '<text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold" font-family="sans-serif">Passo '+(s+1)+'</text>'+
-    '</svg>';
-},
-  "fondamentali-6":function(s,ac){
-  return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11">'+
-    '<rect width="400" height="300" fill="'+ac+'08"/>'+
-    '<text x="200" y="130" text-anchor="middle" font-size="72">🎨</text>'+
-    '<text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold" font-family="sans-serif">Passo '+(s+1)+'</text>'+
-    '</svg>';
-},
-  "fondamentali-7":function(s,ac){
-  return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11">'+
-    '<rect width="400" height="300" fill="'+ac+'08"/>'+
-    '<text x="200" y="130" text-anchor="middle" font-size="72">🦴</text>'+
-    '<text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold" font-family="sans-serif">Passo '+(s+1)+'</text>'+
-    '</svg>';
-},
-  "fondamentali-8":function(s,ac){
-  return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11">'+
-    '<rect width="400" height="300" fill="'+ac+'08"/>'+
-    '<text x="200" y="130" text-anchor="middle" font-size="72">✋</text>'+
-    '<text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold" font-family="sans-serif">Passo '+(s+1)+'</text>'+
-    '</svg>';
-},
-  "fondamentali-9":function(s,ac){
-  return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11">'+
-    '<rect width="400" height="300" fill="'+ac+'08"/>'+
-    '<text x="200" y="130" text-anchor="middle" font-size="72">😊</text>'+
-    '<text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold" font-family="sans-serif">Passo '+(s+1)+'</text>'+
-    '</svg>';
-},
-  "character-1":function(s,ac){
-  return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11">'+
-    '<rect width="400" height="300" fill="'+ac+'08"/>'+
-    '<text x="200" y="130" text-anchor="middle" font-size="72">🧍</text>'+
-    '<text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold" font-family="sans-serif">Passo '+(s+1)+'</text>'+
-    '</svg>';
-},
-  "character-2":function(s,ac){
-  return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11">'+
-    '<rect width="400" height="300" fill="'+ac+'08"/>'+
-    '<text x="200" y="130" text-anchor="middle" font-size="72">😤</text>'+
-    '<text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold" font-family="sans-serif">Passo '+(s+1)+'</text>'+
-    '</svg>';
-},
-  "character-3":function(s,ac){
-  return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11">'+
-    '<rect width="400" height="300" fill="'+ac+'08"/>'+
-    '<text x="200" y="130" text-anchor="middle" font-size="72">👕</text>'+
-    '<text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold" font-family="sans-serif">Passo '+(s+1)+'</text>'+
-    '</svg>';
-},
-  "character-4":function(s,ac){
-  return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11">'+
-    '<rect width="400" height="300" fill="'+ac+'08"/>'+
-    '<text x="200" y="130" text-anchor="middle" font-size="72">📋</text>'+
-    '<text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold" font-family="sans-serif">Passo '+(s+1)+'</text>'+
-    '</svg>';
-},
-  "character-5":function(s,ac){
-  return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11">'+
-    '<rect width="400" height="300" fill="'+ac+'08"/>'+
-    '<text x="200" y="130" text-anchor="middle" font-size="72">🐺</text>'+
-    '<text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold" font-family="sans-serif">Passo '+(s+1)+'</text>'+
-    '</svg>';
-},
-  "character-6":function(s,ac){
-  return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11">'+
-    '<rect width="400" height="300" fill="'+ac+'08"/>'+
-    '<text x="200" y="130" text-anchor="middle" font-size="72">🐉</text>'+
-    '<text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold" font-family="sans-serif">Passo '+(s+1)+'</text>'+
-    '</svg>';
-},
-  "character-7":function(s,ac){
-  return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11">'+
-    '<rect width="400" height="300" fill="'+ac+'08"/>'+
-    '<text x="200" y="130" text-anchor="middle" font-size="72">💀</text>'+
-    '<text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold" font-family="sans-serif">Passo '+(s+1)+'</text>'+
-    '</svg>';
-},
-  "environment-1":function(s,ac){
-  return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11">'+
-    '<rect width="400" height="300" fill="'+ac+'08"/>'+
-    '<text x="200" y="130" text-anchor="middle" font-size="72">🌄</text>'+
-    '<text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold" font-family="sans-serif">Passo '+(s+1)+'</text>'+
-    '</svg>';
-},
-  "environment-2":function(s,ac){
-  return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11">'+
-    '<rect width="400" height="300" fill="'+ac+'08"/>'+
-    '<text x="200" y="130" text-anchor="middle" font-size="72">🏙️</text>'+
-    '<text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold" font-family="sans-serif">Passo '+(s+1)+'</text>'+
-    '</svg>';
-},
-  "environment-3":function(s,ac){
-  return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11">'+
-    '<rect width="400" height="300" fill="'+ac+'08"/>'+
-    '<text x="200" y="130" text-anchor="middle" font-size="72">🏰</text>'+
-    '<text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold" font-family="sans-serif">Passo '+(s+1)+'</text>'+
-    '</svg>';
-},
-  "environment-4":function(s,ac){
-  return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11">'+
-    '<rect width="400" height="300" fill="'+ac+'08"/>'+
-    '<text x="200" y="130" text-anchor="middle" font-size="72">🕳️</text>'+
-    '<text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold" font-family="sans-serif">Passo '+(s+1)+'</text>'+
-    '</svg>';
-},
-  "environment-5":function(s,ac){
-  return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11">'+
-    '<rect width="400" height="300" fill="'+ac+'08"/>'+
-    '<text x="200" y="130" text-anchor="middle" font-size="72">🚀</text>'+
-    '<text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold" font-family="sans-serif">Passo '+(s+1)+'</text>'+
-    '</svg>';
-},
-  "environment-6":function(s,ac){
-  return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11">'+
-    '<rect width="400" height="300" fill="'+ac+'08"/>'+
-    '<text x="200" y="130" text-anchor="middle" font-size="72">🌋</text>'+
-    '<text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold" font-family="sans-serif">Passo '+(s+1)+'</text>'+
-    '</svg>';
-},
-  "prop-1":function(s,ac){
-  return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11">'+
-    '<rect width="400" height="300" fill="'+ac+'08"/>'+
-    '<text x="200" y="130" text-anchor="middle" font-size="72">🗡️</text>'+
-    '<text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold" font-family="sans-serif">Passo '+(s+1)+'</text>'+
-    '</svg>';
-},
-  "prop-2":function(s,ac){
-  return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11">'+
-    '<rect width="400" height="300" fill="'+ac+'08"/>'+
-    '<text x="200" y="130" text-anchor="middle" font-size="72">🔫</text>'+
-    '<text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold" font-family="sans-serif">Passo '+(s+1)+'</text>'+
-    '</svg>';
-},
-  "prop-3":function(s,ac){
-  return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11">'+
-    '<rect width="400" height="300" fill="'+ac+'08"/>'+
-    '<text x="200" y="130" text-anchor="middle" font-size="72">🛡️</text>'+
-    '<text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold" font-family="sans-serif">Passo '+(s+1)+'</text>'+
-    '</svg>';
-},
-  "prop-4":function(s,ac){
-  return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11">'+
-    '<rect width="400" height="300" fill="'+ac+'08"/>'+
-    '<text x="200" y="130" text-anchor="middle" font-size="72">✨</text>'+
-    '<text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold" font-family="sans-serif">Passo '+(s+1)+'</text>'+
-    '</svg>';
-},
-  "prop-5":function(s,ac){
-  return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11">'+
-    '<rect width="400" height="300" fill="'+ac+'08"/>'+
-    '<text x="200" y="130" text-anchor="middle" font-size="72">🚗</text>'+
-    '<text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold" font-family="sans-serif">Passo '+(s+1)+'</text>'+
-    '</svg>';
-},
-  "prop-6":function(s,ac){
-  return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11">'+
-    '<rect width="400" height="300" fill="'+ac+'08"/>'+
-    '<text x="200" y="130" text-anchor="middle" font-size="72">🎒</text>'+
-    '<text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold" font-family="sans-serif">Passo '+(s+1)+'</text>'+
-    '</svg>';
-}
+  "fondamentali-1":function(s,ac){return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11"><rect width="400" height="300" fill="'+ac+'08"/><text x="200" y="130" text-anchor="middle" font-size="72">📐</text><text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold">Passo '+(s+1)+'</text></svg>';},
+  "fondamentali-2":function(s,ac){return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11"><rect width="400" height="300" fill="'+ac+'08"/><text x="200" y="130" text-anchor="middle" font-size="72">🔲</text><text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold">Passo '+(s+1)+'</text></svg>';},
+  "fondamentali-3":function(s,ac){return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11"><rect width="400" height="300" fill="'+ac+'08"/><text x="200" y="130" text-anchor="middle" font-size="72">↔️</text><text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold">Passo '+(s+1)+'</text></svg>';},
+  "fondamentali-4":function(s,ac){return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11"><rect width="400" height="300" fill="'+ac+'08"/><text x="200" y="130" text-anchor="middle" font-size="72">📏</text><text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold">Passo '+(s+1)+'</text></svg>';},
+  "fondamentali-5":function(s,ac){return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11"><rect width="400" height="300" fill="'+ac+'08"/><text x="200" y="130" text-anchor="middle" font-size="72">🌑</text><text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold">Passo '+(s+1)+'</text></svg>';},
+  "fondamentali-6":function(s,ac){return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11"><rect width="400" height="300" fill="'+ac+'08"/><text x="200" y="130" text-anchor="middle" font-size="72">🎨</text><text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold">Passo '+(s+1)+'</text></svg>';},
+  "fondamentali-7":function(s,ac){return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11"><rect width="400" height="300" fill="'+ac+'08"/><text x="200" y="130" text-anchor="middle" font-size="72">🦴</text><text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold">Passo '+(s+1)+'</text></svg>';},
+  "fondamentali-8":function(s,ac){return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11"><rect width="400" height="300" fill="'+ac+'08"/><text x="200" y="130" text-anchor="middle" font-size="72">✋</text><text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold">Passo '+(s+1)+'</text></svg>';},
+  "fondamentali-9":function(s,ac){return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11"><rect width="400" height="300" fill="'+ac+'08"/><text x="200" y="130" text-anchor="middle" font-size="72">😊</text><text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold">Passo '+(s+1)+'</text></svg>';},
+  "character-1":function(s,ac){return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11"><rect width="400" height="300" fill="'+ac+'08"/><text x="200" y="130" text-anchor="middle" font-size="72">🧍</text><text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold">Passo '+(s+1)+'</text></svg>';},
+  "character-2":function(s,ac){return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11"><rect width="400" height="300" fill="'+ac+'08"/><text x="200" y="130" text-anchor="middle" font-size="72">🐱</text><text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold">Passo '+(s+1)+'</text></svg>';},
+  "character-3":function(s,ac){return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11"><rect width="400" height="300" fill="'+ac+'08"/><text x="200" y="130" text-anchor="middle" font-size="72">🎨</text><text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold">Passo '+(s+1)+'</text></svg>';},
+  "character-4":function(s,ac){return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11"><rect width="400" height="300" fill="'+ac+'08"/><text x="200" y="130" text-anchor="middle" font-size="72">🐺</text><text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold">Passo '+(s+1)+'</text></svg>';},
+  "character-5":function(s,ac){return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11"><rect width="400" height="300" fill="'+ac+'08"/><text x="200" y="130" text-anchor="middle" font-size="72">🐉</text><text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold">Passo '+(s+1)+'</text></svg>';},
+  "character-6":function(s,ac){return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11"><rect width="400" height="300" fill="'+ac+'08"/><text x="200" y="130" text-anchor="middle" font-size="72">💀</text><text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold">Passo '+(s+1)+'</text></svg>';},
+  "environment-1":function(s,ac){return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11"><rect width="400" height="300" fill="'+ac+'08"/><text x="200" y="130" text-anchor="middle" font-size="72">🌄</text><text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold">Passo '+(s+1)+'</text></svg>';},
+  "environment-2":function(s,ac){return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11"><rect width="400" height="300" fill="'+ac+'08"/><text x="200" y="130" text-anchor="middle" font-size="72">🏙️</text><text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold">Passo '+(s+1)+'</text></svg>';},
+  "environment-3":function(s,ac){return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11"><rect width="400" height="300" fill="'+ac+'08"/><text x="200" y="130" text-anchor="middle" font-size="72">🏰</text><text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold">Passo '+(s+1)+'</text></svg>';},
+  "environment-4":function(s,ac){return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11"><rect width="400" height="300" fill="'+ac+'08"/><text x="200" y="130" text-anchor="middle" font-size="72">🕳️</text><text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold">Passo '+(s+1)+'</text></svg>';},
+  "environment-5":function(s,ac){return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11"><rect width="400" height="300" fill="'+ac+'08"/><text x="200" y="130" text-anchor="middle" font-size="72">🚀</text><text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold">Passo '+(s+1)+'</text></svg>';},
+  "environment-6":function(s,ac){return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11"><rect width="400" height="300" fill="'+ac+'08"/><text x="200" y="130" text-anchor="middle" font-size="72">🌋</text><text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold">Passo '+(s+1)+'</text></svg>';},
+  "prop-1":function(s,ac){return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11"><rect width="400" height="300" fill="'+ac+'08"/><text x="200" y="130" text-anchor="middle" font-size="72">🗡️</text><text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold">Passo '+(s+1)+'</text></svg>';},
+  "prop-2":function(s,ac){return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11"><rect width="400" height="300" fill="'+ac+'08"/><text x="200" y="130" text-anchor="middle" font-size="72">🔫</text><text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold">Passo '+(s+1)+'</text></svg>';},
+  "prop-3":function(s,ac){return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11"><rect width="400" height="300" fill="'+ac+'08"/><text x="200" y="130" text-anchor="middle" font-size="72">🛡️</text><text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold">Passo '+(s+1)+'</text></svg>';},
+  "prop-4":function(s,ac){return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11"><rect width="400" height="300" fill="'+ac+'08"/><text x="200" y="130" text-anchor="middle" font-size="72">✨</text><text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold">Passo '+(s+1)+'</text></svg>';},
+  "prop-5":function(s,ac){return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11"><rect width="400" height="300" fill="'+ac+'08"/><text x="200" y="130" text-anchor="middle" font-size="72">🚗</text><text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold">Passo '+(s+1)+'</text></svg>';},
+  "prop-6":function(s,ac){return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;background:'+ac+'11"><rect width="400" height="300" fill="'+ac+'08"/><text x="200" y="130" text-anchor="middle" font-size="72">🎒</text><text x="200" y="185" text-anchor="middle" font-size="13" fill="'+ac+'" font-weight="bold">Passo '+(s+1)+'</text></svg>';}
 };
 
 /* ═══════════════ DATA ═══════════════ */
@@ -629,7 +459,7 @@ function S(n,t,d,tip){return {n:n,title:t,desc:d,tip:tip||null};}
 function LL(id,free,icon,title,diff,mins,intro,steps){return {id:id,free:free,icon:icon,title:title,diff:diff,mins:mins,intro:intro,steps:steps};}
 var CATS=[
 {id:"fondamentali",label:"Fondamentali",icon:"🌱",required:true,free:true,
- info:"Il punto di partenza per ogni artista. Basi di prospettiva, chiaroscuro e anatomia. Completare i Fondamentali sblocca tutti gli altri percorsi.",
+ info:"Il punto di partenza per ogni artista. Basi di prospettiva, chiaroscuro e anatomia.",
  unlocks:"Character Design, Environment Design e Prop Design",
  levels:[
   LL(1,true,"📐","Linee e proporzioni","Principiante",10,"La linea è il tuo primo strumento.",[S(1,"Il segno","Traccia linee dritte e curve a mano libera.","Prova 20 linee rette poi 20 curve."),S(2,"Proporzioni","Confronta dimensioni usando la matita come misuratore.","Chiudi un occhio, allinea la matita."),S(3,"Esercizio","Disegna 5 oggetti semplici confrontando le proporzioni.",null)]),
@@ -638,114 +468,42 @@ var CATS=[
   LL(4,true,"📏","Prospettiva 2 punti","Base",15,"Due punti di fuga per oggetti visti in angolo.",[S(1,"Due punti","Posiziona 2 punti sulle estremità dell'orizzonte.","Più distanti = meno distorsione."),S(2,"Edificio base","Linea verticale + diagonali verso i 2 punti.","Aggiungi finestre rispettando la prospettiva."),S(3,"Strada urbana","Via con edifici su entrambi i lati.",null)]),
   LL(5,true,"🌑","Luci e ombre — base","Base",15,"Il chiaroscuro: dove cade la luce per dare volume.",[S(1,"Fonte di luce","Identifica sempre la fonte prima di disegnare le ombre.","Lato illuminato = chiaro, opposto = scuro."),S(2,"Sfera illuminata","Luce, mezzatinta, ombra propria, ombra portata.","Il punto di luce non è mai bianco puro."),S(3,"Cubo illuminato","Tre valori per tre facce: chiaro, medio, scuro.",null)]),
   LL(6,true,"🎨","Tecniche di ombreggiatura","Intermedio",15,"Hatching, cross-hatching, sfumatura.",[S(1,"Hatching","Linee parallele = ombre. Più fitte = più scure.","Varia la pressione."),S(2,"Cross-hatching","Incrocia le linee per ombre dense.","Cambia angolazione per textures diverse."),S(3,"Sfumatura","Strofina per transizioni morbide.","Non esagerare!"),S(4,"Mix","Disegna una sfera con tutte e 3 le tecniche.",null)]),
-  LL(7,true,"🦴","Anatomia — proporzioni","Base",15,"Il canone delle proporzioni umane.",[S(1,"Le 8 teste","Il corpo adulto misura ~7,5-8 teste in altezza.","I fumetti usano 9-10 per renderli più eroici."),S(2,"Punti di riferimento","Spalle, vita, fianchi, ginocchia.","Usa una figura di legno come riferimento."),S(3,"Scheletro stilizzato","Disegna lo stick figure articolato prima del corpo.",null)]),
+  LL(7,true,"🦴","Anatomia — proporzioni","Base",15,"Il canone delle proporzioni umane.",[S(1,"Le 8 teste","Il corpo adulto misura ~7.5-8 teste in altezza.","I fumetti usano 9-10 per renderli più eroici."),S(2,"Punti di riferimento","Spalle, vita, fianchi, ginocchia.","Usa una figura di legno come riferimento."),S(3,"Scheletro stilizzato","Disegna lo stick figure articolato prima del corpo.",null)]),
   LL(8,true,"✋","Mani e piedi","Intermedio",15,"Le parti più difficili del corpo umano.",[S(1,"La mano a blocchi","Palmo (trapezio) + dita (cilindri).","Studia la tua mano non dominante."),S(2,"Le dita","Tre falangi per dito. Il pollice ne ha due.","Le nocche formano un arco."),S(3,"Il piede","Tallone + collo + dita. Vedi il piede come architettura.",null)]),
   LL(9,true,"😊","Il viso — proporzioni","Base",15,"Dove vanno occhi, naso, orecchie e bocca.",[S(1,"L'ovale","Dividi a metà orizzontalmente: lì vanno gli occhi.","La distanza tra gli occhi è circa un occhio."),S(2,"Naso e bocca","Naso a 3/4, bocca a 2/3 dal mento.","Orecchie: dall'occhio alla base del naso."),S(3,"Espressioni","Lo stesso viso con 3 emozioni: felice, triste, sorpreso.","Le sopracciglia fanno il 60% dell'espressione.")])
-]},,
+]},
 {id:"character",label:"Character Design",icon:"🦸",required:false,free:false,
- info:"Crea personaggi memorabili. Dall'anatomia stilizzata alle creature fantasy: silhouette, espressioni e caratterizzazione visiva. Richiede i Fondamentali.",
+ info:"Crea personaggi memorabili. Silhouette, espressioni, costumi. Richiede i Fondamentali.",
  unlocks:"Tecniche avanzate di concept art",
  levels:[
-  LL(1,false,"🧍","Personaggi realistici","Base",25,"Proporzioni, anatomia e stile realistico applicati alla figura umana.",[
-    S(1,"Proporzioni realistiche","Il canone 7,5 teste applicato a un personaggio reale.","Parti da una foto reference: non inventare l'anatomia."),
-    S(2,"Viso realistico","Costruzione del viso con le proporzioni classiche.","Studia la luce — il realismo nasce dal chiaroscuro."),
-    S(3,"Abbigliamento realistico","Come le pieghe seguono il corpo in movimento.",null)
-  ]),
-  LL(2,false,"🐱","Personaggi manga","Base",25,"Lo stile manga: occhi grandi, proporzioni chibi e super-deformed.",[
-    S(1,"Proporzioni manga","3-4 teste per i chibi, 8-9 per lo shōnen classico.","Il manga esagera consapevolmente le proporzioni."),
-    S(2,"Occhi manga","La finestra dell'anima nel manga: dimensione, luce, pupilla.","Gli occhi variano enormemente tra generi: shōjo vs shōnen."),
-    S(3,"Espressioni manga","Rabbia chibita, shock, imbarazzo: il vocabolario visivo manga.",null)
-  ]),
-  LL(3,false,"🎨","Personaggi stilizzati","Intermedio",30,"Come semplificare un personaggio mantenendo la leggibilità e la personalità.",[
-    S(1,"Livelli di stilizzazione","Da realistico a cartoon: dove vuoi stare?","Disney usa ~4-5 teste, CalArts anche meno."),
-    S(2,"Forme icona","Ogni personaggio dovrebbe avere una forma base dominante.","Eroe = triangolo, villain = rombo invertito, comico = cerchio."),
-    S(3,"Linee caratteristiche","Quali tratti esagerare per rendere il personaggio unico?",null)
-  ]),
-  LL(4,false,"🐺","Personaggi antropomorfi","Intermedio",30,"Animali con caratteristiche umane: dal furry al Disney classico.",[
-    S(1,"Anatomia ibrida","Quanto animale, quanto umano? La slider del design antropomorfo.","Studia Zootopia, Robin Hood Disney, Beastars per riferimenti."),
-    S(2,"Espressività animale","Come trasmettere emozioni con muso, orecchie, coda.","Le orecchie degli animali sono un secondo volto emozionale."),
-    S(3,"Costume e contesto","L'abbigliamento deve coesistere con le caratteristiche animali.",null)
-  ]),
-  LL(5,false,"🐉","Creature fantasy","Avanzato",35,"Disegnare creature credibili che non esistono: draghi, basilischi, chimere.",[
-    S(1,"Anatomia funzionale","Una creatura deve sembrare capace di sopravvivere.","Studia animali reali: il volo del pterosauro, il nuoto del drago marino."),
-    S(2,"Mix di riferimenti","La chimera visiva: unisci 3 animali reali in modo coerente.","Inizia con silhouette pulite prima di aggiungere dettagli."),
-    S(3,"Texture e materiali","Squame, pelliccia, pelle: come renderli nel disegno.",null)
-  ]),
-  LL(6,false,"💀","Mostri e villain","Avanzato",35,"Il design del terrore: creature ostili, boss di gioco, antagonisti memorabili.",[
-    S(1,"Linguaggio visivo del pericolo","Angoli affilati, colori saturi, simmetria rotta = minaccia.","I mostri più efficaci hanno qualcosa di familiare storto."),
-    S(2,"Scala e proporzioni intimidatorie","Come far sembrare qualcosa enorme sulla pagina.",null),
-    S(3,"Il mostro finale","Crea un boss finale per un videogioco: concept sheet completo.",null)
-  ])
+  LL(1,false,"🧍","Personaggi realistici","Base",25,"Proporzioni, anatomia e stile realistico.",[S(1,"Proporzioni realistiche","Il canone 7.5 teste applicato a un personaggio reale.","Parti da una foto reference."),S(2,"Viso realistico","Costruzione del viso con proporzioni classiche.","Il realismo nasce dal chiaroscuro."),S(3,"Abbigliamento realistico","Come le pieghe seguono il corpo in movimento.",null)]),
+  LL(2,false,"🐱","Personaggi manga","Base",25,"Lo stile manga: occhi grandi, proporzioni chibi.",[S(1,"Proporzioni manga","3-4 teste per i chibi, 8-9 per lo shonen classico.","Il manga esagera consapevolmente."),S(2,"Occhi manga","La finestra dell'anima nel manga: dimensione, luce, pupilla.","Gli occhi variano enormemente tra generi."),S(3,"Espressioni manga","Rabbia chibita, shock, imbarazzo.",null)]),
+  LL(3,false,"🎨","Personaggi stilizzati","Intermedio",30,"Come semplificare un personaggio mantenendo la leggibilità.",[S(1,"Livelli di stilizzazione","Da realistico a cartoon: dove vuoi stare?","Disney usa ~4-5 teste."),S(2,"Forme icona","Ogni personaggio dovrebbe avere una forma base dominante.","Eroe = triangolo, villain = rombo invertito."),S(3,"Linee caratteristiche","Quali tratti esagerare per rendere il personaggio unico?",null)]),
+  LL(4,false,"🐺","Personaggi antropomorfi","Intermedio",30,"Animali con caratteristiche umane.",[S(1,"Anatomia ibrida","Quanto animale, quanto umano?","Studia Zootopia, Robin Hood Disney."),S(2,"Espressività animale","Come trasmettere emozioni con muso, orecchie, coda.","Le orecchie degli animali sono un secondo volto."),S(3,"Costume e contesto","L'abbigliamento deve coesistere con le caratteristiche animali.",null)]),
+  LL(5,false,"🐉","Creature fantasy","Avanzato",35,"Disegnare creature credibili che non esistono.",[S(1,"Anatomia funzionale","Una creatura deve sembrare capace di sopravvivere.","Studia animali reali."),S(2,"Mix di riferimenti","Unisci 3 animali reali in modo coerente.","Inizia con silhouette pulite."),S(3,"Texture e materiali","Squame, pelliccia, pelle: come renderli nel disegno.",null)]),
+  LL(6,false,"💀","Mostri e villain","Avanzato",35,"Il design del terrore: creature ostili, boss, antagonisti.",[S(1,"Linguaggio visivo del pericolo","Angoli affilati, colori saturi, simmetria rotta = minaccia.","I mostri più efficaci hanno qualcosa di familiare storto."),S(2,"Scala e proporzioni intimidatorie","Come far sembrare qualcosa enorme sulla pagina.",null),S(3,"Il mostro finale","Crea un boss finale per un videogioco.",null)])
 ]},
 {id:"environment",label:"Environment Design",icon:"🏔️",required:false,free:false,
- info:"Costruisci mondi credibili. Paesaggi, città, dungeon e ambienti fantastici. Richiede i Fondamentali.",
+ info:"Costruisci mondi credibili. Paesaggi, città, dungeon, ambienti fantastici. Richiede i Fondamentali.",
  unlocks:"Concept Art completo per giochi e illustrazione",
  levels:[
-  LL(1,false,"🌄","Ambienti naturali","Base",25,"Foreste, deserti, oceani, montagne: come disegnare la natura con efficacia.",[
-    S(1,"Vegetazione a masse","Non ogni foglia — masse di tono che suggeriscono fogliame.","Trova la forma generale dell'albero prima di qualsiasi dettaglio."),
-    S(2,"Rocce e terreno","Le rocce hanno piani definiti come cubi semplificati.","Studia le rocce reali: nessuna è uguale a un'altra."),
-    S(3,"Acqua e cielo","L'acqua riflette il cielo. Le nuvole sono sfere schiacciate.",null)
-  ]),
-  LL(2,false,"🏙️","Città e ambienti urbani","Base",25,"Strade, edifici, mercati: come costruire città credibili.",[
-    S(1,"Skyline","Silhouette di edifici di altezze diverse crea ritmo visivo.","Varia forme: non solo rettangoli."),
-    S(2,"Strada in profondità","Applica PP2 a una strada con vetrine, lampioni, pedoni.",null),
-    S(3,"Dettaglio architettonico","Un portone, una vetrina, un vicolo — i dettagli danno vita.",null)
-  ]),
-  LL(3,false,"🏰","Ambienti fantasy","Intermedio",30,"Castelli, foreste incantate, città galleggianti: il worldbuilding visivo.",[
-    S(1,"Architettura fantasy","Prendi uno stile reale (gotico, orientale, azteco) e distorcilo.","La credibilità nasce dal riferimento reale modificato."),
-    S(2,"Flora e fauna fantasy","Piante e creature che non esistono ma sembrano naturali.",null),
-    S(3,"Mood e atmosfera","Lo stesso ambiente con 3 luci diverse: giorno, notte, tempesta.",null)
-  ]),
-  LL(4,false,"🕳️","Dungeon e interni oscuri","Intermedio",30,"Sotterranei, rovine, cripta: il design degli spazi claustrofobici.",[
-    S(1,"Prospettiva in spazi chiusi","Come PP1 governa corridoi e sale.",null),
-    S(2,"Illuminazione artificiale","Torce, cristalli magici, lava: fonti di luce non solari.",null),
-    S(3,"Texture di degrado","Pietra rotta, muffa, ragnatele: il tempo visivo.",null)
-  ]),
-  LL(5,false,"🚀","Ambienti sci-fi","Avanzato",35,"Astronavi, stazioni orbitali, pianeti alieni: il design del futuro.",[
-    S(1,"Design industriale futuro","Pannelli, cavi, led: il vocabolario visivo sci-fi.",null),
-    S(2,"Pianeta alieno","Come creare un ecosistema visivamente coerente ma non terrestre.",null),
-    S(3,"Hard sci-fi vs space opera","Due estetiche diverse per due visioni del futuro.",null)
-  ]),
-  LL(6,false,"🌋","Ambienti post-apocalittici","Avanzato",35,"Rovine, natura che riprende, sopravvivenza: l'estetica della fine del mondo.",[
-    S(1,"Natura vs architettura","Come la vegetazione aggredisce le strutture abbandonate.",null),
-    S(2,"Atmosfera e silenzio visivo","Come trasmettere la solitudine con la composizione.",null),
-    S(3,"Location design","Crea una location iconica post-apoc con concept sheet.",null)
-  ])
+  LL(1,false,"🌄","Ambienti naturali","Base",25,"Foreste, deserti, oceani, montagne.",[S(1,"Vegetazione a masse","Non ogni foglia: masse di tono che suggeriscono fogliame.","Trova la forma generale dell'albero."),S(2,"Rocce e terreno","Le rocce hanno piani definiti come cubi semplificati.","Studia le rocce reali."),S(3,"Acqua e cielo","L'acqua riflette il cielo. Le nuvole sono sfere schiacciate.",null)]),
+  LL(2,false,"🏙️","Città e ambienti urbani","Base",25,"Strade, edifici, mercati: come costruire città credibili.",[S(1,"Skyline","Silhouette di edifici di altezze diverse crea ritmo visivo.","Varia forme."),S(2,"Strada in profondità","Applica PP2 a una strada con vetrine, lampioni, pedoni.",null),S(3,"Dettaglio architettonico","Un portone, una vetrina, un vicolo: i dettagli danno vita.",null)]),
+  LL(3,false,"🏰","Ambienti fantasy","Intermedio",30,"Castelli, foreste incantate, città galleggianti.",[S(1,"Architettura fantasy","Prendi uno stile reale (gotico, orientale) e distorcilo.","La credibilità nasce dal riferimento reale modificato."),S(2,"Flora e fauna fantasy","Piante e creature che non esistono ma sembrano naturali.",null),S(3,"Mood e atmosfera","Lo stesso ambiente con 3 luci diverse: giorno, notte, tempesta.",null)]),
+  LL(4,false,"🕳️","Dungeon e interni oscuri","Intermedio",30,"Sotterranei, rovine, cripta: gli spazi claustrofobici.",[S(1,"Prospettiva in spazi chiusi","Come PP1 governa corridoi e sale.",null),S(2,"Illuminazione artificiale","Torce, cristalli magici, lava: fonti di luce non solari.",null),S(3,"Texture di degrado","Pietra rotta, muffa, ragnatele: il tempo visivo.",null)]),
+  LL(5,false,"🚀","Ambienti sci-fi","Avanzato",35,"Astronavi, stazioni orbitali, pianeti alieni.",[S(1,"Design industriale futuro","Pannelli, cavi, led: il vocabolario visivo sci-fi.",null),S(2,"Pianeta alieno","Come creare un ecosistema visivamente coerente ma non terrestre.",null),S(3,"Hard sci-fi vs space opera","Due estetiche diverse per due visioni del futuro.",null)]),
+  LL(6,false,"🌋","Ambienti post-apocalittici","Avanzato",35,"Rovine, natura che riprende, sopravvivenza.",[S(1,"Natura vs architettura","Come la vegetazione aggredisce le strutture abbandonate.",null),S(2,"Atmosfera e silenzio visivo","Come trasmettere la solitudine con la composizione.",null),S(3,"Location design","Crea una location iconica post-apoc.",null)])
 ]},
 {id:"prop",label:"Prop Design",icon:"⚔️",required:false,free:false,
- info:"Ogni oggetto racconta una storia. Armi, armature, oggetti magici, veicoli: design funzionale e coerente col mondo. Richiede i Fondamentali.",
+ info:"Ogni oggetto racconta una storia. Armi, armature, oggetti magici, veicoli. Richiede i Fondamentali.",
  unlocks:"Concept Art completo e portfolio professionale",
  levels:[
-  LL(1,false,"🗡️","Armi medievali","Base",25,"Spade, asce, lance: il design delle armi storiche.",[
-    S(1,"Proporzioni storiche","Un'arma storica ha proporzioni studiate per funzionare.","Studia le armi reali: la spada medievale, l'ascia vichinga."),
-    S(2,"Guardia e impugnatura","Il dettaglio che personalizza l'arma e racconta il proprietario.","La decorazione segue la cultura: celtica, orientale, araba."),
-    S(3,"Design originale medievale","Un'arma originale coerente con un setting fantasy medievale.",null)
-  ]),
-  LL(2,false,"🔫","Armi futuristiche","Base",25,"Blaster, railgun, armi plasma: il vocabolario visivo sci-fi.",[
-    S(1,"Linguaggio visivo sci-fi","Linee pulite, materiali lucidi, display — o al contrario: grungy e usurato.","Scegli la tua estetica: clean future o retrofuturismo?"),
-    S(2,"Funzionalità percepita","Come deve sembrare che funziona l'arma?","Il caricatore, il raffreddamento, la mira: elementi funzionali visibili."),
-    S(3,"Arma originale sci-fi","Concept sheet da 3 angoli di un'arma del tuo setting.",null)
-  ]),
-  LL(3,false,"🛡️","Armature e protezioni","Intermedio",30,"Dal gambeson medievale all'esoscheletro: armature che seguono il corpo.",[
-    S(1,"Anatomia sotto l'armatura","Prima il corpo, poi le piastre sopra — sempre.","L'armatura esalta la forma, non la nasconde."),
-    S(2,"Materiali e texture","Metallo brunito, cuoio indurito, ceramica composita.","Studia la luce su superfici diverse: riflessi vs matte."),
-    S(3,"Set completo","Elmo, pettorale, spallacci, guanti, stivali — coerenti tra loro.",null)
-  ]),
-  LL(4,false,"✨","Oggetti magici e reliquie","Intermedio",30,"Artefatti, amuleti, bacchette: il design dell'impossibile che sembra reale.",[
-    S(1,"Il visual storytelling dell'oggetto","Ogni runa, ogni crepa racconta la storia dell'artefatto.",null),
-    S(2,"Materi ali insoliti","Cristallo vivo, metallo che fonde con la carne, legno antico.",null),
-    S(3,"Reliquia del tuo mondo","Crea un artefatto iconico per il tuo setting con backstory visiva.",null)
-  ]),
-  LL(5,false,"🚗","Veicoli e mezzi di trasporto","Avanzato",35,"Auto, mech, astronavi, draghi da cavalcare: il design in movimento.",[
-    S(1,"Prospettiva e volume","I veicoli sono sfide di PP2 — volumi complessi in angolazione.",null),
-    S(2,"Design funzionale","Dove siede il pilota? Come si muove? Da dove escono i gas?","La credibilità tecnica rende il veicolo convincente."),
-    S(3,"Concept sheet veicolo","Fronte, laterale, 3/4 di un veicolo originale.",null)
-  ]),
-  LL(6,false,"🎒","Equipaggiamento da avventuriero","Avanzato",35,"Zaini, borse, strumenti, kit da sopravvivenza: props narrativi per personaggi.",[
-    S(1,"L'equipaggiamento racconta il personaggio","Cosa porta con sé dice chi è.","Un ladro porta corde e grimaldelli, un mago pergamene e cristalli."),
-    S(2,"Usura e storia","Un oggetto usato è più interessante di uno nuovo.",null),
-    S(3,"Kit completo","6 props coerenti per un personaggio: ogni oggetto ha senso.",null)
-  ])
+  LL(1,false,"🗡️","Armi medievali","Base",25,"Spade, asce, lance: il design delle armi storiche.",[S(1,"Proporzioni storiche","Un'arma storica ha proporzioni studiate per funzionare.","Studia le armi reali."),S(2,"Guardia e impugnatura","Il dettaglio che personalizza l'arma.","La decorazione segue la cultura."),S(3,"Design originale medievale","Un'arma originale coerente con un setting fantasy medievale.",null)]),
+  LL(2,false,"🔫","Armi futuristiche","Base",25,"Blaster, railgun, armi plasma: il vocabolario visivo sci-fi.",[S(1,"Linguaggio visivo sci-fi","Linee pulite, materiali lucidi, display.","Scegli la tua estetica."),S(2,"Funzionalità percepita","Come deve sembrare che funziona l'arma?","Caricatore, raffreddamento, mira."),S(3,"Arma originale sci-fi","Concept sheet da 3 angoli di un'arma del tuo setting.",null)]),
+  LL(3,false,"🛡️","Armature e protezioni","Intermedio",30,"Dal gambeson medievale all'esoscheletro.",[S(1,"Anatomia sotto l'armatura","Prima il corpo, poi le piastre sopra.","L'armatura esalta la forma."),S(2,"Materiali e texture","Metallo brunito, cuoio indurito, ceramica composita.","Studia la luce su superfici diverse."),S(3,"Set completo","Elmo, pettorale, spallacci, guanti, stivali.",null)]),
+  LL(4,false,"✨","Oggetti magici e reliquie","Intermedio",30,"Artefatti, amuleti, bacchette: il design dell'impossibile.",[S(1,"Il visual storytelling dell'oggetto","Ogni runa, ogni crepa racconta la storia dell'artefatto.",null),S(2,"Materiali insoliti","Cristallo vivo, metallo che fonde con la carne.",null),S(3,"Reliquia del tuo mondo","Crea un artefatto iconico con backstory visiva.",null)]),
+  LL(5,false,"🚗","Veicoli e mezzi di trasporto","Avanzato",35,"Auto, mech, astronavi: il design in movimento.",[S(1,"Prospettiva e volume","I veicoli sono sfide di PP2.",null),S(2,"Design funzionale","Dove siede il pilota? Da dove escono i gas?","La credibilità tecnica rende il veicolo convincente."),S(3,"Concept sheet veicolo","Fronte, laterale, 3/4 di un veicolo originale.",null)]),
+  LL(6,false,"🎒","Equipaggiamento da avventuriero","Avanzato",35,"Zaini, borse, kit da sopravvivenza: props narrativi.",[S(1,"L'equipaggiamento racconta il personaggio","Cosa porta con sé dice chi è.","Un ladro porta corde e grimaldelli."),S(2,"Usura e storia","Un oggetto usato è più interessante di uno nuovo.",null),S(3,"Kit completo","6 props coerenti per un personaggio.",null)])
 ]}];
 
 var MOCK={google:{id:"social-google",name:"Marco Rossi",email:"marco@gmail.com",avatar:"👨",provider:"google",r:new Date().toISOString()},microsoft:{id:"social-microsoft",name:"Laura Bianchi",email:"laura@outlook.com",avatar:"👩",provider:"microsoft",r:new Date().toISOString()},apple:{id:"social-apple",name:"Luca Ferrari",email:"luca@icloud.com",avatar:"🧑",provider:"apple",r:new Date().toISOString()},facebook:{id:"social-facebook",name:"Gianluca Rossi",email:"gianluca@facebook.com",avatar:"👤",provider:"facebook",r:new Date().toISOString()}};
@@ -869,8 +627,7 @@ async function doLogout(){
 
 /* ═══════════════ HOME ═══════════════ */
 function renderHome(){
-  // Reload progress from localStorage
-  try{var _p=localGet("dl:progress_all");if(_p)A.progress=JSON.parse(_p);}catch(e){}
+  try{var _p=localStorage.getItem("dl:progress_all");if(_p)A.progress=JSON.parse(_p);}catch(e){}
   // Greeting
   document.getElementById("home-greeting").textContent="Ciao, "+A.user.avatar+" "+A.user.name.split(" ")[0]+"!";
   
@@ -953,7 +710,6 @@ function renderHome(){
     var doneCat=cat.levels.filter(function(l){var k=pk(cat.id,l.id);return A.progress[k]&&A.progress[k].completed;}).length;
     var fondaDone=CATS[0].levels.every(function(l){var k=pk("fondamentali",l.id);return A.progress[k]&&A.progress[k].completed;});
     var isLocked=idx!==0&&!fondaDone;
-    var pctCat=cat.levels.length>0?Math.round(doneCat/cat.levels.length*100):0;
     var wrapper=document.createElement("div");
     if(idx===0) wrapper.style.gridColumn="1/-1";
     var div=document.createElement("div");
@@ -964,8 +720,8 @@ function renderHome(){
     var nameEl=document.createElement("div"); nameEl.style.cssText="font-weight:800;font-size:"+(idx===0?"15":"13")+"px;color:#1C1B2E"; nameEl.textContent=cat.label;
     var subEl=document.createElement("div"); subEl.style.cssText="font-size:11px;color:"+ac+";font-weight:600;margin-top:1px"; subEl.textContent=doneCat+"/"+cat.levels.length+" lezioni"+(doneCat===cat.levels.length?" · ✅ Completata":"");
     nameBlock.appendChild(nameEl); nameBlock.appendChild(subEl);
-    var infoBtn=document.createElement("button"); infoBtn.style.cssText="width:28px;height:28px;border-radius:50%;background:"+ac+"22;border:1px solid "+ac+"44;color:"+ac+";font-weight:800;font-size:13px;cursor:pointer;flex-shrink:0"; infoBtn.textContent="i"; infoBtn.title="Info percorso";
-    (function(c){infoBtn.onclick=function(e){e.stopPropagation();showCatInfo(c);};})(cat);
+    var infoBtn=document.createElement("button"); infoBtn.style.cssText="width:28px;height:28px;border-radius:50%;background:"+ac+"22;border:1px solid "+ac+"44;color:"+ac+";font-weight:800;font-size:13px;cursor:pointer;flex-shrink:0"; infoBtn.textContent="i";
+    (function(c){infoBtn.addEventListener("click",function(e){e.stopPropagation();showCatInfo(c);});})(cat);
     headerRow.appendChild(iconBox); headerRow.appendChild(nameBlock); headerRow.appendChild(infoBtn);
     div.appendChild(headerRow);
     var barsRow=document.createElement("div"); barsRow.style.cssText="display:flex;gap:3px;margin-bottom:10px";
@@ -973,7 +729,7 @@ function renderHome(){
     div.appendChild(barsRow);
     if(isLocked){var lm=document.createElement("div");lm.style.cssText="font-size:11px;color:#9896B8;font-style:italic";lm.textContent="🔒 Completa i Fondamentali per sbloccare";div.appendChild(lm);}
     else{(function(c){div.addEventListener("click",function(){A.cat=c;renderCategory();showScreen("category");});})(cat);}
-    if(cat.unlocks){var hint=document.createElement("div");hint.style.cssText="font-size:10px;color:"+ac+";opacity:.7;margin-top:8px;font-style:italic;border-top:1px solid rgba(0,0,0,.06);padding-top:6px";hint.textContent="Completando sblocchi: "+cat.unlocks;div.appendChild(hint);}
+    if(cat.unlocks){var hint=document.createElement("div");hint.style.cssText="font-size:10px;color:"+ac+";opacity:.7;margin-top:8px;font-style:italic;border-top:1px solid rgba(0,0,0,.06);padding-top:6px";hint.textContent="Sblocchi: "+cat.unlocks;div.appendChild(hint);}
     wrapper.appendChild(div); grid.appendChild(wrapper);
   });
 
@@ -983,7 +739,6 @@ function renderHome(){
   if(sbtn) sbtn.textContent = _skillView==="list"?"🌳 Skill Tree":"📋 Lista";
 
   // Se skill tree attivo, mostra albero invece della griglia
-  setTimeout(maybeShowLearnWelcome,100);
   var skillContainer = document.getElementById("skill-tree-container");
   var catGrid = document.getElementById("home-cat-grid");
   if(_skillView === "tree"){
@@ -992,17 +747,14 @@ function renderHome(){
   } else {
     if(skillContainer) skillContainer.style.display="none";
     if(catGrid) catGrid.style.display="";
-    // Hide the skill-tree-view div created by renderSkillTree
-    var stv=document.getElementById("skill-tree-view");
-    if(stv) stv.style.display="none";
   }
+  setTimeout(maybeShowLearnWelcome,100);
   updateTokenUI();
 }
 
 /* ═══════════════ CATEGORY ═══════════════ */
 function renderCategory(){
-  // Sync progress from localStorage before rendering
-  try{ var lp=localGet("dl:progress_all"); if(lp) A.progress=JSON.parse(lp); }catch(e){}
+  try{var _p=localStorage.getItem("dl:progress_all");if(_p)A.progress=JSON.parse(_p);}catch(e){}
   var cat=A.cat,bg=BG[cat.id],ac=AC[cat.id];
   document.getElementById("cat-header").innerHTML='<div style="background:'+bg+';padding:20px 20px 16px"><div style="max-width:600px;margin:0 auto"><button onclick="showScreen(\'home\')" style="background:rgba(255,255,255,.7);border:none;border-radius:50px;padding:4px 11px;cursor:pointer;font-weight:700;font-size:11px;color:#1C1B2E;margin-bottom:12px">← Home</button><div style="font-size:44px;margin-bottom:4px">'+cat.icon+'</div><h1 style="font-weight:800;font-size:24px;color:#1C1B2E;margin-bottom:2px">'+cat.label+'</h1><p style="color:#4A4868;font-size:11px">'+cat.levels.length+' livelli · dal principiante all\'avanzato</p></div></div>';
   var cont=document.getElementById("cat-content");cont.innerHTML="";
@@ -1010,7 +762,8 @@ function renderCategory(){
     var k=pk(cat.id,les.id),pg=A.progress[k]||{completed:false,step:0};
     var locked=!les.free&&!A.pro;
     var pct=les.steps.length>0?Math.round(pg.step/les.steps.length*100):0;
-    var stars=[0,1,2].map(function(i){return'<span style="color:'+(i<=idx?"#D4A200":"#ddd")+';font-size:12px">★</span>';}).join("");
+
+    stars=[0,1,2].map(function(i){return'<span style="color:'+(i<=idx?"#D4A200":"#ddd")+';font-size:12px">★</span>';}).join("");
     var prog="";
     if(!locked&&pg.step>0&&!pg.completed)prog='<div style="margin-top:5px"><div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="font-size:9px;color:#9896B8">In corso</span><span style="font-size:9px;color:'+ac+';font-weight:700">'+pct+'%</span></div><div style="background:'+bg+';border-radius:50px;height:4px"><div style="width:'+pct+'%;background:'+ac+';height:100%;border-radius:50px"></div></div></div>';
     if(pg.completed)prog='<div style="font-size:10px;color:'+ac+';font-weight:800;margin-top:3px">✓ Completata!</div>';
@@ -1021,10 +774,7 @@ function renderCategory(){
     div.className="card";
     div.style.border=locked?"2px dashed #e0ddf5":"2px solid "+(pg.completed?ac+"40":"transparent");
     div.innerHTML='<div style="display:flex;align-items:flex-start;gap:11px"><div style="width:44px;height:44px;background:'+(locked?"#f5f3ff":bg)+';border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;position:relative">'+(locked?"🔒":les.icon)+checkmark+'</div><div style="flex:1"><div style="display:flex;align-items:center;gap:5px;margin-bottom:3px"><span style="font-weight:800;font-size:14px;color:'+(locked?"#9896B8":"#1C1B2E")+'">'+les.title+'</span>'+badge+'</div><div style="display:flex;gap:2px;margin-bottom:3px;align-items:center">'+stars+'<span style="color:#9896B8;font-size:10px;margin-left:3px">'+les.diff+' · '+les.mins+'min · '+les.steps.length+' passi</span></div><p style="color:#9896B8;font-size:11px;margin:0;line-height:1.5">'+les.intro+'</p>'+prog+'</div></div>';
-    (function(c,l){
-      div.style.cursor="pointer";
-      div.addEventListener("click",function(){startLesson(c,l);});
-    })(cat,les);
+    (function(c,l){div.style.cursor="pointer";div.addEventListener("click",function(){startLesson(c,l);});})(cat,les);
     cont.appendChild(div);
   });
   if(!A.pro){
@@ -1036,7 +786,6 @@ function renderCategory(){
 
 /* ═══════════════ LESSON ═══════════════ */
 function startLesson(cat,les){
-  try{
   localSet("dl:last",JSON.stringify({catId:cat.id,lesId:les.id,step:A.progress[pk(cat.id,les.id)]&&A.progress[pk(cat.id,les.id)].step||0,title:les.title,icon:les.icon||"📝",catIcon:cat.icon}));
   if(!les.free&&!A.pro&&!isLessonUnlockedByToken(cat.id,les.id)){
     // Show token unlock option
@@ -1058,7 +807,6 @@ function startLesson(cat,les){
   var sv=A.progress[pk(cat.id,les.id)];
   A.step=sv&&sv.completed?0:Math.min(sv&&sv.step||0,les.steps.length-1);
   renderLesson();showScreen("lesson");
-  }catch(e){showToast("Errore apertura lezione: "+e.message,"");console.error("startLesson error:",e);}
 }
 function renderLesson(){
   var cat=A.cat,les=A.lesson,p=A.step,tot=les.steps.length;
@@ -1109,86 +857,39 @@ function renderLesson(){
 }
 async function prevStep(){if(A.step>0){A.step--;renderLesson();}}
 async function nextStep(){
-  var les=A.lesson,cat=A.cat,p=A.step,tot=les.steps.length;
-  var key=pk(cat.id,les.id);
-  var pv=A.progress[key]||{completed:false,step:0};
-  var ns=Math.max(pv.step,p+1);
-  var done=ns>=tot;
-  var prevDone=Object.values(A.progress).filter(function(v){return v.completed;}).length;
-  A.progress[key]={completed:done,step:ns};
-  // Save to localStorage immediately (primary, always works)
-  localSet("dl:prog_"+key, JSON.stringify({completed:done,step:ns}));
-  // Save also the full progress map
-  localSet("dl:progress_all", JSON.stringify(A.progress));
-  var uid_s=localGet("dl:uid");
-  if(uid_s&&sbReady()){
-    // Upsert: POST with merge-duplicates (already set in sbFetch)
-    sbFetch("POST","dl_progress",{body:{user_id:uid_s,lesson_key:key,step:ns,completed:done,updated_at:new Date().toISOString()}})
-    .then(function(r){ if(!r||r.error) console.warn("Progress save issue:",r); })
-    .catch(function(e){
-      // Fallback: try PATCH
-      sbFetch("PATCH","dl_progress?user_id=eq."+uid_s+"&lesson_key=eq."+encodeURIComponent(key),{body:{step:ns,completed:done,updated_at:new Date().toISOString()}}).catch(function(e2){console.error("Progress save error:",e2);});
-    });
-  }
-  // Also track last lesson for "Continua" card
-  localSet("dl:last",JSON.stringify({catId:cat.id,lesId:les.id,step:ns,title:les.title,icon:les.icon||"📝",catIcon:cat.icon}));
-  if(done){
-    showLessonComplete(les, cat, prevDone);
-  } else {
-    A.step++;
-    if(A.step>=tot) A.step=tot-1;
-    renderLesson();
-  }
+  try{
+    if(!A.lesson||!A.cat){showToast("Errore: nessuna lezione attiva","");return;}
+    var les=A.lesson,cat=A.cat,p=A.step,tot=les.steps?les.steps.length:0;
+    if(!tot){showToast("Errore: nessun passo","");return;}
+    var key=cat.id+"-"+les.id;
+    var pv=A.progress[key]||{completed:false,step:0};
+    var ns=Math.max(pv.step||0,p+1);
+    var done=(ns>=tot);
+    var prevDone=Object.values(A.progress||{}).filter(function(v){return v&&v.completed;}).length;
+    A.progress[key]={completed:done,step:ns};
+    try{localStorage.setItem("dl:prog_"+key,JSON.stringify({completed:done,step:ns}));localStorage.setItem("dl:progress_all",JSON.stringify(A.progress));}catch(e){}
+    var uid_s=localStorage.getItem("dl:uid");
+    if(uid_s){sbFetch("POST","dl_progress",{body:{user_id:uid_s,lesson_key:key,step:ns,completed:done,updated_at:new Date().toISOString()}}).catch(function(e){sbFetch("PATCH","dl_progress?user_id=eq."+uid_s+"&lesson_key=eq."+encodeURIComponent(key),{body:{step:ns,completed:done}}).catch(function(){});});}
+    localStorage.setItem("dl:last",JSON.stringify({catId:cat.id,lesId:les.id,step:ns,title:les.title,icon:les.icon||"📝",catIcon:cat.icon}));
+    if(done){showLessonComplete(les,cat,prevDone);}
+    else{A.step=Math.min(p+1,tot-1);renderLesson();}
+  }catch(err){console.error("nextStep error:",err);showToast("Errore: "+err.message,"⚠️");}
 }
 
-function showLessonComplete(les, cat, prevDone){
+function showLessonComplete(les,cat,prevDone){
   var ac=AC[cat.id]||"#8B5CF6";
-  var overlay=document.createElement("div");
-  overlay.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px";
-  var panel=document.createElement("div");
-  panel.style.cssText="background:#1e1b3a;border-radius:24px;width:100%;max-width:380px;padding:32px 24px;text-align:center";
-  var done=Object.values(A.progress).filter(function(v){return v.completed;}).length;
-  panel.innerHTML=
-    '<div style="font-size:64px;margin-bottom:12px">🎉</div>'+
-    '<div style="font-weight:800;font-size:22px;color:#fff;margin-bottom:8px">Lezione completata!</div>'+
-    '<div style="font-size:15px;color:'+ac+';font-weight:700;margin-bottom:6px">'+les.icon+' '+les.title+'</div>'+
-    '<div style="font-size:13px;color:#9896B8;margin-bottom:20px">+'+les.mins+' XP guadagnati · '+done+'/27 lezioni totali</div>'+
-    '<div style="background:rgba(255,255,255,.06);border-radius:12px;height:8px;overflow:hidden;margin-bottom:20px">'+
-      '<div style="width:'+Math.round(done/27*100)+'%;height:100%;background:linear-gradient(90deg,'+ac+',#3DBE7A);border-radius:12px;transition:width .6s"></div>'+
-    '</div>'+
-    '<div id="les-complete-btns" style="display:flex;flex-direction:column;gap:10px"></div>';
-  overlay.appendChild(panel);
-  document.body.appendChild(overlay);
-  // Buttons
+  var done=Object.values(A.progress||{}).filter(function(v){return v&&v.completed;}).length;
+  var overlay=document.createElement("div");overlay.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px";
+  var panel=document.createElement("div");panel.style.cssText="background:#1e1b3a;border-radius:24px;width:100%;max-width:380px;padding:32px 24px;text-align:center";
+  panel.innerHTML='<div style="font-size:64px;margin-bottom:12px">🎉</div><div style="font-weight:800;font-size:22px;color:#fff;margin-bottom:8px">Lezione completata!</div><div style="font-size:15px;color:'+ac+';font-weight:700;margin-bottom:6px">'+les.icon+' '+les.title+'</div><div style="font-size:13px;color:#9896B8;margin-bottom:20px">+'+les.mins+' XP · '+done+'/27 lezioni</div><div style="background:rgba(255,255,255,.06);border-radius:12px;height:8px;overflow:hidden;margin-bottom:20px"><div style="width:'+Math.round(done/27*100)+'%;height:100%;background:linear-gradient(90deg,'+ac+',#3DBE7A);border-radius:12px"></div></div><div id="les-complete-btns" style="display:flex;flex-direction:column;gap:10px"></div>';
+  overlay.appendChild(panel);document.body.appendChild(overlay);
   var row=document.getElementById("les-complete-btns");
-  var continueBtn=document.createElement("button");
-  continueBtn.style.cssText="padding:13px;background:linear-gradient(135deg,"+ac+","+ac+"cc);border:none;border-radius:12px;color:#fff;font-weight:800;font-size:15px;cursor:pointer";
-  continueBtn.textContent="→ Prossima lezione";
-  continueBtn.onclick=function(){
-    overlay.remove();
-    // Find next lesson in category
-    var idx=cat.levels.findIndex(function(l){return l.id===les.id;});
-    var next=cat.levels[idx+1];
-    if(next&&(next.free||A.pro)){
-      startLesson(cat,next);
-    } else {
-      goBackFromLesson();
-    }
-  };
-  var backBtn=document.createElement("button");
-  backBtn.style.cssText="padding:13px;background:rgba(255,255,255,.08);border:none;border-radius:12px;color:#9896B8;font-weight:700;font-size:14px;cursor:pointer";
-  backBtn.textContent="↩ Torna al percorso";
-  backBtn.onclick=function(){ overlay.remove(); goBackFromLesson(); };
-  row.appendChild(continueBtn);
-  row.appendChild(backBtn);
-  // Update home progress too
-  setTimeout(function(){
-    checkNewUnlocks(prevDone);
-    var pb=document.getElementById("progress-bar");
-    var pt=document.getElementById("progress-text");
-    if(pb) pb.style.width=Math.round(done/27*100)+"%";
-    if(pt) pt.textContent=done+" di 27 lezioni completate";
-  }, 300);
+  var cb=document.createElement("button");cb.style.cssText="padding:13px;background:linear-gradient(135deg,"+ac+","+ac+"cc);border:none;border-radius:12px;color:#fff;font-weight:800;font-size:15px;cursor:pointer";cb.textContent="→ Prossima lezione";
+  cb.onclick=function(){overlay.remove();var idx=cat.levels.findIndex(function(l){return l.id===les.id;});var next=cat.levels[idx+1];if(next&&(next.free||A.pro)){startLesson(cat,next);}else{goBackFromLesson();}};
+  var bb=document.createElement("button");bb.style.cssText="padding:13px;background:rgba(255,255,255,.08);border:none;border-radius:12px;color:#9896B8;font-weight:700;font-size:14px;cursor:pointer";bb.textContent="↩ Torna al percorso";
+  bb.onclick=function(){overlay.remove();goBackFromLesson();};
+  row.appendChild(cb);row.appendChild(bb);
+  setTimeout(function(){checkNewUnlocks(prevDone);var pb=document.getElementById("progress-bar"),pt=document.getElementById("progress-text");if(pb)pb.style.width=Math.round(done/27*100)+"%";if(pt)pt.textContent=done+" di 27 lezioni completate";},300);
 }
 
 /* ═══════════════ PAYWALL ═══════════════ */
@@ -1447,7 +1148,7 @@ function loadProfileLessons(cont){
     var catPct=cat.levels.length?Math.round(catDone/cat.levels.length*100):0;
     var header2=document.createElement("div");
     header2.style.cssText="display:flex;align-items:center;gap:10px;margin-bottom:10px";
-    header2.innerHTML='<div style="width:36px;height:36px;border-radius:10px;background:'+(BG[cat.id]||'#C8F5E0')+'22;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">'+cat.icon+'</div>'+
+    header2.innerHTML='<div style="width:36px;height:36px;border-radius:10px;background:'+cat.color+'22;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">'+cat.icon+'</div>'+
       '<div style="flex:1"><div style="font-weight:800;font-size:14px;color:#fff">'+cat.name+'</div>'+
       '<div style="font-size:10px;color:#9896B8">'+catDone+'/'+cat.levels.length+' · '+catPct+'%</div></div>'+
       (catDone===cat.levels.length?'<span style="font-size:18px">🏆</span>':'');
@@ -1456,7 +1157,7 @@ function loadProfileLessons(cont){
     var pb=document.createElement("div");
     pb.style.cssText="background:rgba(255,255,255,.08);border-radius:50px;height:6px;overflow:hidden;margin-bottom:10px";
     var pbFill=document.createElement("div");
-    pbFill.style.cssText="width:"+catPct+"%;height:100%;background:"+(AC[cat.id]||"#3DBE7A")+";border-radius:50px;transition:width .6s";
+    pbFill.style.cssText="width:"+catPct+"%;height:100%;background:"+cat.color+";border-radius:50px;transition:width .6s";
     pb.appendChild(pbFill); section.appendChild(pb);
     // Lesson list
     cat.levels.forEach(function(l){
@@ -1469,7 +1170,7 @@ function loadProfileLessons(cont){
       row.innerHTML='<span style="font-size:16px;flex-shrink:0">'+statusIcon+'</span>'+
         '<span style="flex:1;font-size:13px;font-weight:'+(isComp?"700":"500")+';color:'+(isComp?"#fff":"#9896B8")+'">'+l.name+'</span>'+
         (isComp?'<span style="font-size:10px;color:#3DBE7A;font-weight:700">Completata</span>':'<span style="font-size:10px;color:#9896B8">→</span>');
-      if(!isComp){ (function(catId,lId){row.onclick=function(){var _c=CATS.find(function(c){return c.id===catId;});var _l=_c&&_c.levels.find(function(x){return x.id===lId;});if(_c&&_l)startLesson(_c,_l);};})(cat.id,l.id); }
+      if(!isComp){ (function(catId,lId){row.onclick=function(){A.cat=CATS.find(function(c){return c.id===catId;});A.lesson=CATS.find(function(c){return c.id===catId;}).levels.find(function(x){return x.id===lId;});(function(_c,_l){if(_c&&_l)startLesson(_c,_l);})(CATS.find(function(x){return x.id===catId;}),CATS.find(function(x){return x.id===catId;})&&CATS.find(function(x){return x.id===catId;}).levels.find(function(x){return x.id===lId;}));};})(cat.id,l.id); }
       section.appendChild(row);
     });
     cont.appendChild(section);
@@ -2199,15 +1900,8 @@ function renderSkillTree(catGrid){
         '<div style="font-size:8px;color:'+(completed?"#3DBE7A":(inProgress?ac:"#9896B8"))+'">'+
           (completed?"✅ Fatto":(inProgress?Math.round((prog.step/les.steps.length)*100)+"%":"▶ Inizia"))+
         '</div>';
-      // Set onclick if accessible OR if lesson is free (always clickable)
-      if(accessible||les.free){
-        (function(c,l){
-          node.style.cursor="pointer";
-          node.addEventListener("click",function(e){
-            e.stopPropagation();
-            startLesson(c,l);
-          });
-        })(cat,les);
+      if(accessible){
+        (function(c,l){ node.onclick=function(){startLesson(c,l);}; })(cat,les);
       }
       row.appendChild(node);
     });
@@ -3351,15 +3045,10 @@ function closePhoto(){
 
 function goBackFromLesson(){
   try{
-    if(A.cat && A.lesson){
-      localSet("dl:last", JSON.stringify({
-        catId:A.cat.id, lesId:A.lesson.id, step:A.step,
-        title:A.lesson.title, icon:A.lesson.icon||"", catIcon:A.cat.icon
-      }));
-    }
-    if(A.cat){ renderCategory(); showScreen("category"); }
-    else { renderHome(); showScreen("home"); }
-  }catch(e){ renderHome(); showScreen("home"); }
+    if(A.cat&&A.lesson){localSet("dl:last",JSON.stringify({catId:A.cat.id,lesId:A.lesson.id,step:A.step,title:A.lesson.title,icon:A.lesson.icon||"",catIcon:A.cat.icon}));}
+    if(A.cat){renderCategory();showScreen("category");}
+    else{renderHome();showScreen("home");}
+  }catch(e){renderHome();showScreen("home");}
 }
 
 function continueLastLesson(){
@@ -3808,8 +3497,7 @@ async function submitRedline(){
   },"image/jpeg",0.92);
 }
 
-
-
+function closeCatInfo(){var e=document.getElementById('cat-info-overlay');if(e)e.remove();}
 function showCatInfo(cat){
   var old=document.getElementById("cat-info-overlay");if(old)old.remove();
   var ac=AC[cat.id]||"#8B5CF6";
@@ -3823,27 +3511,28 @@ function showCatInfo(cat){
     '<div style="width:52px;height:52px;background:'+ac+'22;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:28px">'+cat.icon+'</div>'+
     '<div><div style="font-weight:800;font-size:18px;color:#fff">'+cat.label+'</div>'+
     '<div style="font-size:12px;color:'+ac+';font-weight:600">'+cat.levels.length+' lezioni</div></div></div>'+
-    '<div style="font-size:13px;color:#e0ddf5;line-height:1.7;margin-bottom:14px">'+cat.info+'</div>'+'<div style="font-size:11px;font-weight:800;color:'+ac+';letter-spacing:1px;margin-bottom:8px">LEZIONI IN QUESTO PERCORSO</div>'+cat.levels.map(function(l,i){return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid rgba(255,255,255,.06)"><span style="font-size:14px">'+l.icon+'</span><span style="font-size:12px;color:#fff;font-weight:600">'+l.title+'</span><span style="font-size:9px;color:'+ac+';background:'+ac+'22;border-radius:50px;padding:2px 7px;margin-left:auto;font-weight:700">'+l.diff+'</span>'+(!l.free?'<span style="font-size:9px;background:linear-gradient(135deg,#FFD60A,#FF9500);color:#fff;border-radius:50px;padding:2px 6px;font-weight:800">PRO</span>':'')+'</div>';}).join("")+
-    (cat.unlocks?'<div style="background:'+ac+'18;border:1px solid '+ac+'33;border-radius:10px;padding:10px 14px;font-size:12px;color:'+ac+';font-weight:700">✨ Sblocchi: '+cat.unlocks+'</div>':'')+
-    '<button id="cat-info-close-btn" style="width:100%;margin-top:16px;padding:12px;background:rgba(255,255,255,.08);border:none;border-radius:12px;color:#9896B8;font-weight:700;font-size:14px;cursor:pointer">Chiudi</button>'
-  o.appendChild(p); document.body.appendChild(o);
+    '<div style="font-size:13px;color:#e0ddf5;line-height:1.7;margin-bottom:14px">'+cat.info+'</div>'+
+    '<div style="font-size:11px;font-weight:800;color:'+ac+';letter-spacing:1px;margin-bottom:8px">LEZIONI IN QUESTO PERCORSO</div>'+
+    cat.levels.map(function(l){return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid rgba(255,255,255,.06)"><span style="font-size:14px">'+l.icon+'</span><span style="font-size:12px;color:#fff;font-weight:600">'+l.title+'</span><span style="font-size:9px;color:'+ac+';background:'+ac+'22;border-radius:50px;padding:2px 7px;margin-left:auto;font-weight:700">'+l.diff+'</span>'+(!l.free?'<span style="font-size:9px;background:linear-gradient(135deg,#FFD60A,#FF9500);color:#fff;border-radius:50px;padding:2px 6px;font-weight:800">PRO</span>':'')+'</div>';}).join("")+
+    (cat.unlocks?'<div style="background:'+ac+'18;border:1px solid '+ac+'33;border-radius:10px;padding:10px 14px;font-size:12px;color:'+ac+';font-weight:700;margin-top:12px">✨ Sblocchi: '+cat.unlocks+'</div>':'')+
+    '<button id="cat-info-close-btn" style="width:100%;margin-top:16px;padding:12px;background:rgba(255,255,255,.08);border:none;border-radius:12px;color:#9896B8;font-weight:700;font-size:14px;cursor:pointer">Chiudi</button>';
+  o.appendChild(p);document.body.appendChild(o);
   var cb=document.getElementById('cat-info-close-btn');if(cb)cb.onclick=function(){o.remove();};
 }
-
 function maybeShowLearnWelcome(){
-  if(localGet("dl:learn_welcome_v2"))return;
+  if(localStorage.getItem("dl:learn_welcome_v2"))return;
   var old=document.getElementById("learn-welcome");if(old)old.remove();
   var banner=document.createElement("div");banner.id="learn-welcome";
   banner.style.cssText="background:linear-gradient(135deg,rgba(139,92,246,.18),rgba(61,190,122,.12));border:1px solid rgba(139,92,246,.3);border-radius:16px;padding:16px;margin-bottom:16px;position:relative";
   banner.innerHTML='<button onclick="dismissLearnWelcome()" style="position:absolute;top:10px;right:10px;background:rgba(255,255,255,.12);border:none;border-radius:50%;width:24px;height:24px;color:#9896B8;font-size:14px;cursor:pointer">×</button>'+
     '<div style="font-size:20px;margin-bottom:8px">👋</div>'+
     '<div style="font-weight:800;font-size:14px;color:#2d2a4a;margin-bottom:8px">Benvenutə nel tuo percorso!</div>'+
-    '<div style="font-size:13px;color:#3d3a5a;line-height:1.6">Qui troverai tutte le lezioni che abbiamo pensato possano aiutarti a sviluppare la tua arte. Comincia da quella che è più vicina ai tuoi gusti, vedrai che man mano che andrai avanti, scoprirai che la puoi sviluppare in modi decisamente creativi! <span style="font-weight:700">Buono studio! 🎨</span></div>';
+    '<div style="font-size:13px;color:#3d3a5a;line-height:1.6">Comincia dai Fondamentali — sono tutti gratuiti. Man mano che avanzi sblocchi Character Design, Environment e Prop Design. <span style="font-weight:700">Buono studio! 🎨</span></div>';
   var grid=document.getElementById("home-cat-grid");
   if(grid&&grid.parentElement)grid.parentElement.insertBefore(banner,grid);
 }
 function dismissLearnWelcome(){
-  localSet("dl:learn_welcome_v2","1");
+  localStorage.setItem("dl:learn_welcome_v2","1");
   var el=document.getElementById("learn-welcome");
   if(el){el.style.transition="opacity .3s";el.style.opacity="0";setTimeout(function(){el.remove();},300);}
 }
@@ -3909,22 +3598,11 @@ async function loadUserSession(uid, authTimer){
     var pr = results[0].value, pgRows = results[1].value, prfRow = results[2].value;
     A.pro = !!(pr && pr[0] && (pr[0].active));
     
-    var pg = {};
-    // First: load from localStorage (always available, no network needed)
-    var localProg = localGet("dl:progress_all");
-    if(localProg){ try{ pg = JSON.parse(localProg); }catch(e){} }
-    // Then: merge with Supabase data (Supabase wins for completed=true)
-    if(pgRows) pgRows.forEach(function(r){
-      var key = r.lesson_key;
-      var existing = pg[key];
-      // Use Supabase value if it's completed, or if step is higher
-      if(!existing || r.completed || (r.step > (existing.step||0))){
-        pg[key] = {step:r.step, completed:r.completed};
-      }
-    });
-    A.progress = pg;
-    // Sync merged result back to localStorage
-    localSet("dl:progress_all", JSON.stringify(pg));
+    var pg={};
+    try{var _lp=localStorage.getItem("dl:progress_all");if(_lp)pg=JSON.parse(_lp);}catch(e){}
+    if(pgRows)pgRows.forEach(function(r){var ex=pg[r.lesson_key];if(!ex||r.completed||(r.step>(ex.step||0)))pg[r.lesson_key]={step:r.step,completed:r.completed};});
+    A.progress=pg;
+    try{localStorage.setItem("dl:progress_all",JSON.stringify(pg));}catch(e){}
     
     A.profile = (prfRow && prfRow[0])
       ? {avatar:prfRow[0].avatar_id, border:prfRow[0].border_id}
