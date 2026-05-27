@@ -814,6 +814,7 @@ function startLesson(cat,les){
   var sv=A.progress[pk(cat.id,les.id)];
   A.step=sv&&sv.completed?0:Math.min(sv&&sv.step||0,les.steps.length-1);
   renderLesson();showScreen("lesson");
+  var _sb=document.querySelector(".sticky-bottom");if(_sb)_sb.style.display="none";
 }
 function renderLesson(){
   var cat=A.cat,les=A.lesson,p=A.step,tot=les.steps.length;
@@ -855,12 +856,25 @@ function renderLesson(){
     (function(idx){d.onclick=function(){A.step=idx;renderLesson();};})(i);
     inner.appendChild(d);
   });
-  // ✓ COMPLETA / → Avanti button inline (next to steps list)
+  // Inline action row: camera + ✓ COMPLETA / → Avanti
+  var actionRow=document.createElement("div");
+  actionRow.style.cssText="display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid #f0eeff";
+  var camBtn=document.createElement("button");
+  camBtn.type="button";
+  camBtn.style.cssText="padding:12px 14px;background:#f5f3ff;border:1px solid #e0ddf5;border-radius:12px;font-size:18px;cursor:pointer;color:#4A4868";
+  camBtn.textContent="📷";
+  camBtn.title="Fotografa il tuo disegno";
+  camBtn.onclick=function(){openCamera();};
+  actionRow.appendChild(camBtn);
   var cbtnRow=document.createElement("button");
-  cbtnRow.style.cssText="width:100%;margin-top:10px;padding:11px;border:none;border-radius:12px;font-weight:800;font-size:14px;cursor:pointer;color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;background:"+(p===tot-1?"linear-gradient(135deg,#3DBE7A,#2D9B5E)":"linear-gradient(135deg,"+ac+","+ac+"cc)");
-  cbtnRow.innerHTML=(p===tot-1?"✓ COMPLETA":"→ Avanti (passo "+(p+2)+"/"+tot+")");
-  cbtnRow.onclick=nextStep;
-  inner.appendChild(cbtnRow);
+  cbtnRow.type="button";
+  var btnIsLast=(p===tot-1);
+  var btnBg=btnIsLast?"#3DBE7A":ac;
+  cbtnRow.style.cssText="flex:1;padding:14px;background:"+btnBg+";border:none;border-radius:12px;font-weight:800;font-size:15px;cursor:pointer;color:#fff;box-shadow:0 4px 12px "+btnBg+"55";
+  cbtnRow.textContent=(btnIsLast?"✓ COMPLETA":"→ Avanti (passo "+(p+2)+"/"+tot+")");
+  cbtnRow.onclick=function(){nextStep();};
+  actionRow.appendChild(cbtnRow);
+  inner.appendChild(actionRow);
 
   // Nav buttons
   var prev=document.getElementById("btn-prev");prev.style.display=p>0?"block":"none";
@@ -881,7 +895,11 @@ async function nextStep(){
     var done=(ns>=tot);
     var prevDone=Object.values(A.progress||{}).filter(function(v){return v&&v.completed;}).length;
     A.progress[key]={completed:done,step:ns};
-    try{localStorage.setItem("dl:prog_"+key,JSON.stringify({completed:done,step:ns}));localStorage.setItem("dl:progress_all",JSON.stringify(A.progress));}catch(e){}
+    try{
+      localStorage.setItem("dl:prog_"+key,JSON.stringify({completed:done,step:ns}));
+      localStorage.setItem("dl:progress_all",JSON.stringify(A.progress));
+      console.log("✓ Progress saved:",key,"step:"+ns+"/"+tot,"completed:"+done);
+    }catch(e){console.error("✗ Progress save failed:",e);}
     var uid_s=localStorage.getItem("dl:uid");
     if(uid_s){sbFetch("POST","dl_progress",{body:{user_id:uid_s,lesson_key:key,step:ns,completed:done,updated_at:new Date().toISOString()}}).catch(function(e){sbFetch("PATCH","dl_progress?user_id=eq."+uid_s+"&lesson_key=eq."+encodeURIComponent(key),{body:{step:ns,completed:done}}).catch(function(){});});}
     localStorage.setItem("dl:last",JSON.stringify({catId:cat.id,lesId:les.id,step:ns,title:les.title,icon:les.icon||"📝",catIcon:cat.icon}));
@@ -901,7 +919,7 @@ function showLessonComplete(les,cat,prevDone){
   var cb=document.createElement("button");cb.style.cssText="padding:13px;background:linear-gradient(135deg,"+ac+","+ac+"cc);border:none;border-radius:12px;color:#fff;font-weight:800;font-size:15px;cursor:pointer";cb.textContent="→ Prossima lezione";
   cb.onclick=function(){overlay.remove();var idx=cat.levels.findIndex(function(l){return l.id===les.id;});var next=cat.levels[idx+1];if(next&&(next.free||A.pro)){startLesson(cat,next);}else{goBackFromLesson();}};
   var bb=document.createElement("button");bb.style.cssText="padding:13px;background:rgba(255,255,255,.08);border:none;border-radius:12px;color:#9896B8;font-weight:700;font-size:14px;cursor:pointer";bb.textContent="↩ Torna al percorso";
-  bb.onclick=function(){overlay.remove();showBottomNav();goBackFromLesson();};
+  bb.onclick=function(){overlay.remove();showBottomNav();if(A.cat){renderCategory();}goBackFromLesson();};
   row.appendChild(cb);row.appendChild(bb);
   // Update home progress bar immediately (even while category screen is shown)
   setTimeout(function(){
@@ -3068,6 +3086,7 @@ function closePhoto(){
 
 
 function goBackFromLesson(){
+  var _sb=document.querySelector(".sticky-bottom");if(_sb)_sb.style.display="";
   try{
     if(A.cat&&A.lesson){localSet("dl:last",JSON.stringify({catId:A.cat.id,lesId:A.lesson.id,step:A.step,title:A.lesson.title,icon:A.lesson.icon||"",catIcon:A.cat.icon}));}
     showBottomNav();
