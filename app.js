@@ -908,7 +908,7 @@ function renderHome(){
     headerRow.appendChild(iconBox); headerRow.appendChild(nameBlock); headerRow.appendChild(infoBtn);
     div.appendChild(headerRow);
     var barsRow=document.createElement("div"); barsRow.style.cssText="display:flex;gap:3px;margin-bottom:10px";
-    cat.levels.forEach(function(l){var k=pk(cat.id,l.id);var d=A.progress[k]&&A.progress[k].completed;var b=document.createElement("div");b.style.cssText="flex:1;height:4px;border-radius:4px;background:"+(d?ac:"rgba(0,0,0,.1)");barsRow.appendChild(b);});
+    cat.levels.forEach(function(l){var k=pk(cat.id,l.id);var d=A.progress[k]&&A.progress[k].completed;var b=document.createElement("div");b.style.cssText="flex:1;height:4px;border-radius:4px;background:"+(d?ac:(isLocked?"rgba(0,0,0,.08)":"rgba(139,92,246,.12)"))+";transition:width .3s";barsRow.appendChild(b);});
     div.appendChild(barsRow);
     if(isLocked){var lm=document.createElement("div");lm.style.cssText="font-size:11px;color:#9896B8;font-style:italic";lm.textContent="🔒 Completa i Fondamentali per sbloccare";div.appendChild(lm);}
     else{(function(c){div.addEventListener("click",function(){A.cat=c;renderCategory();showScreen("category");});})(cat);}
@@ -1447,6 +1447,40 @@ function renderProfileSettings(cont){
   }
   var al=document.getElementById("achievements-list");
   if(al){ al.innerHTML="";ACHIEVEMENTS.forEach(function(ach){var ok=isUnlocked(ach.req);var d=document.createElement("div");d.style.cssText="display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;margin-bottom:6px;background:"+(ok?"rgba(139,92,246,.12)":"rgba(255,255,255,.03)")+";opacity:"+(ok?1:.5);d.innerHTML='<div style="width:40px;height:40px;border-radius:10px;background:'+(ok?"#8B5CF6":"#333")+';display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">'+ach.icon+'</div><div style="flex:1"><div style="font-weight:800;font-size:13px;color:'+(ok?"#fff":"#9896B8")+'">'+ach.name+'</div><div style="font-size:11px;color:#9896B8;margin-top:1px">'+ach.desc+'</div></div>'+(ok?'<span style="font-size:18px">✅</span>':'<span style="color:#555">🔒</span>');al.appendChild(d);});}
+
+  // ── Language + Dark Mode settings ──
+  var cfgSec=document.createElement("div");
+  cfgSec.style.cssText="background:#161525;border-radius:12px;padding:14px;margin-bottom:10px";
+  cfgSec.innerHTML='<div style="font-weight:800;font-size:13px;color:#fff;margin-bottom:12px">⚙️ Impostazioni</div>'+
+    // Dark mode row
+    '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06)">'+
+      '<div style="font-size:13px;color:#e0ddf5">🌙 Modalità scura</div>'+
+      '<button id="js-toggle-dark" onclick="toggleDark()" style="width:44px;height:24px;border-radius:50px;border:none;cursor:pointer;position:relative;background:'+(document.body.classList.contains("dark-mode")?"#8B5CF6":"rgba(255,255,255,.15)")+'">'+
+        '<div style="width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:3px;transition:.2s;left:'+(document.body.classList.contains("dark-mode")?"23px":"3px")+'"></div>'+
+      '</button>'+
+    '</div>'+
+    // Language row
+    '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0">'+
+      '<div><div style="font-size:13px;color:#e0ddf5">🌍 Lingua</div><div style="font-size:10px;color:#9896B8">Auto-rilevata · cambia e ricarica</div></div>'+
+      '<select id="js-lang-select" style="background:#2d2a4a;color:#fff;border:1px solid rgba(139,92,246,.5);border-radius:8px;padding:5px 8px;font-size:12px;cursor:pointer">'+
+        '<option value="it">🇮🇹 Italiano</option>'+
+        '<option value="en">🇬🇧 English</option>'+
+        '<option value="es">🇪🇸 Español</option>'+
+        '<option value="fr">🇫🇷 Français</option>'+
+        '<option value="de">🇩🇪 Deutsch</option>'+
+        '<option value="zh">🇨🇳 中文</option>'+
+        '<option value="ja">🇯🇵 日本語</option>'+
+      '</select>'+
+    '</div>';
+  cont.appendChild(cfgSec);
+  // Set current language in selector
+  setTimeout(function(){
+    var sel=document.getElementById("js-lang-select");
+    if(sel){
+      sel.value=_currentLang||"it";
+      sel.onchange=function(){setLang(this.value);setTimeout(function(){location.reload();},150);};
+    }
+  },50);
 }
 
 async function changeCoverPhoto(){
@@ -3862,7 +3896,15 @@ var MASTERS=[
 
 function renderFounderMasters(){
   var container=document.getElementById("founders-section");
-  if(!container)return;
+  if(!container){
+    // Create and inject if HTML doesn't have the div yet
+    container=document.createElement("div");
+    container.id="founders-section";
+    container.style.cssText="padding:0 16px 100px";
+    var grid=document.getElementById("home-cat-grid");
+    if(grid&&grid.parentElement) grid.parentElement.appendChild(container);
+    else{var scr=document.getElementById("scr-home");if(scr)scr.appendChild(container);}
+  }
   container.innerHTML="";
 
   // Header
