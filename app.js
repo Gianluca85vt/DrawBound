@@ -441,33 +441,111 @@ var CATS=[
   LL(7,true,"🦴","Anatomia — proporzioni","Base",15,"Il canone delle proporzioni umane.",[S(1,"Le 8 teste","Il corpo adulto misura ~7,5-8 teste in altezza.","I fumetti usano 9-10 per renderli più eroici."),S(2,"Punti di riferimento","Spalle, vita, fianchi, ginocchia.","Usa una figura di legno come riferimento."),S(3,"Scheletro stilizzato","Disegna lo stick figure articolato prima del corpo.",null)]),
   LL(8,true,"✋","Mani e piedi","Intermedio",15,"Le parti più difficili del corpo umano.",[S(1,"La mano a blocchi","Palmo (trapezio) + dita (cilindri).","Studia la tua mano non dominante."),S(2,"Le dita","Tre falangi per dito. Il pollice ne ha due.","Le nocche formano un arco."),S(3,"Il piede","Tallone + collo + dita. Vedi il piede come architettura.",null)]),
   LL(9,true,"😊","Il viso — proporzioni","Base",15,"Dove vanno occhi, naso, orecchie e bocca.",[S(1,"L'ovale","Dividi a metà orizzontalmente: lì vanno gli occhi.","La distanza tra gli occhi è circa un occhio."),S(2,"Naso e bocca","Naso a 3/4, bocca a 2/3 dal mento.","Orecchie: dall'occhio alla base del naso."),S(3,"Espressioni","Lo stesso viso con 3 emozioni: felice, triste, sorpreso.","Le sopracciglia fanno il 60% dell'espressione.")])
-]},
+]},,
 {id:"character",label:"Character Design",icon:"🦸",required:false,free:false,
- info:"Crea personaggi memorabili. Silhouette, espressioni, costumi e caratterizzazione visiva. Richiede i Fondamentali.",
- unlocks:"Tecniche avanzate di Prop Design",
+ info:"Crea personaggi memorabili. Dall'anatomia stilizzata alle creature fantasy: silhouette, espressioni e caratterizzazione visiva. Richiede i Fondamentali.",
+ unlocks:"Tecniche avanzate di concept art",
  levels:[
-  LL(1,false,"🧍","Silhouette e pose","Base",20,"La silhouette deve essere riconoscibile anche tutta nera.",[S(1,"La silhouette","Disegna il personaggio tutto nero: si capisce chi è?","I personaggi forti hanno sagome uniche."),S(2,"Linguaggio del corpo","La posa racconta la personalità prima che parli.","Eroe dritto, cattivo piegato, timido chiuso."),S(3,"Contrapposto","Peso su una gamba — base della statuaria classica.",null)]),
-  LL(2,false,"😤","Espressioni e mimica","Base",20,"Le 7 emozioni base e come disegnarle.",[S(1,"7 emozioni base","Gioia, tristezza, rabbia, paura, disgusto, sorpresa, disprezzo.","Studia le espressioni allo specchio."),S(2,"Emozioni miste","Un personaggio può sentire due cose insieme.",null),S(3,"Coerenza col personaggio","Un villain che sorride è diverso da un eroe.",null)]),
-  LL(3,false,"👕","Abbigliamento e costume","Intermedio",25,"Il costume racconta epoca, classe e personalità.",[S(1,"Pieghe e drappeggi","Il tessuto segue gravità e tensione.","Studia le pieghe da foto."),S(2,"Coerenza","Il costume deve appartenere al personaggio.",null),S(3,"Design originale","Crea un costume per un personaggio già disegnato.",null)]),
-  LL(4,false,"📋","Character sheet","Avanzato",30,"Il turnaround professionale: fronte, profilo, retro.",[S(1,"Viste multiple","Fronte, 3/4, profilo, retro identici.","Definisci prima altezza e proporzioni."),S(2,"Dettagli","Armi, accessori, espressioni chiave.",null),S(3,"Palette colori","Principale, secondaria, accenti.",null)])
+  LL(1,false,"🧍","Personaggi realistici","Base",25,"Proporzioni, anatomia e stile realistico applicati alla figura umana.",[
+    S(1,"Proporzioni realistiche","Il canone 7,5 teste applicato a un personaggio reale.","Parti da una foto reference: non inventare l'anatomia."),
+    S(2,"Viso realistico","Costruzione del viso con le proporzioni classiche.","Studia la luce — il realismo nasce dal chiaroscuro."),
+    S(3,"Abbigliamento realistico","Come le pieghe seguono il corpo in movimento.",null)
+  ]),
+  LL(2,false,"🐱","Personaggi manga","Base",25,"Lo stile manga: occhi grandi, proporzioni chibi e super-deformed.",[
+    S(1,"Proporzioni manga","3-4 teste per i chibi, 8-9 per lo shōnen classico.","Il manga esagera consapevolmente le proporzioni."),
+    S(2,"Occhi manga","La finestra dell'anima nel manga: dimensione, luce, pupilla.","Gli occhi variano enormemente tra generi: shōjo vs shōnen."),
+    S(3,"Espressioni manga","Rabbia chibita, shock, imbarazzo: il vocabolario visivo manga.",null)
+  ]),
+  LL(3,false,"🎨","Personaggi stilizzati","Intermedio",30,"Come semplificare un personaggio mantenendo la leggibilità e la personalità.",[
+    S(1,"Livelli di stilizzazione","Da realistico a cartoon: dove vuoi stare?","Disney usa ~4-5 teste, CalArts anche meno."),
+    S(2,"Forme icona","Ogni personaggio dovrebbe avere una forma base dominante.","Eroe = triangolo, villain = rombo invertito, comico = cerchio."),
+    S(3,"Linee caratteristiche","Quali tratti esagerare per rendere il personaggio unico?",null)
+  ]),
+  LL(4,false,"🐺","Personaggi antropomorfi","Intermedio",30,"Animali con caratteristiche umane: dal furry al Disney classico.",[
+    S(1,"Anatomia ibrida","Quanto animale, quanto umano? La slider del design antropomorfo.","Studia Zootopia, Robin Hood Disney, Beastars per riferimenti."),
+    S(2,"Espressività animale","Come trasmettere emozioni con muso, orecchie, coda.","Le orecchie degli animali sono un secondo volto emozionale."),
+    S(3,"Costume e contesto","L'abbigliamento deve coesistere con le caratteristiche animali.",null)
+  ]),
+  LL(5,false,"🐉","Creature fantasy","Avanzato",35,"Disegnare creature credibili che non esistono: draghi, basilischi, chimere.",[
+    S(1,"Anatomia funzionale","Una creatura deve sembrare capace di sopravvivere.","Studia animali reali: il volo del pterosauro, il nuoto del drago marino."),
+    S(2,"Mix di riferimenti","La chimera visiva: unisci 3 animali reali in modo coerente.","Inizia con silhouette pulite prima di aggiungere dettagli."),
+    S(3,"Texture e materiali","Squame, pelliccia, pelle: come renderli nel disegno.",null)
+  ]),
+  LL(6,false,"💀","Mostri e villain","Avanzato",35,"Il design del terrore: creature ostili, boss di gioco, antagonisti memorabili.",[
+    S(1,"Linguaggio visivo del pericolo","Angoli affilati, colori saturi, simmetria rotta = minaccia.","I mostri più efficaci hanno qualcosa di familiare storto."),
+    S(2,"Scala e proporzioni intimidatorie","Come far sembrare qualcosa enorme sulla pagina.",null),
+    S(3,"Il mostro finale","Crea un boss finale per un videogioco: concept sheet completo.",null)
+  ])
 ]},
 {id:"environment",label:"Environment Design",icon:"🏔️",required:false,free:false,
- info:"Costruisci mondi credibili. Paesaggi, città, interni fantasy o sci-fi. Richiede i Fondamentali.",
- unlocks:"Concept Art completo",
+ info:"Costruisci mondi credibili. Paesaggi, città, dungeon e ambienti fantastici. Richiede i Fondamentali.",
+ unlocks:"Concept Art completo per giochi e illustrazione",
  levels:[
-  LL(1,false,"🌄","Composizione del paesaggio","Base",20,"Regola dei terzi, piani di profondità, thumbnail.",[S(1,"Regola dei terzi","Dividi il foglio in 9: elementi importanti sulle intersezioni.","Non è assoluta — rompila consapevolmente."),S(2,"Piani di profondità","Primo piano, medio, sfondo: tre piani = profondità.",null),S(3,"Thumbnail","5 miniature della stessa scena. Scegli la migliore.",null)]),
-  LL(2,false,"🏙️","Ambienti urbani","Intermedio",25,"Strade, edifici, città con prospettiva.",[S(1,"Skyline","Silhouette di edifici diversi sull'orizzonte.","Varia altezze e forme."),S(2,"Strada in prospettiva","Via con marciapiedi e lampioni in PP2.",null),S(3,"Dettaglio architettonico","Un portone, un balcone — il dettaglio racconta la storia.",null)]),
-  LL(3,false,"🌿","Natura e vegetazione","Intermedio",25,"Alberi, rocce, acqua senza impazzire.",[S(1,"Alberi","Non disegnare ogni foglia — usa masse di tono.","Qual è la forma generale? Sfera, cilindro, cono?"),S(2,"Rocce","Piani definiti. Trova gli spigoli.",null),S(3,"Acqua","Riflette il cielo. In movimento crea forme ripetute.",null)]),
-  LL(4,false,"💡","Lighting ambientale","Avanzato",30,"Golden hour, notturna, controluce: la luce crea l'atmosfera.",[S(1,"Golden hour","Luce calda, ombre lunghe, colori saturi.","Studia foto al tramonto."),S(2,"Notturna","Fonti artificiali, ombre profonde.",null),S(3,"Controluce","Soggetto scuro, sfondo illuminato. Silhouette forti.",null)])
+  LL(1,false,"🌄","Ambienti naturali","Base",25,"Foreste, deserti, oceani, montagne: come disegnare la natura con efficacia.",[
+    S(1,"Vegetazione a masse","Non ogni foglia — masse di tono che suggeriscono fogliame.","Trova la forma generale dell'albero prima di qualsiasi dettaglio."),
+    S(2,"Rocce e terreno","Le rocce hanno piani definiti come cubi semplificati.","Studia le rocce reali: nessuna è uguale a un'altra."),
+    S(3,"Acqua e cielo","L'acqua riflette il cielo. Le nuvole sono sfere schiacciate.",null)
+  ]),
+  LL(2,false,"🏙️","Città e ambienti urbani","Base",25,"Strade, edifici, mercati: come costruire città credibili.",[
+    S(1,"Skyline","Silhouette di edifici di altezze diverse crea ritmo visivo.","Varia forme: non solo rettangoli."),
+    S(2,"Strada in profondità","Applica PP2 a una strada con vetrine, lampioni, pedoni.",null),
+    S(3,"Dettaglio architettonico","Un portone, una vetrina, un vicolo — i dettagli danno vita.",null)
+  ]),
+  LL(3,false,"🏰","Ambienti fantasy","Intermedio",30,"Castelli, foreste incantate, città galleggianti: il worldbuilding visivo.",[
+    S(1,"Architettura fantasy","Prendi uno stile reale (gotico, orientale, azteco) e distorcilo.","La credibilità nasce dal riferimento reale modificato."),
+    S(2,"Flora e fauna fantasy","Piante e creature che non esistono ma sembrano naturali.",null),
+    S(3,"Mood e atmosfera","Lo stesso ambiente con 3 luci diverse: giorno, notte, tempesta.",null)
+  ]),
+  LL(4,false,"🕳️","Dungeon e interni oscuri","Intermedio",30,"Sotterranei, rovine, cripta: il design degli spazi claustrofobici.",[
+    S(1,"Prospettiva in spazi chiusi","Come PP1 governa corridoi e sale.",null),
+    S(2,"Illuminazione artificiale","Torce, cristalli magici, lava: fonti di luce non solari.",null),
+    S(3,"Texture di degrado","Pietra rotta, muffa, ragnatele: il tempo visivo.",null)
+  ]),
+  LL(5,false,"🚀","Ambienti sci-fi","Avanzato",35,"Astronavi, stazioni orbitali, pianeti alieni: il design del futuro.",[
+    S(1,"Design industriale futuro","Pannelli, cavi, led: il vocabolario visivo sci-fi.",null),
+    S(2,"Pianeta alieno","Come creare un ecosistema visivamente coerente ma non terrestre.",null),
+    S(3,"Hard sci-fi vs space opera","Due estetiche diverse per due visioni del futuro.",null)
+  ]),
+  LL(6,false,"🌋","Ambienti post-apocalittici","Avanzato",35,"Rovine, natura che riprende, sopravvivenza: l'estetica della fine del mondo.",[
+    S(1,"Natura vs architettura","Come la vegetazione aggredisce le strutture abbandonate.",null),
+    S(2,"Atmosfera e silenzio visivo","Come trasmettere la solitudine con la composizione.",null),
+    S(3,"Location design","Crea una location iconica post-apoc con concept sheet.",null)
+  ])
 ]},
 {id:"prop",label:"Prop Design",icon:"⚔️",required:false,free:false,
- info:"Ogni oggetto ha una storia. Armi, strumenti, gadget: stile coerente col mondo del personaggio. Richiede i Fondamentali.",
- unlocks:"Concept Art completo",
+ info:"Ogni oggetto racconta una storia. Armi, armature, oggetti magici, veicoli: design funzionale e coerente col mondo. Richiede i Fondamentali.",
+ unlocks:"Concept Art completo e portfolio professionale",
  levels:[
-  LL(1,false,"🗡️","Armi da mischia","Base",20,"Spade, asce, martelli convincenti e bilanciati.",[S(1,"Proporzioni","Un'arma deve sembrare usabile.","Impugna mentalmente: il baricentro è giusto?"),S(2,"Dettaglio","Guardia, impugnatura, lama — funzione + decorazione.",null),S(3,"Design originale","Arma originale coerente con un personaggio.",null)]),
-  LL(2,false,"🏹","Armi a distanza","Base",20,"Archi, pistole, fucili fantasy.",[S(1,"Meccanismi semplificati","Non devi essere ingegnere — ma deve sembrare funzionale.",null),S(2,"Stile e setting","Steampunk vs laser sci-fi: il contesto conta.",null),S(3,"Concept sheet","L'arma da 3 angoli: fronte, laterale, 3/4.",null)]),
-  LL(3,false,"🛡️","Armature e scudi","Intermedio",25,"Protezioni che seguano il corpo senza sembrare gusci rigidi.",[S(1,"Anatomia sotto","Prima il corpo, poi l'armatura sopra.","L'armatura esalta le forme muscolari."),S(2,"Materiali","Metallo, cuoio, magia: texture e riflessi diversi.",null),S(3,"Set completo","Elmo, pettorale, gambali, guanti.",null)]),
-  LL(4,false,"🎒","Props quotidiani","Intermedio",25,"Oggetti stilizzati: prop design nel mondo reale.",[S(1,"Semplificazione","Oggetto reale → versione stilizzata leggibile.",null),S(2,"Props narrativi","L'oggetto racconta: usurato, nuovo, magico, rotto.",null),S(3,"Prop sheet","6 props coerenti per un mondo (fantasy, sci-fi o contemporaneo).",null)])
+  LL(1,false,"🗡️","Armi medievali","Base",25,"Spade, asce, lance: il design delle armi storiche.",[
+    S(1,"Proporzioni storiche","Un'arma storica ha proporzioni studiate per funzionare.","Studia le armi reali: la spada medievale, l'ascia vichinga."),
+    S(2,"Guardia e impugnatura","Il dettaglio che personalizza l'arma e racconta il proprietario.","La decorazione segue la cultura: celtica, orientale, araba."),
+    S(3,"Design originale medievale","Un'arma originale coerente con un setting fantasy medievale.",null)
+  ]),
+  LL(2,false,"🔫","Armi futuristiche","Base",25,"Blaster, railgun, armi plasma: il vocabolario visivo sci-fi.",[
+    S(1,"Linguaggio visivo sci-fi","Linee pulite, materiali lucidi, display — o al contrario: grungy e usurato.","Scegli la tua estetica: clean future o retrofuturismo?"),
+    S(2,"Funzionalità percepita","Come deve sembrare che funziona l'arma?","Il caricatore, il raffreddamento, la mira: elementi funzionali visibili."),
+    S(3,"Arma originale sci-fi","Concept sheet da 3 angoli di un'arma del tuo setting.",null)
+  ]),
+  LL(3,false,"🛡️","Armature e protezioni","Intermedio",30,"Dal gambeson medievale all'esoscheletro: armature che seguono il corpo.",[
+    S(1,"Anatomia sotto l'armatura","Prima il corpo, poi le piastre sopra — sempre.","L'armatura esalta la forma, non la nasconde."),
+    S(2,"Materiali e texture","Metallo brunito, cuoio indurito, ceramica composita.","Studia la luce su superfici diverse: riflessi vs matte."),
+    S(3,"Set completo","Elmo, pettorale, spallacci, guanti, stivali — coerenti tra loro.",null)
+  ]),
+  LL(4,false,"✨","Oggetti magici e reliquie","Intermedio",30,"Artefatti, amuleti, bacchette: il design dell'impossibile che sembra reale.",[
+    S(1,"Il visual storytelling dell'oggetto","Ogni runa, ogni crepa racconta la storia dell'artefatto.",null),
+    S(2,"Materi ali insoliti","Cristallo vivo, metallo che fonde con la carne, legno antico.",null),
+    S(3,"Reliquia del tuo mondo","Crea un artefatto iconico per il tuo setting con backstory visiva.",null)
+  ]),
+  LL(5,false,"🚗","Veicoli e mezzi di trasporto","Avanzato",35,"Auto, mech, astronavi, draghi da cavalcare: il design in movimento.",[
+    S(1,"Prospettiva e volume","I veicoli sono sfide di PP2 — volumi complessi in angolazione.",null),
+    S(2,"Design funzionale","Dove siede il pilota? Come si muove? Da dove escono i gas?","La credibilità tecnica rende il veicolo convincente."),
+    S(3,"Concept sheet veicolo","Fronte, laterale, 3/4 di un veicolo originale.",null)
+  ]),
+  LL(6,false,"🎒","Equipaggiamento da avventuriero","Avanzato",35,"Zaini, borse, strumenti, kit da sopravvivenza: props narrativi per personaggi.",[
+    S(1,"L'equipaggiamento racconta il personaggio","Cosa porta con sé dice chi è.","Un ladro porta corde e grimaldelli, un mago pergamene e cristalli."),
+    S(2,"Usura e storia","Un oggetto usato è più interessante di uno nuovo.",null),
+    S(3,"Kit completo","6 props coerenti per un personaggio: ogni oggetto ha senso.",null)
+  ])
 ]}];
 
 var MOCK={google:{id:"social-google",name:"Marco Rossi",email:"marco@gmail.com",avatar:"👨",provider:"google",r:new Date().toISOString()},microsoft:{id:"social-microsoft",name:"Laura Bianchi",email:"laura@outlook.com",avatar:"👩",provider:"microsoft",r:new Date().toISOString()},apple:{id:"social-apple",name:"Luca Ferrari",email:"luca@icloud.com",avatar:"🧑",provider:"apple",r:new Date().toISOString()},facebook:{id:"social-facebook",name:"Gianluca Rossi",email:"gianluca@facebook.com",avatar:"👤",provider:"facebook",r:new Date().toISOString()}};
@@ -595,11 +673,11 @@ function renderHome(){
   document.getElementById("home-greeting").textContent="Ciao, "+A.user.avatar+" "+A.user.name.split(" ")[0]+"!";
   
   // Progress & Level
-  var tot=21;
+  var tot=27;
   var done=Object.values(A.progress).filter(function(v){return v.completed;}).length;
   var pct=Math.round(done/tot*100);
   var lv=getLevel(done);
-  var nextLv=done<21?LEVELS[LEVELS.indexOf(lv)+1]:null;
+  var nextLv=done<27?LEVELS[LEVELS.indexOf(lv)+1]:null;
 
   document.getElementById("progress-bar").style.width=pct+"%";
   document.getElementById("progress-text").textContent=done+" di "+tot+" lezioni completate";
@@ -3475,8 +3553,8 @@ function maybeShowLearnWelcome(){
   banner.style.cssText="background:linear-gradient(135deg,rgba(139,92,246,.18),rgba(61,190,122,.12));border:1px solid rgba(139,92,246,.3);border-radius:16px;padding:16px;margin-bottom:16px;position:relative";
   banner.innerHTML='<button onclick="dismissLearnWelcome()" style="position:absolute;top:10px;right:10px;background:rgba(255,255,255,.12);border:none;border-radius:50%;width:24px;height:24px;color:#9896B8;font-size:14px;cursor:pointer">×</button>'+
     '<div style="font-size:20px;margin-bottom:8px">👋</div>'+
-    '<div style="font-weight:800;font-size:14px;color:#fff;margin-bottom:8px">Benvenutə nel tuo percorso!</div>'+
-    '<div style="font-size:13px;color:#e0ddf5;line-height:1.6">Qui troverai tutte le lezioni che abbiamo pensato possano aiutarti a sviluppare la tua arte. Comincia da quella che è più vicina ai tuoi gusti, vedrai che man mano che andrai avanti, scoprirai che la puoi sviluppare in modi decisamente creativi! <span style="font-weight:700">Buono studio! 🎨</span></div>';
+    '<div style="font-weight:800;font-size:14px;color:#2d2a4a;margin-bottom:8px">Benvenutə nel tuo percorso!</div>'+
+    '<div style="font-size:13px;color:#3d3a5a;line-height:1.6">Qui troverai tutte le lezioni che abbiamo pensato possano aiutarti a sviluppare la tua arte. Comincia da quella che è più vicina ai tuoi gusti, vedrai che man mano che andrai avanti, scoprirai che la puoi sviluppare in modi decisamente creativi! <span style="font-weight:700">Buono studio! 🎨</span></div>';
   var grid=document.getElementById("home-cat-grid");
   if(grid&&grid.parentElement)grid.parentElement.insertBefore(banner,grid);
 }
