@@ -634,13 +634,18 @@ async function doLogout(){
 
 /* ═══════════════ HOME ═══════════════ */
 function renderHome(){
-  try{var _p=localStorage.getItem("dl:progress_all");if(_p)A.progress=JSON.parse(_p);}catch(e){}
+  // Safely load progress from localStorage
+  try{
+    var _p=localStorage.getItem("dl:progress_all");
+    if(_p){var _pp=JSON.parse(_p);if(typeof _pp==="object"&&_pp!==null&&!Array.isArray(_pp))A.progress=_pp;else A.progress={};}
+  }catch(e){A.progress={};}
+  if(typeof A.progress!=="object"||A.progress===null||Array.isArray(A.progress))A.progress={};
   // Greeting
   document.getElementById("home-greeting").textContent="Ciao, "+A.user.avatar+" "+A.user.name.split(" ")[0]+"!";
   
   // Progress & Level
   var tot=27;
-  var done=Object.values(A.progress||{}).filter(function(v){return v&&v.completed;}).length;
+  var done=0;for(var _dk in A.progress){if(A.progress.hasOwnProperty(_dk)&&A.progress[_dk]&&A.progress[_dk].completed===true)done++;}
   var pct=Math.round(done/tot*100);
   var lv=getLevel(done);
   var nextLv=done<27?LEVELS[LEVELS.indexOf(lv)+1]:null;
@@ -761,7 +766,8 @@ function renderHome(){
 
 /* ═══════════════ CATEGORY ═══════════════ */
 function renderCategory(){
-  try{var _p=localStorage.getItem("dl:progress_all");if(_p)A.progress=JSON.parse(_p);}catch(e){}
+  try{var _p=localStorage.getItem("dl:progress_all");if(_p){var _pp=JSON.parse(_p);if(typeof _pp==="object"&&_pp!==null&&!Array.isArray(_pp))A.progress=_pp;}}catch(e){}
+  if(typeof A.progress!=="object"||A.progress===null||Array.isArray(A.progress))A.progress={};
   var cat=A.cat,bg=BG[cat.id],ac=AC[cat.id];
   document.getElementById("cat-header").innerHTML='<div style="background:'+bg+';padding:20px 20px 16px"><div style="max-width:600px;margin:0 auto"><button onclick="showScreen(\'home\')" style="background:rgba(255,255,255,.7);border:none;border-radius:50px;padding:4px 11px;cursor:pointer;font-weight:700;font-size:11px;color:#1C1B2E;margin-bottom:12px">← Home</button><div style="font-size:44px;margin-bottom:4px">'+cat.icon+'</div><h1 style="font-weight:800;font-size:24px;color:#1C1B2E;margin-bottom:2px">'+cat.label+'</h1><p style="color:#4A4868;font-size:11px">'+cat.levels.length+' livelli · dal principiante all\'avanzato</p></div></div>';
   var cont=document.getElementById("cat-content");cont.innerHTML="";
@@ -918,18 +924,16 @@ async function nextStep(){
 
 function showLessonComplete(les,cat,prevDone){
   var ac=AC[cat.id]||"#8B5CF6";
-  // Read from localStorage directly (bypass A.progress which might be corrupted)
+  // Read from localStorage (bypass A.progress which can get corrupted)
   var _raw=localStorage.getItem("dl:progress_all")||"{}";
   var _prog={};
   try{_prog=JSON.parse(_raw);if(typeof _prog!=="object"||_prog===null||Array.isArray(_prog))_prog={};}catch(e){_prog={};}
-  // Also fix A.progress
   A.progress=_prog;
   var done=0;
   for(var _k in _prog){if(_prog.hasOwnProperty(_k)&&_prog[_k]&&_prog[_k].completed===true)done++;}
-  var _dbg="tipo:"+typeof A.progress+" keys:"+Object.keys(_prog).slice(0,5).join(",")+" raw:"+_raw.substring(0,80);
   var overlay=document.createElement("div");overlay.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px";
   var panel=document.createElement("div");panel.style.cssText="background:#1e1b3a;border-radius:24px;width:100%;max-width:380px;padding:32px 24px;text-align:center";
-  panel.innerHTML='<div style="font-size:64px;margin-bottom:12px">🎉</div><div style="font-weight:800;font-size:22px;color:#fff;margin-bottom:8px">Lezione completata!</div><div style="font-size:15px;color:'+ac+';font-weight:700;margin-bottom:6px">'+les.icon+' '+les.title+'</div><div style="font-size:13px;color:#9896B8;margin-bottom:6px">+'+les.mins+' XP · '+done+'/27 lezioni</div><div style="font-size:12px;color:#ff0;word-break:break-all;max-height:100px;overflow:auto;margin:8px 0;text-align:left;padding:8px;background:rgba(255,255,0,.12);border-radius:8px;border:1px solid rgba(255,255,0,.4);line-height:1.5">'+_dbg+'</div><div style="background:rgba(255,255,255,.06);border-radius:12px;height:8px;overflow:hidden;margin-bottom:20px"><div style="width:'+Math.round(done/27*100)+'%;height:100%;background:linear-gradient(90deg,'+ac+',#3DBE7A);border-radius:12px"></div></div><div id="les-complete-btns" style="display:flex;flex-direction:column;gap:10px"></div>';
+  panel.innerHTML='<div style="font-size:64px;margin-bottom:12px">🎉</div><div style="font-weight:800;font-size:22px;color:#fff;margin-bottom:8px">Lezione completata!</div><div style="font-size:15px;color:'+ac+';font-weight:700;margin-bottom:6px">'+les.icon+' '+les.title+'</div><div style="font-size:13px;color:#9896B8;margin-bottom:20px">+'+les.mins+' XP · '+done+'/27 lezioni</div><div style="background:rgba(255,255,255,.06);border-radius:12px;height:8px;overflow:hidden;margin-bottom:20px"><div style="width:'+Math.round(done/27*100)+'%;height:100%;background:linear-gradient(90deg,'+ac+',#3DBE7A);border-radius:12px"></div></div><div id="les-complete-btns" style="display:flex;flex-direction:column;gap:10px"></div>';
   overlay.appendChild(panel);document.body.appendChild(overlay);
   var row=document.getElementById("les-complete-btns");
   var cb=document.createElement("button");cb.style.cssText="padding:13px;background:linear-gradient(135deg,"+ac+","+ac+"cc);border:none;border-radius:12px;color:#fff;font-weight:800;font-size:15px;cursor:pointer";cb.textContent="→ Prossima lezione";
@@ -939,7 +943,9 @@ function showLessonComplete(les,cat,prevDone){
   row.appendChild(cb);row.appendChild(bb);
   setTimeout(function(){
     checkNewUnlocks(prevDone);
-    var newDone=0;for(var _k2 in A.progress){if(A.progress.hasOwnProperty(_k2)&&A.progress[_k2]&&A.progress[_k2].completed===true)newDone++;}
+    var _p2=localStorage.getItem("dl:progress_all")||"{}";
+    var _pg2={};try{_pg2=JSON.parse(_p2);if(typeof _pg2!=="object"||_pg2===null)_pg2={};}catch(e){_pg2={};}
+    var newDone=0;for(var _k2 in _pg2){if(_pg2.hasOwnProperty(_k2)&&_pg2[_k2]&&_pg2[_k2].completed===true)newDone++;}
     var pb=document.getElementById("progress-bar"),pt=document.getElementById("progress-text");
     if(pb)pb.style.width=Math.round(newDone/27*100)+"%";
     if(pt)pt.textContent=newDone+" di 27 lezioni completate";
@@ -1270,7 +1276,7 @@ function renderProfileSettings(cont){
   if(al){ al.innerHTML="";ACHIEVEMENTS.forEach(function(ach){var ok=isUnlocked(ach.req);var d=document.createElement("div");d.style.cssText="display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;margin-bottom:6px;background:"+(ok?"rgba(139,92,246,.12)":"rgba(255,255,255,.03)")+";opacity:"+(ok?1:.5);d.innerHTML='<div style="width:40px;height:40px;border-radius:10px;background:'+(ok?"#8B5CF6":"#333")+';display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">'+ach.icon+'</div><div style="flex:1"><div style="font-weight:800;font-size:13px;color:'+(ok?"#fff":"#9896B8")+'">'+ach.name+'</div><div style="font-size:11px;color:#9896B8;margin-top:1px">'+ach.desc+'</div></div>'+(ok?'<span style="font-size:18px">✅</span>':'<span style="color:#555">🔒</span>');al.appendChild(d);});}
 }
 
-function changeCoverPhoto(){
+async function changeCoverPhoto(){
   var inp=document.createElement("input");
   inp.type="file"; inp.accept="image/*";
   inp.onchange=function(e){
@@ -1410,6 +1416,7 @@ function buildPostCard(post, liked){
   var userName = document.createElement("div");
   userName.style.cssText = "font-weight:800;font-size:13px;color:#fff;cursor:pointer";
   userName.textContent = post.user_name;
+  userName.style.cursor="pointer"; userName.onclick=function(e){e.stopPropagation();openPubProfile(post.user_id,post.user_name);};
   userName.onclick = function(){ openPubProfile(post.user_id, post.user_name); };
   var userMeta = document.createElement("div");
   userMeta.style.cssText = "font-size:10px;color:#9896B8;font-weight:500";
@@ -1432,6 +1439,7 @@ function buildPostCard(post, liked){
   var img = document.createElement("img");
   img.src = post.image_url; img.loading = "lazy";
   img.style.cssText = "width:100%;display:block;max-height:480px;object-fit:cover";
+    img.onclick=function(e){e.stopPropagation();var lb=document.createElement("div");lb.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;cursor:pointer";lb.onclick=function(){lb.remove();};var fi=document.createElement("img");fi.src=img.src;fi.style.cssText="max-width:100%;max-height:90vh;object-fit:contain;border-radius:12px";lb.appendChild(fi);document.body.appendChild(lb);};
   imgWrap.appendChild(img); card.appendChild(imgWrap);
 
   /* ── Actions ── */
@@ -3299,7 +3307,7 @@ async function loadChallengeContent(){
   }catch(e){cont.innerHTML='<div style="padding:20px;color:#9896B8">Errore: '+e.message+'</div>';}
 }
 
-function openChallengeSubmit(challengeId, title){
+async function openChallengeSubmit(challengeId, title){
   if(!A.user){ showToast("Accedi per partecipare",""); return; }
   _activeChallengeId = challengeId;
   var overlay = document.createElement("div");
