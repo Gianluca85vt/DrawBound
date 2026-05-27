@@ -770,7 +770,7 @@ function renderHome(){
     cat.levels.forEach(function(l){var k=pk(cat.id,l.id);var d=A.progress[k]&&A.progress[k].completed;var b=document.createElement("div");b.style.cssText="flex:1;height:4px;border-radius:4px;background:"+(d?ac:"rgba(0,0,0,.1)");barsRow.appendChild(b);});
     div.appendChild(barsRow);
     if(isLocked){var lm=document.createElement("div");lm.style.cssText="font-size:11px;color:#9896B8;font-style:italic";lm.textContent="🔒 Completa i Fondamentali per sbloccare";div.appendChild(lm);}
-    else{div.onclick=function(){A.cat=cat;renderCategory();showScreen("category");};}
+    else{(function(c){div.addEventListener("click",function(){A.cat=c;renderCategory();showScreen("category");});})(cat);}
     if(cat.unlocks){var hint=document.createElement("div");hint.style.cssText="font-size:10px;color:"+ac+";opacity:.7;margin-top:8px;font-style:italic;border-top:1px solid rgba(0,0,0,.06);padding-top:6px";hint.textContent="Completando sblocchi: "+cat.unlocks;div.appendChild(hint);}
     wrapper.appendChild(div); grid.appendChild(wrapper);
   });
@@ -818,7 +818,10 @@ function renderCategory(){
     div.className="card";
     div.style.border=locked?"2px dashed #e0ddf5":"2px solid "+(pg.completed?ac+"40":"transparent");
     div.innerHTML='<div style="display:flex;align-items:flex-start;gap:11px"><div style="width:44px;height:44px;background:'+(locked?"#f5f3ff":bg)+';border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;position:relative">'+(locked?"🔒":les.icon)+checkmark+'</div><div style="flex:1"><div style="display:flex;align-items:center;gap:5px;margin-bottom:3px"><span style="font-weight:800;font-size:14px;color:'+(locked?"#9896B8":"#1C1B2E")+'">'+les.title+'</span>'+badge+'</div><div style="display:flex;gap:2px;margin-bottom:3px;align-items:center">'+stars+'<span style="color:#9896B8;font-size:10px;margin-left:3px">'+les.diff+' · '+les.mins+'min · '+les.steps.length+' passi</span></div><p style="color:#9896B8;font-size:11px;margin:0;line-height:1.5">'+les.intro+'</p>'+prog+'</div></div>';
-    div.onclick=function(){startLesson(cat,les);};
+    (function(c,l){
+      div.style.cursor="pointer";
+      div.addEventListener("click",function(){startLesson(c,l);});
+    })(cat,les);
     cont.appendChild(div);
   });
   if(!A.pro){
@@ -830,6 +833,7 @@ function renderCategory(){
 
 /* ═══════════════ LESSON ═══════════════ */
 function startLesson(cat,les){
+  showToast("▶ Avvio: "+les.title,"");
   try{
   localSet("dl:last",JSON.stringify({catId:cat.id,lesId:les.id,step:A.progress[pk(cat.id,les.id)]&&A.progress[pk(cat.id,les.id)].step||0,title:les.title,icon:les.icon||"📝",catIcon:cat.icon}));
   if(!les.free&&!A.pro&&!isLessonUnlockedByToken(cat.id,les.id)){
@@ -1930,8 +1934,15 @@ function renderSkillTree(catGrid){
         '<div style="font-size:8px;color:'+(completed?"#3DBE7A":(inProgress?ac:"#9896B8"))+'">'+
           (completed?"✅ Fatto":(inProgress?Math.round((prog.step/les.steps.length)*100)+"%":"▶ Inizia"))+
         '</div>';
-      if(accessible){
-        (function(c,l){ node.onclick=function(){startLesson(c,l);}; })(cat,les);
+      // Set onclick if accessible OR if lesson is free (always clickable)
+      if(accessible||les.free){
+        (function(c,l){
+          node.style.cursor="pointer";
+          node.addEventListener("click",function(e){
+            e.stopPropagation();
+            startLesson(c,l);
+          });
+        })(cat,les);
       }
       row.appendChild(node);
     });
@@ -3531,7 +3542,7 @@ async function submitRedline(){
 }
 
 
-    '<button onclick="closeCatInfo()" style="width:100%;margin-top:16px;padding:12px;background:rgba(255,255,255,.08);border:none;border-radius:12px;color:#9896B8;font-weight:700;font-size:14px;cursor:pointer">Chiudi</button>'
+    '<button id="cat-info-close-btn" style="width:100%;margin-top:16px;padding:12px;background:rgba(255,255,255,.08);border:none;border-radius:12px;color:#9896B8;font-weight:700;font-size:14px;cursor:pointer">Chiudi</button>'
 function showCatInfo(cat){
   var old=document.getElementById("cat-info-overlay");if(old)old.remove();
   var ac=AC[cat.id]||"#8B5CF6";
@@ -3547,8 +3558,9 @@ function showCatInfo(cat){
     '<div style="font-size:12px;color:'+ac+';font-weight:600">'+cat.levels.length+' lezioni</div></div></div>'+
     '<div style="font-size:13px;color:#e0ddf5;line-height:1.7;margin-bottom:14px">'+cat.info+'</div>'+'<div style="font-size:11px;font-weight:800;color:'+ac+';letter-spacing:1px;margin-bottom:8px">LEZIONI IN QUESTO PERCORSO</div>'+cat.levels.map(function(l,i){return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid rgba(255,255,255,.06)"><span style="font-size:14px">'+l.icon+'</span><span style="font-size:12px;color:#fff;font-weight:600">'+l.title+'</span><span style="font-size:9px;color:'+ac+';background:'+ac+'22;border-radius:50px;padding:2px 7px;margin-left:auto;font-weight:700">'+l.diff+'</span>'+(!l.free?'<span style="font-size:9px;background:linear-gradient(135deg,#FFD60A,#FF9500);color:#fff;border-radius:50px;padding:2px 6px;font-weight:800">PRO</span>':'')+'</div>';}).join("")+
     (cat.unlocks?'<div style="background:'+ac+'18;border:1px solid '+ac+'33;border-radius:10px;padding:10px 14px;font-size:12px;color:'+ac+';font-weight:700">✨ Sblocchi: '+cat.unlocks+'</div>':'')+
-    '<button onclick="closeCatInfo()" style="width:100%;margin-top:16px;padding:12px;background:rgba(255,255,255,.08);border:none;border-radius:12px;color:#9896B8;font-weight:700;font-size:14px;cursor:pointer">Chiudi</button>'
+    '<button id="cat-info-close-btn" style="width:100%;margin-top:16px;padding:12px;background:rgba(255,255,255,.08);border:none;border-radius:12px;color:#9896B8;font-weight:700;font-size:14px;cursor:pointer">Chiudi</button>'
   o.appendChild(p); document.body.appendChild(o);
+  var cb=document.getElementById('cat-info-close-btn');if(cb)cb.onclick=function(){o.remove();};
 }
 
 function maybeShowLearnWelcome(){
