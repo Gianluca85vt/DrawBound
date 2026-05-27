@@ -996,6 +996,8 @@ function renderHome(){
 
 /* ═══════════════ CATEGORY ═══════════════ */
 function renderCategory(){
+  // Sync progress from localStorage before rendering
+  try{ var lp=localGet("dl:progress_all"); if(lp) A.progress=JSON.parse(lp); }catch(e){}
   var cat=A.cat,bg=BG[cat.id],ac=AC[cat.id];
   document.getElementById("cat-header").innerHTML='<div style="background:'+bg+';padding:20px 20px 16px"><div style="max-width:600px;margin:0 auto"><button onclick="showScreen(\'home\')" style="background:rgba(255,255,255,.7);border:none;border-radius:50px;padding:4px 11px;cursor:pointer;font-weight:700;font-size:11px;color:#1C1B2E;margin-bottom:12px">← Home</button><div style="font-size:44px;margin-bottom:4px">'+cat.icon+'</div><h1 style="font-weight:800;font-size:24px;color:#1C1B2E;margin-bottom:2px">'+cat.label+'</h1><p style="color:#4A4868;font-size:11px">'+cat.levels.length+' livelli · dal principiante all\'avanzato</p></div></div>';
   var cont=document.getElementById("cat-content");cont.innerHTML="";
@@ -1109,7 +1111,10 @@ async function nextStep(){
   var done=ns>=tot;
   var prevDone=Object.values(A.progress).filter(function(v){return v.completed;}).length;
   A.progress[key]={completed:done,step:ns};
-  // Save only this lesson's progress
+  // Save to localStorage immediately (primary, always works)
+  localSet("dl:prog_"+key, JSON.stringify({completed:done,step:ns}));
+  // Save also the full progress map
+  localSet("dl:progress_all", JSON.stringify(A.progress));
   var uid_s=localGet("dl:uid");
   if(uid_s&&sbReady()){
     // Upsert: POST with merge-duplicates (already set in sbFetch)
@@ -3803,7 +3808,7 @@ async function submitRedline(){
 }
 
 
-    '<button id="cat-info-close-btn" style="width:100%;margin-top:16px;padding:12px;background:rgba(255,255,255,.08);border:none;border-radius:12px;color:#9896B8;font-weight:700;font-size:14px;cursor:pointer">Chiudi</button>'
+
 function showCatInfo(cat){
   var old=document.getElementById("cat-info-overlay");if(old)old.remove();
   var ac=AC[cat.id]||"#8B5CF6";
@@ -3904,8 +3909,21 @@ async function loadUserSession(uid, authTimer){
     A.pro = !!(pr && pr[0] && (pr[0].active));
     
     var pg = {};
-    if(pgRows) pgRows.forEach(function(r){ pg[r.lesson_key]={step:r.step,completed:r.completed}; });
+    // First: load from localStorage (always available, no network needed)
+    var localProg = localGet("dl:progress_all");
+    if(localProg){ try{ pg = JSON.parse(localProg); }catch(e){} }
+    // Then: merge with Supabase data (Supabase wins for completed=true)
+    if(pgRows) pgRows.forEach(function(r){
+      var key = r.lesson_key;
+      var existing = pg[key];
+      // Use Supabase value if it's completed, or if step is higher
+      if(!existing || r.completed || (r.step > (existing.step||0))){
+        pg[key] = {step:r.step, completed:r.completed};
+      }
+    });
     A.progress = pg;
+    // Sync merged result back to localStorage
+    localSet("dl:progress_all", JSON.stringify(pg));
     
     A.profile = (prfRow && prfRow[0])
       ? {avatar:prfRow[0].avatar_id, border:prfRow[0].border_id}
