@@ -718,6 +718,8 @@ function renderHome(){
   var grid=document.getElementById("home-cat-grid");
   grid.innerHTML="";
   CATS.forEach(function(cat,idx){
+    // Re-verify A.progress is clean
+    if(typeof A.progress!=="object"||A.progress===null||Array.isArray(A.progress)){try{var _xp=localStorage.getItem("dl:progress_all");A.progress=_xp?JSON.parse(_xp):{};}catch(e){A.progress={};}}
     var bg=BG[cat.id]||"#f5f5f5", ac=AC[cat.id]||"#555";
     var doneCat=cat.levels.filter(function(l){var k=pk(cat.id,l.id);return A.progress[k]&&A.progress[k].completed;}).length;
     var fondaDone=CATS[0].levels.every(function(l){var k=pk("fondamentali",l.id);return A.progress[k]&&A.progress[k].completed;});
@@ -769,7 +771,7 @@ function renderCategory(){
   try{var _p=localStorage.getItem("dl:progress_all");if(_p){var _pp=JSON.parse(_p);if(typeof _pp==="object"&&_pp!==null&&!Array.isArray(_pp))A.progress=_pp;}}catch(e){}
   if(typeof A.progress!=="object"||A.progress===null||Array.isArray(A.progress))A.progress={};
   var cat=A.cat,bg=BG[cat.id],ac=AC[cat.id];
-  document.getElementById("cat-header").innerHTML='<div style="background:'+bg+';padding:20px 20px 16px"><div style="max-width:600px;margin:0 auto"><button onclick="showScreen(\'home\')" style="background:rgba(255,255,255,.7);border:none;border-radius:50px;padding:4px 11px;cursor:pointer;font-weight:700;font-size:11px;color:#1C1B2E;margin-bottom:12px">← Home</button><div style="font-size:44px;margin-bottom:4px">'+cat.icon+'</div><h1 style="font-weight:800;font-size:24px;color:#1C1B2E;margin-bottom:2px">'+cat.label+'</h1><p style="color:#4A4868;font-size:11px">'+cat.levels.length+' livelli · dal principiante all\'avanzato</p></div></div>';
+  document.getElementById("cat-header").innerHTML='<div style="background:'+bg+';padding:20px 20px 16px"><div style="max-width:600px;margin:0 auto"><button onclick="renderHome();showScreen(\'home\')" style="background:rgba(255,255,255,.7);border:none;border-radius:50px;padding:4px 11px;cursor:pointer;font-weight:700;font-size:11px;color:#1C1B2E;margin-bottom:12px">← Home</button><div style="font-size:44px;margin-bottom:4px">'+cat.icon+'</div><h1 style="font-weight:800;font-size:24px;color:#1C1B2E;margin-bottom:2px">'+cat.label+'</h1><p style="color:#4A4868;font-size:11px">'+cat.levels.length+' livelli · dal principiante all\'avanzato</p></div></div>';
   var cont=document.getElementById("cat-content");cont.innerHTML="";
   cat.levels.forEach(function(les,idx){
     var k=pk(cat.id,les.id),pg=A.progress[k]||{completed:false,step:0};
@@ -1334,7 +1336,11 @@ function navTo(screen){
   allScreens.forEach(function(s){ var el=document.getElementById("scr-"+s); if(el) el.style.display="none"; });
   // Special renders
   if(screen==="feed"){ renderFeed(); showScreen("feed"); }
-  else if(screen==="home"){ renderHome(); showScreen("home"); }
+  else if(screen==="home"){
+    // Force fresh progress from localStorage
+    try{var _fp=localStorage.getItem("dl:progress_all");if(_fp){var _fpp=JSON.parse(_fp);if(typeof _fpp==="object"&&_fpp!==null&&!Array.isArray(_fpp))A.progress=_fpp;}}catch(e){}
+    renderHome(); showScreen("home");
+  }
   else if(screen==="profile"){ renderProfile(); showScreen("profile"); }
   else if(screen==="drawpass"){ renderDrawPass(); showScreen("drawpass"); }
   else if(screen==="notif"){ loadNotifications(); showScreen("notif"); }
@@ -2474,7 +2480,10 @@ async function loadPubProfile(userId){
 
     // Header
     content.innerHTML =
-      '<div style="padding:20px 16px;border-bottom:1px solid rgba(255,255,255,.08)">'+
+      '<div style="position:relative">'+
+      (user.cover_url?'<div style="height:120px;background:url('+user.cover_url+') center/cover;border-radius:0"></div>':'<div style="height:80px;background:linear-gradient(135deg,#2d2a4a,#1e1b3a)"></div>')+
+    '</div>'+
+    '<div style="padding:20px 16px;border-bottom:1px solid rgba(255,255,255,.08)">'+
         '<div style="display:flex;align-items:center;gap:16px;margin-bottom:16px">'+
           '<div style="width:72px;height:72px;border-radius:50%;background:#2d2a4a;display:flex;align-items:center;justify-content:center;font-size:34px;border:3px solid #8B5CF6;flex-shrink:0">'+
             (user.avatar||"👤")+
@@ -2491,7 +2500,7 @@ async function loadPubProfile(userId){
         '</div>'+
         (A.user && A.user.id !== userId ?
           '<div style="display:flex;gap:8px">'+
-          '<button id="follow-btn-'+userId+'" onclick="toggleFollow(\"'+userId+'\")" style="flex:1;padding:10px;border:none;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer;background:'+(amFollowing?"rgba(255,255,255,.1)":"linear-gradient(135deg,#8B5CF6,#6d28d9)")+';color:#fff">'+
+          '<button id="follow-btn-'+userId+'" onclick="toggleFollow(\''+userId+'\')" style="flex:1;padding:10px;border:none;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer;background:'+(amFollowing?"rgba(255,255,255,.1)":"linear-gradient(135deg,#8B5CF6,#6d28d9)")+';color:#fff">'+
             (amFollowing?"✓ Segui già":"+ Segui")+
           '</button>'+
           '<button onclick="openChat(\"'+userId+'\",\"'+user.name+'\",\"'+( user.avatar||"👤")+'\")" style="padding:10px 16px;background:rgba(255,255,255,.1);border:none;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer;color:#fff">💬</button>'+
