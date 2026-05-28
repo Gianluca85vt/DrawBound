@@ -151,15 +151,15 @@ var LANG_STRINGS={
 };
 
 var _currentLang=(function(){
+  // 1. User's saved choice takes absolute priority
   var saved=localStorage.getItem("dl:lang");
   if(saved&&LANG_STRINGS[saved])return saved;
-  var br=(navigator.language||navigator.userLanguage||"en").split("-")[0].toLowerCase();
-  return LANG_STRINGS[br]?br:"en";
+  // 2. Auto-detect from browser
+  var br=(navigator.language||navigator.userLanguage||"it").split("-")[0].toLowerCase();
+  if(LANG_STRINGS[br])return br;
+  // 3. Default Italian
+  return "it";
 })();
-
-// Default to Italian for Italian language browsers
-if(_currentLang==="it" || !LANG_STRINGS[_currentLang]) _currentLang="it";
-try{var _bl=(navigator.language||"").split("-")[0];if(_bl==="it")_currentLang="it";}catch(e){}
 
 function t(key){ return (LANG_STRINGS[_currentLang]&&LANG_STRINGS[_currentLang][key])||(LANG_STRINGS["it"]&&LANG_STRINGS["it"][key])||key; }
 function setLang(code){ if(LANG_STRINGS[code]){_currentLang=code;localStorage.setItem("dl:lang",code);} }
@@ -3985,67 +3985,107 @@ function renderFounderMasters(){
 }
 
 function openMasterDetail(master){
-  // Reuse category screen with master data
-  A.cat={
-    id:"master_"+master.id,
-    label:master.name,
-    icon:master.avatar,
-    levels:master.lessons,
-    info:master.bio,
-    color:master.color,
-    accent:master.accent,
-    isMaster:true,
-    master:master
-  };
-  // Override BG/AC for this master
-  BG["master_"+master.id]=master.bg.replace("linear-gradient(135deg,","").split(",")[0];
-  AC["master_"+master.id]=master.accent;
-  renderMasterCategory(master);
-  showScreen("category");
-}
+  // Remove existing overlay
+  var existing=document.getElementById("master-detail-overlay");
+  if(existing)existing.remove();
 
-function renderMasterCategory(master){
-  var cont=document.getElementById("cat-lessons-list");
-  if(!cont)return;
-  var cat=A.cat;
-  document.getElementById("cat-title").textContent=master.name;
-  document.getElementById("cat-subtitle").textContent=master.title+" · "+master.subtitle;
+  var ac=master.accent||"#FFD700";
+  var gold=master.color||"#FFD700";
+  var overlay=document.createElement("div");
+  overlay.id="master-detail-overlay";
+  overlay.style.cssText="position:fixed;inset:0;z-index:900;overflow-y:auto;background:#0d0b1e";
 
-  // Header gradient
-  var catScreen=document.getElementById("scr-category");
-  if(catScreen) catScreen.style.background=master.bg;
+  // Header
+  var header=document.createElement("div");
+  header.style.cssText="background:"+master.bg+";padding:16px;position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:12px;border-bottom:1px solid "+gold+"44";
+  var backBtn=document.createElement("button");
+  backBtn.style.cssText="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.1);border:none;color:#fff;font-size:20px;cursor:pointer;flex-shrink:0";
+  backBtn.textContent="←";
+  backBtn.onclick=function(){var _ov=document.getElementById("master-detail-overlay");if(_ov)_ov.remove();};
+  var hInfo=document.createElement("div");hInfo.style.flex="1";
+  hInfo.innerHTML="<div style='font-weight:900;font-size:16px;color:#fff'>"+master.name+"</div><div style='font-size:11px;color:"+gold+";font-weight:700'>"+master.title+" · "+master.subtitle+"</div>";
+  var hBadge=document.createElement("div");
+  hBadge.style.cssText="background:linear-gradient(135deg,"+gold+","+ac+");border-radius:50px;padding:4px 10px;font-size:10px;font-weight:900;color:#000";
+  hBadge.textContent="⭐ MASTER";
+  header.appendChild(backBtn);header.appendChild(hInfo);header.appendChild(hBadge);
+  overlay.appendChild(header);
 
-  cont.innerHTML="";
-  master.lessons.forEach(function(les){
-    var k=pk("master_"+master.id,les.id);
-    var pv=A.progress[k]||{};
+  // Gold strip
+  var strip=document.createElement("div");
+  strip.style.cssText="height:3px;background:linear-gradient(90deg,"+gold+","+ac+","+gold+")";
+  overlay.appendChild(strip);
+
+  // Bio card
+  var bio=document.createElement("div");
+  bio.style.cssText="margin:16px;background:rgba(255,255,255,.04);border:1px solid "+gold+"33;border-radius:16px;padding:16px;display:flex;gap:12px;align-items:flex-start";
+  bio.innerHTML='<div style="width:56px;height:56px;border-radius:50%;background:'+master.bg+';border:2px solid '+gold+';display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0">'+master.avatar+'</div>'+
+    '<div><div style="font-size:12px;color:#c8c5e8;line-height:1.6;margin-bottom:8px">'+master.bio+'</div>'+
+    '<div style="font-size:10px;color:'+gold+';font-weight:700;background:'+gold+'18;border-radius:50px;padding:3px 10px;display:inline-block">'+master.specialty+'</div></div>';
+  overlay.appendChild(bio);
+
+  // Lessons section header
+  var lesHeader=document.createElement("div");
+  lesHeader.style.cssText="margin:0 16px 12px;display:flex;align-items:center;justify-content:space-between";
+  lesHeader.innerHTML='<div style="font-weight:900;font-size:14px;color:#fff">📚 Lezioni del percorso</div>'+
+    '<div style="font-size:11px;color:#9896B8">'+master.lessons.length+' lezioni · '+master.free_lessons+' gratuite</div>';
+  overlay.appendChild(lesHeader);
+
+  // Lessons list
+  master.lessons.forEach(function(les,idx){
+    var k=pk("master_"+master.id, les.id);
+    var pv=(A.progress&&A.progress[k])||{};
     var isDone=pv.completed===true;
     var isLocked=!les.free&&!A.pro;
+    var isFree=les.free||idx<master.free_lessons;
 
-    var div=document.createElement("div");
-    div.style.cssText="background:rgba(255,255,255,.05);border:1px solid "+(isDone?"#FFD700":"rgba(255,255,255,.08)")+";border-radius:16px;padding:14px 16px;margin-bottom:10px;cursor:"+(isLocked?"default":"pointer")+";position:relative;overflow:hidden";
-
+    var card=document.createElement("div");
+    card.style.cssText="margin:0 16px 10px;background:rgba(255,255,255,.04);border:1px solid "+(isDone?gold:(isLocked?"rgba(255,255,255,.04)":"rgba(255,255,255,.1)"))+";border-radius:16px;padding:14px 16px;cursor:"+(isLocked?"default":"pointer")+";position:relative;overflow:hidden";
+    
     if(isDone){
-      var doneStrip=document.createElement("div");
-      doneStrip.style.cssText="position:absolute;top:0;left:0;width:4px;height:100%;background:linear-gradient(180deg,"+master.color+","+master.accent+")";
-      div.appendChild(doneStrip);
+      var doneBar=document.createElement("div");
+      doneBar.style.cssText="position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,"+gold+","+ac+")";
+      card.appendChild(doneBar);
     }
-    div.innerHTML+='<div style="display:flex;align-items:center;gap:10px">'+
-      '<div style="width:40px;height:40px;border-radius:12px;background:'+master.accent+'22;display:flex;align-items:center;justify-content:center;font-size:20px">'+
-        (isLocked?"🔒":isDone?"✅":les.icon)+
-      '</div>'+
-      '<div style="flex:1">'+
-        '<div style="font-weight:800;font-size:14px;color:#fff">'+les.title+'</div>'+
-        '<div style="font-size:11px;color:'+master.color+';margin-top:2px">'+les.diff+' · '+les.mins+' min'+(isLocked?' · <span style="background:linear-gradient(135deg,'+master.color+','+master.accent+');color:#000;border-radius:50px;padding:1px 6px;font-size:10px;font-weight:900">PRO</span>':isDone?' · ✓ Completata':'')+
-        '</div>'+
-      '</div>'+
-    '</div>';
+
+    var lesNum=document.createElement("div");
+    lesNum.style.cssText="position:absolute;top:10px;right:12px;font-size:10px;color:"+(isLocked?"#555":gold)+";font-weight:800;background:"+(isLocked?"rgba(255,255,255,.04)":gold+"18")+";border-radius:50px;padding:2px 8px";
+    lesNum.textContent=isLocked?"🔒 PRO":(isDone?"✅ FATTO":"✏️ GRATIS");
+    card.appendChild(lesNum);
+
+    var row=document.createElement("div");
+    row.style.cssText="display:flex;align-items:center;gap:10px;padding-right:70px";
+    var iconBox=document.createElement("div");
+    iconBox.style.cssText="width:44px;height:44px;border-radius:12px;background:"+(isLocked?"rgba(255,255,255,.04)":ac+"22")+";display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0";
+    iconBox.textContent=isLocked?"🔒":(isDone?"✅":les.icon);
+    var info=document.createElement("div");
+    var title=document.createElement("div");
+    title.style.cssText="font-weight:800;font-size:14px;color:"+(isLocked?"#555":"#fff");
+    title.textContent=les.title;
+    var sub=document.createElement("div");
+    sub.style.cssText="font-size:11px;color:"+(isLocked?"#444":gold)+";margin-top:2px";
+    sub.textContent=les.diff+" · "+les.mins+" min";
+    info.appendChild(title);info.appendChild(sub);
+    row.appendChild(iconBox);row.appendChild(info);
+    card.appendChild(row);
+
     if(!isLocked){
-      (function(c,l){div.addEventListener("click",function(){startLesson(c,l);});})(A.cat,les);
+      var syntheticCat={id:"master_"+master.id,label:master.name,icon:master.avatar,levels:master.lessons,info:master.bio,isMaster:true};
+      // Ensure BG/AC are set for this master
+      BG["master_"+master.id]=master.bg;
+      AC["master_"+master.id]=master.accent;
+      (function(c,l){card.addEventListener("click",function(){overlay.remove();startLesson(c,l);});})(syntheticCat,les);
     }
-    cont.appendChild(div);
+    overlay.appendChild(card);
   });
+
+  // Bottom padding
+  var pad=document.createElement("div");pad.style.height="40px";
+  overlay.appendChild(pad);
+  document.body.appendChild(overlay);
 }
+
+function renderMasterCategory(master){} // kept for compatibility, logic moved to openMasterDetail
+
 
 function applyTranslations(){
   // Bottom nav labels
