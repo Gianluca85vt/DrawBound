@@ -167,22 +167,7 @@ function setLang(code){ if(LANG_STRINGS[code]){_currentLang=code;localStorage.se
 var APP_VERSION="3.0.0";
 console.log("%c DrawBound v3.0.0 ✓ — Founder Masters + 7 lingue","color:#8B5CF6;font-weight:bold;font-size:14px");
 
-// ═══ STARTUP VERSION BANNER (visible proof the new code is loaded) ═══
-(function(){
-  function showBanner(){
-    if(document.getElementById("v3-banner"))return;
-    var b=document.createElement("div");
-    b.id="v3-banner";
-    b.style.cssText="position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(90deg,#FFD700,#FF8C00,#FFD700);color:#000;text-align:center;padding:8px 12px;font-weight:900;font-size:12px;font-family:sans-serif;box-shadow:0 2px 12px rgba(255,140,0,.5);letter-spacing:.5px;cursor:pointer";
-    b.innerHTML="⭐ DrawBound v3.0 LOADED · 7 lingue + Founder Masters · tap per chiudere";
-    b.onclick=function(){b.style.transition="opacity .3s";b.style.opacity="0";setTimeout(function(){b.remove();},300);};
-    document.body.appendChild(b);
-    // Auto-hide after 5 seconds
-    setTimeout(function(){if(b.parentElement){b.style.transition="opacity .5s";b.style.opacity="0";setTimeout(function(){if(b.parentElement)b.remove();},500);}},5000);
-  }
-  if(document.body) showBanner();
-  else document.addEventListener("DOMContentLoaded",showBanner);
-})();
+
 /* DrawBound — app.js */
 
 
@@ -951,6 +936,7 @@ function renderHome(){
   setTimeout(maybeShowLearnWelcome,100);
   // Founder Masters section
   setTimeout(renderFounderMasters,50);
+  setTimeout(applyTranslations,80);
   updateTokenUI();
 }
 
@@ -3912,15 +3898,25 @@ var MASTERS=[
 ];
 
 function renderFounderMasters(){
-  var container=document.getElementById("founders-section");
-  if(!container){
-    // Create and inject if HTML doesn't have the div yet
-    container=document.createElement("div");
-    container.id="founders-section";
-    container.style.cssText="padding:0 16px 100px";
-    var grid=document.getElementById("home-cat-grid");
-    if(grid&&grid.parentElement) grid.parentElement.appendChild(container);
-    else{var scr=document.getElementById("scr-home");if(scr)scr.appendChild(container);}
+  // Remove any existing (could be in wrong place)
+  var old=document.getElementById("founders-section");
+  if(old) old.remove();
+  // Create fresh and insert AFTER skill-tree-container as a sibling (always visible)
+  var container=document.createElement("div");
+  container.id="founders-section";
+  container.style.cssText="padding:16px 16px 100px";
+  var stc=document.getElementById("skill-tree-container");
+  var grid=document.getElementById("home-cat-grid");
+  if(stc&&stc.parentElement){
+    // Insert right after skill-tree-container
+    if(stc.nextSibling) stc.parentElement.insertBefore(container,stc.nextSibling);
+    else stc.parentElement.appendChild(container);
+  } else if(grid&&grid.parentElement){
+    grid.parentElement.appendChild(container);
+  } else {
+    var scr=document.getElementById("scr-home");
+    if(scr) scr.appendChild(container);
+    else return;
   }
   container.innerHTML="";
 
@@ -4051,6 +4047,38 @@ function renderMasterCategory(master){
   });
 }
 
+function applyTranslations(){
+  // Bottom nav labels
+  var navMap=[["nav-feed-label","gallery"],["nav-home-label","learn"],["nav-post-label","post"],["nav-chat-label","chat"],["nav-profile-label","profile"]];
+  // Translate by finding nav-tab text spans
+  try{
+    var navTabs=document.querySelectorAll("#bottom-nav .nav-tab");
+    var keys=["gallery","learn","post","chat","profile"];
+    navTabs.forEach(function(tab,i){
+      var label=tab.querySelector(".nav-label")||tab.querySelector("span:last-child");
+      if(label&&keys[i])label.textContent=t(keys[i]);
+    });
+  }catch(e){}
+  // Home header "Scegli una categoria"
+  try{
+    var els=document.querySelectorAll("[data-i18n]");
+    els.forEach(function(el){var k=el.getAttribute("data-i18n");if(k)el.textContent=t(k);});
+  }catch(e){}
+  // Common headings by text content match
+  var headingMap={
+    "Scegli una categoria":"chooseCategory",
+    "Il tuo percorso":"yourPath"
+  };
+  try{
+    document.querySelectorAll("h1,h2,h3,div").forEach(function(el){
+      if(el.children.length===0){
+        var txt=el.textContent.trim();
+        if(headingMap[txt])el.textContent=t(headingMap[txt]);
+      }
+    });
+  }catch(e){}
+}
+
 function init(){
   applyTheme(); // Apply saved theme
   showScreen("splash");
@@ -4138,4 +4166,5 @@ async function loadUserSession(uid, authTimer){
 }
 
 
+setTimeout(applyTranslations,500);
 init();
