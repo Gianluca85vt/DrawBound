@@ -4897,7 +4897,7 @@ async function openChat(userId,userName,userAvatar){
     if(hName) hName.textContent = _dmUserName;
     
     showScreen("dm");
-    showBottomNav();
+    hideBottomNav();
     
     var msgContainer=document.getElementById("dm-messages");
     if(!msgContainer) return;
