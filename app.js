@@ -1717,6 +1717,34 @@ function renderProfile(){
 
   /* Default tab */
   setProfileTab("posts");
+
+  // Update badges preview
+  try{
+    if(typeof BADGES_CATALOG !== "undefined" && typeof getEarnedBadges === "function"){
+      var earned = getEarnedBadges();
+      var total = BADGES_CATALOG.length;
+      var countEl = document.getElementById("profile-badges-count");
+      if(countEl) countEl.textContent = earned.length + " / " + total + " sbloccati";
+      var preview = document.getElementById("profile-badges-preview");
+      if(preview){
+        preview.innerHTML = "";
+        // Show first 3 earned (most recent)
+        var toShow = earned.slice(-3).reverse();
+        toShow.forEach(function(b){
+          var bIcon = document.createElement("div");
+          bIcon.style.cssText = "width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(251,186,0,0.3);display:flex;align-items:center;justify-content:center;font-size:14px";
+          bIcon.textContent = b.icon;
+          preview.appendChild(bIcon);
+        });
+        if(earned.length === 0){
+          var hint = document.createElement("div");
+          hint.style.cssText = "font-size:11px;color:#8a82a8;font-style:italic";
+          hint.textContent = "Completa lezioni per sbloccarli";
+          preview.appendChild(hint);
+        }
+      }
+    }
+  }catch(e){console.warn("badges preview error:",e);}
 }
 
 function setProfileTab(tab){
@@ -5274,6 +5302,29 @@ function renderDashboard(){
       catGrid.appendChild(card);
     });
   }
+
+  // Update badges mini-widget on streak card area
+  try{
+    if(typeof BADGES_CATALOG !== "undefined" && typeof getEarnedBadges === "function"){
+      var dEarned = getEarnedBadges();
+      var dTotal = BADGES_CATALOG.length;
+      // Find the streak card and add badge info next to it as overlay
+      var existingMini = document.getElementById("dash-badge-mini");
+      if(existingMini) existingMini.remove();
+      var sc = document.getElementById("dash-streak-card");
+      if(sc){
+        var mini = document.createElement("div");
+        mini.id = "dash-badge-mini";
+        mini.onclick = function(){ navTo("badges"); };
+        mini.style.cssText = "margin:0 16px 18px;background:linear-gradient(135deg,rgba(184,114,224,0.08),rgba(251,186,0,0.06));border:1px solid rgba(184,114,224,0.15);border-radius:14px;padding:10px 14px;display:flex;align-items:center;gap:10px;cursor:pointer";
+        mini.innerHTML = '<div style="font-size:18px">🏆</div>'+
+          '<div style="flex:1"><div style="font-family:\'JetBrains Mono\',monospace;font-size:9px;letter-spacing:1.5px;color:#FBBA00;font-weight:700;margin-bottom:2px">BADGE</div>'+
+          '<div style="font-weight:700;font-size:13px;color:#F5F1E8">'+dEarned.length+' di '+dTotal+' sbloccati</div></div>'+
+          '<div style="color:#8a82a8;font-size:14px">→</div>';
+        sc.parentNode.insertBefore(mini, sc.nextSibling);
+      }
+    }
+  }catch(e){}
 }
 
 function openSettings(){

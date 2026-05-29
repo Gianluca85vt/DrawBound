@@ -5,7 +5,7 @@
 <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>DrawBound</title>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Geist:wght@300;400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=v61-1780088024"/>
+<link rel="stylesheet" href="style.css?v=v62-1780088426"/>
   <!-- PayPal SDK: sostituisci YOUR_PAYPAL_CLIENT_ID con il tuo Client ID da developer.paypal.com -->
   <!-- PayPal SDK loaded dynamically when needed -->
   <!-- PWA -->
@@ -447,6 +447,18 @@
       <div style="flex:1;text-align:center"><div id="prof-stat-lessons" style="font-weight:800;font-size:18px;color:#3DBE7A">0</div><div style="font-size:10px;color:#9896B8;font-weight:600">Lezioni</div></div>
     </div>
   </div>
+  <!-- Badges preview card -->
+  <div id="profile-badges-card" onclick="navTo('badges')" style="margin:16px;background:linear-gradient(135deg,rgba(184,114,224,0.10),rgba(251,186,0,0.08));border:1px solid rgba(184,114,224,0.20);border-radius:18px;padding:14px;cursor:pointer;transition:transform .12s,border-color .12s">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#B872E0,#FBBA00);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🏆</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;color:#FBBA00;font-weight:700;margin-bottom:3px">I MIEI BADGE</div>
+        <div style="font-weight:800;font-size:15px;color:#F5F1E8" id="profile-badges-count">0 / 13 sbloccati</div>
+      </div>
+      <div id="profile-badges-preview" style="display:flex;gap:6px;align-items:center"></div>
+      <div style="color:#8a82a8;font-size:18px;flex-shrink:0">→</div>
+    </div>
+  </div>
   <!-- Tabs -->
   <div style="display:flex;border-bottom:1px solid rgba(255,255,255,.08);background:#0F0E1A;position:sticky;top:0;z-index:5">
     <button id="prof-tab-posts" onclick="setProfileTab('posts')" style="flex:1;padding:11px 0;background:none;border:none;border-bottom:2px solid #8B5CF6;color:#fff;font-weight:800;font-size:12px;cursor:pointer">📸 Post</button>
@@ -811,7 +823,7 @@
   </div>
   <div id="challenges-content" style="max-width:640px;margin:0 auto;padding:16px"></div>
 </div>
-<script src="app.js?v=v61-1780088024" defer></script>
+<script src="app.js?v=v62-1780088426" defer></script>
 
 <!-- BOTTOM NAV (Facebook style) -->
 <!-- BADGES -->
