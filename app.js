@@ -23,7 +23,7 @@ var LANG_STRINGS={
     addComment:"Aggiungi un commento...",publish:"Pubblica",
     noComments:"Nessun commento ancora",
     // Generic
-    loading:"Caricamento...",error:"Errore",save:"Salva",cancel:"Annulla",close:"Chiudi",
+    loading:"Caricamento...",error:"Errore",save:"saveBio",cancel:"cancelBio",close:"Chiudi",
     // Founders
     founderMasters:"Founder Masters",founderSub:"Lezioni esclusive dai maestri fondatori",
     founderBadge:"⭐ MASTER",exclusive:"ESCLUSIVO",
@@ -1053,7 +1053,7 @@ function renderLesson(){
   var btnIsLast=(p===tot-1);
   var btnBg=btnIsLast?"#3DBE7A":ac;
   cbtnRow.style.cssText="flex:1;padding:14px;background:"+btnBg+";border:none;border-radius:12px;font-weight:800;font-size:15px;cursor:pointer;color:#fff;box-shadow:0 4px 12px "+btnBg+"55";
-  cbtnRow.textContent=(btnIsLast?"✓ COMPLETA":"→ Avanti (passo "+(p+2)+"/"+tot+")");
+  cbtnRow.textContent=btnIsLast?t("completa"):"→ "+(p+2)+"/"+tot;
   cbtnRow.onclick=function(){nextStep();};
   actionRow.appendChild(cbtnRow);
   inner.appendChild(actionRow);
@@ -1063,7 +1063,7 @@ function renderLesson(){
   var next=document.getElementById("btn-next");
   var isLast=p===tot-1;
   next.style.background=isLast?"linear-gradient(135deg,#3DBE7A,#2D9B5E)":"linear-gradient(135deg,"+ac+","+ac+"cc)";
-  next.textContent=isLast?"🎉 Completa!":"Passo Successivo →";
+  next.textContent=isLast?t("completa"):t("avanti");
 }
 async function prevStep(){if(A.step>0){A.step--;renderLesson();}}
 async function nextStep(){
@@ -1112,9 +1112,9 @@ function showLessonComplete(les,cat,prevDone){
   panel.innerHTML='<div style="font-size:64px;margin-bottom:12px">🎉</div><div style="font-weight:800;font-size:22px;color:#fff;margin-bottom:8px">Lezione completata!</div><div style="font-size:15px;color:'+ac+';font-weight:700;margin-bottom:6px">'+les.icon+' '+les.title+'</div><div style="font-size:13px;color:#9896B8;margin-bottom:20px">+'+les.mins+' XP · '+done+'/27 lezioni</div><div style="background:rgba(255,255,255,.06);border-radius:12px;height:8px;overflow:hidden;margin-bottom:20px"><div style="width:'+Math.round(done/27*100)+'%;height:100%;background:linear-gradient(90deg,'+ac+',#3DBE7A);border-radius:12px"></div></div><div id="les-complete-btns" style="display:flex;flex-direction:column;gap:10px"></div>';
   overlay.appendChild(panel);document.body.appendChild(overlay);
   var row=document.getElementById("les-complete-btns");
-  var cb=document.createElement("button");cb.style.cssText="padding:13px;background:linear-gradient(135deg,"+ac+","+ac+"cc);border:none;border-radius:12px;color:#fff;font-weight:800;font-size:15px;cursor:pointer";cb.textContent="→ Prossima lezione";
+  var cb=document.createElement("button");cb.style.cssText="padding:13px;background:linear-gradient(135deg,"+ac+","+ac+"cc);border:none;border-radius:12px;color:#fff;font-weight:800;font-size:15px;cursor:pointer";cb.textContent=t("nextLesson");
   cb.onclick=function(){overlay.remove();var idx=cat.levels.findIndex(function(l){return l.id===les.id;});var next=cat.levels[idx+1];if(next&&(next.free||A.pro)){startLesson(cat,next);}else{goBackFromLesson();}};
-  var bb=document.createElement("button");bb.style.cssText="padding:13px;background:rgba(255,255,255,.08);border:none;border-radius:12px;color:#9896B8;font-weight:700;font-size:14px;cursor:pointer";bb.textContent="↩ Torna al percorso";
+  var bb=document.createElement("button");bb.style.cssText="padding:13px;background:rgba(255,255,255,.08);border:none;border-radius:12px;color:#9896B8;font-weight:700;font-size:14px;cursor:pointer";bb.textContent=t("backToPath");
   bb.onclick=function(){overlay.remove();showBottomNav();if(A.cat){renderCategory();}goBackFromLesson();};
   row.appendChild(cb);row.appendChild(bb);
   setTimeout(function(){
@@ -1302,7 +1302,7 @@ function renderProfile(){
   /* Info */
   var nameEl=document.getElementById("profile-name"); if(nameEl) nameEl.textContent=A.user.name;
   var emailEl=document.getElementById("profile-email"); if(emailEl) emailEl.textContent="@"+(A.user.name||"").toLowerCase().replace(/\s+/g,"_");
-  var _bio=(A.user&&A.user.bio)||(A.profile&&A.profile.bio)||localGet("dl:bio_"+(A.user&&A.user.id?A.user.id:"local"))||""; var bioEl=document.getElementById("profile-bio"); if(bioEl) bioEl.textContent=_bio||"Aggiungi una bio...";
+  var _bio=(A.user&&A.user.bio)||(A.profile&&A.profile.bio)||localGet("dl:bio_"+(A.user&&A.user.id?A.user.id:"local"))||""; var bioEl=document.getElementById("profile-bio"); if(bioEl) bioEl.textContent=_bio||t("bio");
 
   /* Stats */
   var lsEl=document.getElementById("prof-stat-lessons"); if(lsEl) lsEl.textContent=done;
@@ -1365,52 +1365,71 @@ async function loadProfilePosts(cont){
 
 function loadProfileLessons(cont){
   cont.innerHTML="";
-  var done = Object.values(A.progress||{}).filter(function(v){return v.completed;}).length;
-  var total = 27;
-  // Header progress
+  var done=0;
+  for(var _dk in A.progress){if(A.progress.hasOwnProperty(_dk)&&A.progress[_dk]&&A.progress[_dk].completed===true)done++;}
+  var total=27;
+  var pct=Math.round(done/total*100);
+  // Header
   var header=document.createElement("div");
   header.style.cssText="background:linear-gradient(135deg,#2d2a4a,#3d3a5a);border-radius:14px;padding:14px;margin-bottom:14px";
-  var pct=Math.round(done/total*100);
   header.innerHTML='<div style="font-weight:800;font-size:14px;color:#fff;margin-bottom:8px">📚 Progressione totale</div>'+
     '<div style="background:rgba(255,255,255,.1);border-radius:50px;height:8px;overflow:hidden;margin-bottom:6px">'+
-    '<div style="width:'+pct+'%;background:linear-gradient(90deg,#3DBE7A,#C8F5E0);height:100%;border-radius:50px;transition:width .6s"></div></div>'+
+    '<div style="width:'+pct+'%;background:linear-gradient(90deg,#3DBE7A,#C8F5E0);height:100%;border-radius:50px"></div></div>'+
     '<div style="font-size:12px;color:#9896B8">'+done+' di '+total+' lezioni completate · '+pct+'%</div>';
   cont.appendChild(header);
   // Per category
   CATS.forEach(function(cat){
+    var ac=AC[cat.id]||"#8B5CF6";
+    var bg=BG[cat.id]||"#2d2a4a";
     var section=document.createElement("div");
     section.style.cssText="background:#161525;border-radius:12px;padding:12px;margin-bottom:10px";
     var catDone=cat.levels.filter(function(l){var k=pk(cat.id,l.id);return A.progress[k]&&A.progress[k].completed;}).length;
     var catPct=cat.levels.length?Math.round(catDone/cat.levels.length*100):0;
-    var header2=document.createElement("div");
-    header2.style.cssText="display:flex;align-items:center;gap:10px;margin-bottom:10px";
-    header2.innerHTML='<div style="width:36px;height:36px;border-radius:10px;background:'+cat.color+'22;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">'+cat.icon+'</div>'+
-      '<div style="flex:1"><div style="font-weight:800;font-size:14px;color:#fff">'+cat.name+'</div>'+
+    var h2=document.createElement("div");
+    h2.style.cssText="display:flex;align-items:center;gap:10px;margin-bottom:10px";
+    h2.innerHTML='<div style="width:36px;height:36px;border-radius:10px;background:'+ac+'22;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">'+cat.icon+'</div>'+
+      '<div style="flex:1"><div style="font-weight:800;font-size:14px;color:#fff">'+cat.label+'</div>'+
       '<div style="font-size:10px;color:#9896B8">'+catDone+'/'+cat.levels.length+' · '+catPct+'%</div></div>'+
       (catDone===cat.levels.length?'<span style="font-size:18px">🏆</span>':'');
-    section.appendChild(header2);
-    // Progress bar categoria
-    var pb=document.createElement("div");
-    pb.style.cssText="background:rgba(255,255,255,.08);border-radius:50px;height:6px;overflow:hidden;margin-bottom:10px";
-    var pbFill=document.createElement("div");
-    pbFill.style.cssText="width:"+catPct+"%;height:100%;background:"+cat.color+";border-radius:50px;transition:width .6s";
-    pb.appendChild(pbFill); section.appendChild(pb);
-    // Lesson list
-    cat.levels.forEach(function(l){
-      var k=pk(cat.id,l.id);
-      var prog=A.progress[k]||{};
-      var isComp=prog.completed||false;
+    section.appendChild(h2);
+    // Lesson rows
+    cat.levels.forEach(function(les){
+      var k=pk(cat.id,les.id);
+      var pv=A.progress[k]||{};
+      var isDone=pv.completed===true;
+      var stepProg=Math.round(((pv.step||0)/Math.max(les.steps?les.steps.length:1,1))*100);
       var row=document.createElement("div");
-      row.style.cssText="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid rgba(255,255,255,.05);cursor:"+(isComp?"default":"pointer");
-      var statusIcon=isComp?"✅":"⭕";
-      row.innerHTML='<span style="font-size:16px;flex-shrink:0">'+statusIcon+'</span>'+
-        '<span style="flex:1;font-size:13px;font-weight:'+(isComp?"700":"500")+';color:'+(isComp?"#fff":"#9896B8")+'">'+l.name+'</span>'+
-        (isComp?'<span style="font-size:10px;color:#3DBE7A;font-weight:700">Completata</span>':'<span style="font-size:10px;color:#9896B8">→</span>');
-      if(!isComp){ (function(catId,lId){row.onclick=function(){A.cat=CATS.find(function(c){return c.id===catId;});A.lesson=CATS.find(function(c){return c.id===catId;}).levels.find(function(x){return x.id===lId;});(function(_c,_l){if(_c&&_l)startLesson(_c,_l);})(CATS.find(function(x){return x.id===catId;}),CATS.find(function(x){return x.id===catId;})&&CATS.find(function(x){return x.id===catId;}).levels.find(function(x){return x.id===lId;}));};})(cat.id,l.id); }
+      row.style.cssText="display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid rgba(255,255,255,.04);cursor:pointer";
+      row.innerHTML='<span style="font-size:16px;color:'+(isDone?"#3DBE7A":"#9896B8")+'">'+(isDone?"✅":"○")+'</span>'+
+        '<span style="font-size:12px;color:'+(isDone?"#fff":"#9896B8")+';flex:1;font-weight:'+(isDone?"700":"400")+'">'+les.icon+' '+les.title+'</span>'+
+        (isDone?'':('<span style="font-size:10px;color:'+ac+';background:'+ac+'18;border-radius:50px;padding:2px 7px">'+stepProg+'%</span>'));
+      (function(c,l){row.addEventListener("click",function(){if(c&&l)startLesson(c,l);});})(cat,les);
       section.appendChild(row);
     });
     cont.appendChild(section);
   });
+  // Founder Masters section in profile
+  if(typeof MASTERS!=="undefined"){
+    var mastersDone=0;
+    MASTERS.forEach(function(m){
+      m.lessons.forEach(function(l){var k=pk("master_"+m.id,l.id);if(A.progress[k]&&A.progress[k].completed)mastersDone++;});
+    });
+    var masterHeader=document.createElement("div");
+    masterHeader.style.cssText="background:linear-gradient(135deg,#1a0a00,#2d1a00);border:1px solid #FFD70044;border-radius:12px;padding:12px;margin-bottom:10px";
+    masterHeader.innerHTML='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'+
+      '<span style="font-size:18px">⭐</span><div style="font-weight:800;font-size:14px;color:#FFD700">Founder Masters</div>'+
+      '<div style="font-size:11px;color:#FF8C00;margin-left:auto">'+mastersDone+' completate</div></div>';
+    MASTERS.forEach(function(m){
+      var mDone=m.lessons.filter(function(l){var k=pk("master_"+m.id,l.id);return A.progress[k]&&A.progress[k].completed;}).length;
+      var mRow=document.createElement("div");
+      mRow.style.cssText="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid rgba(255,215,0,.1)";
+      mRow.innerHTML='<span style="font-size:18px">'+m.avatar+'</span>'+
+        '<span style="font-size:12px;color:#c8c5e8;flex:1">'+m.name+'</span>'+
+        '<span style="font-size:11px;color:#FFD700;background:rgba(255,215,0,.1);border-radius:50px;padding:2px 8px">'+mDone+'/'+m.lessons.length+'</span>';
+      masterHeader.appendChild(mRow);
+    });
+    cont.appendChild(masterHeader);
+  }
 }
 
 function renderProfileSettings(cont){
@@ -1896,7 +1915,7 @@ async function openPostDetail(postId){
           )+
         '</div>'+
         '<div style="display:flex;gap:8px">'+
-          '<input id="new-comment" placeholder="Aggiungi un commento..." style="flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:50px;padding:10px 16px;color:#fff;font-family:Baloo 2,sans-serif;font-size:13px;outline:none"/>'+
+          '<input id="new-comment" placeholder=t("addComment") style="flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:50px;padding:10px 16px;color:#fff;font-family:Baloo 2,sans-serif;font-size:13px;outline:none"/>'+
           '<button onclick="submitComment(\"'+post.id+'\")" style="background:#8B5CF6;border:none;border-radius:50px;padding:10px 16px;color:#fff;font-weight:800;font-size:12px;cursor:pointer">Invia</button>'+
         '</div>'+
       '</div>';
@@ -1921,7 +1940,7 @@ async function submitComment(postId){
       await sbFetch("PATCH","dl_posts?id=eq."+postId,{body:{comments_count:(post[0].comments_count||0)+1}});
       sendNotification(post[0].user_id,"comment","ha commentato: "+text.substring(0,40),postId,post[0].image_url);
     }
-    openPostDetail(postId); input.disabled=false; input.placeholder="Aggiungi un commento...";
+    openPostDetail(postId); input.disabled=false; input.placeholder=t("addComment");
   } catch(e){ showToast("Errore invio commento",""); }
   input.disabled=false;
 }
@@ -2273,26 +2292,7 @@ var _dmUserId = null;
 var _dmUserName = null;
 var _dmPollInterval = null;
 
-async function openChat(userId, userName, userAvatar){
-  _dmUserId = userId;
-  _dmUserName = userName;
-  // Update DM header
-  var hname = document.getElementById("dm-header-name");
-  var havatar = document.getElementById("dm-header-avatar");
-  if(hname) hname.textContent = userName;
-  if(havatar) havatar.textContent = userAvatar||"👤";
-  // Show DM screen
-  showScreen("dm");
-  hideBottomNav();
-  loadDMMessages();
-  // Mark messages as read
-  if(A.user&&sbReady()){
-    sbFetch("PATCH","dl_messages?from_id=eq."+userId+"&to_id=eq."+A.user.id,{body:{read:true}}).catch(function(){});
-  }
-  // Poll for new messages
-  if(_dmPollInterval) clearInterval(_dmPollInterval);
-  _dmPollInterval = setInterval(loadDMMessages, 5000);
-}
+
 
 async function loadDMMessages(){
   if(!A.user||!_dmUserId||!sbReady()) return;
@@ -2317,68 +2317,9 @@ async function loadDMMessages(){
   if(wasAtBottom) container.scrollTop = container.scrollHeight;
 }
 
-async function sendDM(){
-  if(!A.user||!_dmUserId||!sbReady()) return;
-  var input = document.getElementById("dm-input");
-  var text = input&&input.value.trim();
-  if(!text) return;
-  input.value="";
-  try {
-    await sbFetch("POST","dl_messages",{body:{
-      from_id:A.user.id, to_id:_dmUserId,
-      from_name:A.user.name, from_avatar:A.user.avatar||"👤",
-      text:text, read:false, created_at:new Date().toISOString()
-    }});
-    // Send notification
-    sendNotification(_dmUserId,"message","ti ha inviato un messaggio: "+text.substring(0,30),null,null);
-    loadDMMessages();
-  } catch(e){ showToast("Errore invio",""); }
-}
 
-async function loadChatInbox(){
-  if(!A.user||!sbReady()) return;
-  var inbox = document.getElementById("chat-inbox");
-  if(!inbox) return;
-  inbox.innerHTML='<div style="text-align:center;padding:30px;color:#9896B8">Caricamento...</div>';
-  try {
-    // Get all messages involving this user
-    var sent = await sbFetch("GET","dl_messages",{filters:"from_id=eq."+A.user.id,order:"created_at.desc"});
-    var recv = await sbFetch("GET","dl_messages",{filters:"to_id=eq."+A.user.id,order:"created_at.desc"});
-    var all = [].concat(sent||[]).concat(recv||[]);
-    // Group by conversation partner
-    var convs = {};
-    all.forEach(function(m){
-      var partner = m.from_id===A.user.id?m.to_id:m.from_id;
-      var partnerName = m.from_id===A.user.id?(m.to_name||"Utente"):m.from_name;
-      var partnerAvatar = m.from_id===A.user.id?(m.to_avatar||"👤"):m.from_avatar;
-      if(!convs[partner]||new Date(m.created_at)>new Date(convs[partner].last.created_at)){
-        convs[partner]={id:partner,name:partnerName,avatar:partnerAvatar,last:m,unread:0};
-      }
-      if(m.from_id!==A.user.id&&!m.read) convs[partner].unread=(convs[partner].unread||0)+1;
-    });
-    var list = Object.values(convs).sort(function(a,b){return new Date(b.last.created_at)-new Date(a.last.created_at);});
-    if(!list.length){
-      inbox.innerHTML='<div style="text-align:center;padding:60px 20px"><div style="font-size:48px;margin-bottom:12px">💬</div><div style="font-weight:800;color:#fff;margin-bottom:8px">Nessuna conversazione</div><div style="color:#9896B8;font-size:13px">Visita il profilo di un utente e inizia a chattare</div></div>';
-      return;
-    }
-    inbox.innerHTML="";
-    list.forEach(function(c){
-      var d=document.createElement("div");
-      d.style.cssText="display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer";
-      d.innerHTML=
-        '<div style="width:48px;height:48px;border-radius:50%;background:#2d2a4a;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;position:relative">'+c.avatar+
-        (c.unread?'<div style="position:absolute;top:0;right:0;background:#e74c3c;border-radius:50%;width:16px;height:16px;font-size:10px;font-weight:800;color:#fff;display:flex;align-items:center;justify-content:center">'+c.unread+'</div>':'' )+
-        '</div>'+
-        '<div style="flex:1;min-width:0">'+
-          '<div style="font-weight:800;font-size:14px;color:#fff">'+c.name+'</div>'+
-          '<div style="font-size:12px;color:#9896B8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+c.last.text+'</div>'+
-        '</div>'+
-        '<div style="font-size:10px;color:#9896B8;flex-shrink:0">'+getTimeAgo(new Date(c.last.created_at))+'</div>';
-      (function(conv){d.onclick=function(){openChat(conv.id,conv.name,conv.avatar);};})(c);
-      inbox.appendChild(d);
-    });
-  } catch(e){ inbox.innerHTML='<div style="padding:20px;color:#9896B8">Errore: '+e.message+'</div>'; }
-}
+
+
 
 // Poll unread chat count
 setInterval(async function(){
@@ -2678,7 +2619,13 @@ async function loadPubProfile(userId){
   try {
     // Load user data
     var users = await sbFetch("GET","dl_users",{filters:"id=eq."+userId});
-    if(!users||!users[0]){ content.innerHTML='<div style="padding:20px;color:#9896B8">Utente non trovato</div>'; return; }
+    if(!users||!users[0]){ content.innerHTML='<div style="padding:20px;color:#9896B8">Utente non trovato</div>';
+    // Attach chat button event listener (escapes-safe)
+    var _cb=document.getElementById("pubprof-chat-btn");
+    if(_cb){
+      _cb.addEventListener("click",function(e){e.preventDefault();e.stopPropagation();openChat(userId,user.name||"Utente",user.avatar||"👤");});
+    }
+ return; }
     var user = users[0];
 
     // Load follow status
@@ -2715,9 +2662,9 @@ async function loadPubProfile(userId){
         (A.user && A.user.id !== userId ?
           '<div style="display:flex;gap:8px">'+
           '<button id="follow-btn-'+userId+'" onclick="toggleFollow(\''+userId+'\')" style="flex:1;padding:10px;border:none;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer;background:'+(amFollowing?"rgba(255,255,255,.1)":"linear-gradient(135deg,#8B5CF6,#6d28d9)")+';color:#fff">'+
-            (amFollowing?"✓ Segui già":"+ Segui")+
+            (amFollowing?t("following_btn"):t("follow"))+
           '</button>'+
-          '<button onclick="openChat(\"'+userId+'\",\"'+user.name+'\",\"'+( user.avatar||"👤")+'\")" style="padding:10px 16px;background:rgba(255,255,255,.1);border:none;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer;color:#fff">💬</button>'+
+          '<button id="pubprof-chat-btn" style="padding:10px 16px;background:rgba(255,255,255,.1);border:none;border-radius:10px;font-weight:800;font-size:16px;cursor:pointer;color:#fff">💬</button>'+
           '</div>' : ''
         )+
       '</div>'+
@@ -2738,6 +2685,22 @@ async function loadPubProfile(userId){
   } catch(e){
     content.innerHTML='<div style="padding:20px;color:#9896B8">Errore: '+e.message+'</div>';
   }
+
+    // Attach chat button event listener (use closure vars to avoid escape issues)
+    setTimeout(function(){
+      var cb=document.getElementById("pubprof-chat-btn");
+      if(cb){
+        cb.onclick=function(e){
+          if(e&&e.preventDefault)e.preventDefault();
+          if(e&&e.stopPropagation)e.stopPropagation();
+          if(typeof user!=="undefined"&&user){
+            openChat(userId, user.name||"Utente", user.avatar||"👤");
+          } else {
+            openChat(userId, "Utente", "👤");
+          }
+        };
+      }
+    },50);
 }
 
 async function toggleFollow(userId){
@@ -2747,7 +2710,7 @@ async function toggleFollow(userId){
 
   // Optimistic update
   if(btn){
-    btn.textContent = amFollowing ? "+ Segui" : "✓ Segui già";
+    btn.textContent = amFollowing ? t("follow") : t("following_btn");
     btn.style.background = amFollowing ? "linear-gradient(135deg,#8B5CF6,#6d28d9)" : "rgba(255,255,255,.1)";
   }
 
@@ -2777,8 +2740,8 @@ function setFeedFilter(filter){
   _feedFilter = filter;
   var allBtn = document.getElementById("feed-filter-all");
   var folBtn = document.getElementById("feed-filter-following");
-  if(allBtn){ allBtn.style.background=filter==="all"?"#8B5CF6":"rgba(255,255,255,.06)"; allBtn.style.color=filter==="all"?"#fff":"#9896B8"; }
-  if(folBtn){ folBtn.style.background=filter==="following"?"#8B5CF6":"rgba(255,255,255,.06)"; folBtn.style.color=filter==="following"?"#fff":"#9896B8"; }
+  if(allBtn){ allBtn.style.background=filter==="all"?"#8B5CF6":"rgba(255,255,255,.08)"; allBtn.style.color=filter==="all"?"#fff":"#9896B8"; }
+  if(folBtn){ folBtn.style.background=filter==="following"?"#8B5CF6":"rgba(255,255,255,.08)"; folBtn.style.color=filter==="following"?"#fff":"#9896B8"; }
   renderFeed();
 }
 
@@ -3543,7 +3506,7 @@ async function openChallengeSubmit(challengeId, title){
   var list = document.createElement("div"); list.style.cssText = "display:flex;flex-direction:column;gap:8px";
   var b1 = document.createElement("button"); b1.style.cssText = "padding:13px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:12px;color:#fff;font-weight:700;font-size:14px;cursor:pointer"; b1.textContent = "📷 Scatta foto"; b1.onclick = function(){ pickChallengePhoto("camera"); }; list.appendChild(b1);
   var b2 = document.createElement("button"); b2.style.cssText = "padding:13px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:12px;color:#fff;font-weight:700;font-size:14px;cursor:pointer"; b2.textContent = "🖼️ Dalla galleria"; b2.onclick = function(){ pickChallengePhoto("gallery"); }; list.appendChild(b2);
-  var b3 = document.createElement("button"); b3.style.cssText = "padding:11px;background:none;border:none;color:#9896B8;font-size:13px;cursor:pointer"; b3.textContent = "Annulla"; b3.onclick = function(){ overlay.remove(); }; list.appendChild(b3);
+  var b3 = document.createElement("button"); b3.style.cssText = "padding:11px;background:none;border:none;color:#9896B8;font-size:13px;cursor:pointer"; b3.textContent = t("cancelBio"); b3.onclick = function(){ overlay.remove(); }; list.appendChild(b3);
   panel.appendChild(list); overlay.appendChild(panel); document.body.appendChild(overlay);
 }
 
@@ -3635,7 +3598,7 @@ function showShareSheet(imageUrl, caption){
   // Cancel
   var cancelBtn = document.createElement("button");
   cancelBtn.style.cssText = "width:100%;padding:12px;background:rgba(255,255,255,.06);border:none;border-radius:12px;color:#9896B8;font-weight:700;font-size:14px;cursor:pointer";
-  cancelBtn.textContent = "Annulla";
+  cancelBtn.textContent = t("cancelBio");
   cancelBtn.onclick = function(){ overlay.remove(); };
   panel.appendChild(cancelBtn);
 
@@ -3934,7 +3897,7 @@ function renderFounderMasters(){
   // Master cards
   MASTERS.forEach(function(master){
     var card=document.createElement("div");
-    card.style.cssText="border-radius:20px;overflow:hidden;margin-bottom:14px;cursor:pointer;box-shadow:0 8px 32px rgba(0,0,0,.15);border:1px solid rgba(255,255,255,.06)";
+    card.style.cssText="border-radius:20px;overflow:hidden;margin-bottom:14px;cursor:pointer;box-shadow:0 8px 32px rgba(0,0,0,.15);border:1px solid rgba(255,255,255,.08)";
     card.onclick=function(){openMasterDetail(master);};
 
     // Header gradient strip
@@ -3993,7 +3956,7 @@ function openMasterDetail(master){
   var gold=master.color||"#FFD700";
   var overlay=document.createElement("div");
   overlay.id="master-detail-overlay";
-  overlay.style.cssText="position:fixed;inset:0;z-index:900;overflow-y:auto;background:#0d0b1e";
+  overlay.style.cssText="position:fixed;inset:0;z-index:900;overflow-y:auto;background:#161525";
 
   // Header
   var header=document.createElement("div");
@@ -4117,6 +4080,225 @@ function applyTranslations(){
       }
     });
   }catch(e){}
+}
+
+async function loadChatInbox(){
+  try{
+    var list=document.getElementById("chat-inbox");
+    if(!list){ console.warn("chat-list missing"); return; }
+    list.innerHTML="";
+    
+    // Read all DM threads from localStorage (key: dl:dm_<userId>)
+    var threads={};
+    for(var i=0;i<localStorage.length;i++){
+      var k=localStorage.key(i);
+      if(k&&k.indexOf("dl:dm_")===0){
+        var uid=k.substring(6);
+        try{
+          var msgs=JSON.parse(localStorage.getItem(k)||"[]");
+          if(msgs.length>0){
+            var lastMsg=msgs[msgs.length-1];
+            threads[uid]={
+              userId:uid,
+              userName:lastMsg.userName||"Utente",
+              userAvatar:lastMsg.userAvatar||"👤",
+              lastText:lastMsg.text||"",
+              lastTime:lastMsg.time||Date.now(),
+              unread:msgs.filter(function(m){return m.from!==(A.user&&A.user.id)&&!m.read;}).length
+            };
+          }
+        }catch(e){}
+      }
+    }
+    
+    // Try Supabase too if available
+    if(sbReady()&&A.user){
+      try{
+        var sbThreads=await sbFetch("GET","dl_messages",{
+          filters:"or=(from_user.eq."+A.user.id+",to_user.eq."+A.user.id+")",
+          select:"*",
+          order:"created_at.desc",
+          limit:100
+        });
+        if(sbThreads&&sbThreads.length){
+          sbThreads.forEach(function(msg){
+            var otherUid=msg.from_user===A.user.id?msg.to_user:msg.from_user;
+            if(!threads[otherUid]||threads[otherUid].lastTime<new Date(msg.created_at).getTime()){
+              threads[otherUid]={
+                userId:otherUid,
+                userName:msg.other_name||"Utente",
+                userAvatar:msg.other_avatar||"👤",
+                lastText:msg.text||"",
+                lastTime:new Date(msg.created_at).getTime(),
+                unread:0
+              };
+            }
+          });
+        }
+      }catch(e){console.warn("Supabase chat fetch failed:",e);}
+    }
+    
+    var threadsArr=Object.values(threads).sort(function(a,b){return b.lastTime-a.lastTime;});
+    
+    if(threadsArr.length===0){
+      list.innerHTML='<div style="text-align:center;padding:60px 20px;color:#8a82a8"><div style="font-size:48px;margin-bottom:12px">💬</div><div style="font-weight:700;font-size:15px;color:#F5F1E8;margin-bottom:6px">Nessuna conversazione</div><div style="font-size:13px">Apri il profilo di un utente e tocca 💬 per iniziare</div></div>';
+      return;
+    }
+    
+    threadsArr.forEach(function(t){
+      var row=document.createElement("div");
+      row.style.cssText="display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.06);cursor:pointer;transition:background .15s";
+      row.onmouseover=function(){this.style.background="rgba(255,255,255,0.03)";};
+      row.onmouseout=function(){this.style.background="transparent";};
+      var avatarBg="linear-gradient(135deg,#814393,#FBBA00)";
+      row.innerHTML='<div style="width:48px;height:48px;border-radius:50%;background:'+avatarBg+';display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">'+t.userAvatar+'</div>'+
+        '<div style="flex:1;min-width:0">'+
+          '<div style="font-weight:700;font-size:14px;color:#F5F1E8;margin-bottom:3px">'+t.userName+'</div>'+
+          '<div style="font-size:12px;color:#8a82a8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+t.lastText+'</div>'+
+        '</div>'+
+        (t.unread>0?'<div style="background:#FBBA00;color:#15102a;border-radius:50px;padding:2px 8px;font-size:10px;font-weight:800;min-width:20px;text-align:center">'+t.unread+'</div>':'');
+      (function(thread){row.addEventListener("click",function(){openChat(thread.userId,thread.userName,thread.userAvatar);});})(t);
+      list.appendChild(row);
+    });
+  }catch(e){
+    console.error("loadChatInbox error:",e);
+    var list=document.getElementById("chat-inbox");
+    if(list)list.innerHTML='<div style="padding:20px;color:#8a82a8;text-align:center">Errore caricamento chat</div>';
+  }
+}
+
+async function openChat(userId,userName,userAvatar){
+  try{
+    _dmUserId=userId;
+    _dmUserName=userName;
+    _dmUserAvatar=userAvatar||"👤";
+    
+    // Set header
+    var hdr=document.getElementById("dm-header-name");
+    if(hdr)hdr.textContent=userName;
+    var ava=document.getElementById("dm-header-avatar");
+    if(ava)ava.textContent=_dmUserAvatar;
+    
+    showScreen("dm");
+    hideBottomNav();
+    
+    // Load messages
+    var msgs=[];
+    try{
+      var stored=localStorage.getItem("dl:dm_"+userId);
+      if(stored)msgs=JSON.parse(stored)||[];
+    }catch(e){}
+    
+    // Try Supabase merge
+    if(sbReady()&&A.user){
+      try{
+        var sbMsgs=await sbFetch("GET","dl_messages",{
+          filters:"or=(and(from_user.eq."+A.user.id+",to_user.eq."+userId+"),and(from_user.eq."+userId+",to_user.eq."+A.user.id+"))",
+          order:"created_at.asc",
+          limit:200
+        });
+        if(sbMsgs&&sbMsgs.length){
+          sbMsgs.forEach(function(m){
+            if(!msgs.find(function(x){return x.id===m.id;})){
+              msgs.push({id:m.id,text:m.text,from:m.from_user,time:new Date(m.created_at).getTime(),userName:userName,userAvatar:userAvatar});
+            }
+          });
+          msgs.sort(function(a,b){return a.time-b.time;});
+        }
+      }catch(e){console.warn("Supabase msg fetch failed");}
+    }
+    
+    // Mark as read
+    msgs.forEach(function(m){if(m.from!==(A.user&&A.user.id))m.read=true;});
+    localStorage.setItem("dl:dm_"+userId,JSON.stringify(msgs));
+    
+    // Render messages
+    var msgContainer=document.getElementById("dm-messages");
+    if(!msgContainer)return;
+    msgContainer.innerHTML="";
+    
+    if(msgs.length===0){
+      msgContainer.innerHTML='<div style="text-align:center;padding:60px 20px;color:#8a82a8"><div style="font-size:48px;margin-bottom:12px">👋</div><div style="font-weight:700;color:#F5F1E8;margin-bottom:6px">Inizia la conversazione</div><div style="font-size:13px">Scrivi un messaggio a '+userName+'</div></div>';
+    } else {
+      msgs.forEach(function(m){
+        var isMe=m.from===(A.user&&A.user.id);
+        var bubble=document.createElement("div");
+        bubble.style.cssText="display:flex;justify-content:"+(isMe?"flex-end":"flex-start")+";margin-bottom:8px;padding:0 12px";
+        var inner=document.createElement("div");
+        if(isMe){
+          inner.style.cssText="max-width:78%;padding:9px 14px;border-radius:14px 14px 4px 14px;background:linear-gradient(135deg,#B872E0,#FBBA00);color:#1c1b29;font-weight:600;font-size:13px;line-height:1.4;word-wrap:break-word";
+        } else {
+          inner.style.cssText="max-width:78%;padding:9px 14px;border-radius:14px 14px 14px 4px;background:rgba(255,255,255,0.06);color:#F5F1E8;font-size:13px;line-height:1.4;word-wrap:break-word;border:1px solid rgba(255,255,255,0.08)";
+        }
+        inner.textContent=m.text;
+        bubble.appendChild(inner);
+        msgContainer.appendChild(bubble);
+      });
+      msgContainer.scrollTop=msgContainer.scrollHeight;
+    }
+  }catch(e){
+    console.error("openChat error:",e);
+    showToast("Errore apertura chat","");
+  }
+}
+
+async function sendDM(){
+  try{
+    var input=document.getElementById("dm-input");
+    if(!input)return;
+    var text=input.value.trim();
+    if(!text||!_dmUserId)return;
+    
+    var msg={
+      id:"local_"+Date.now()+"_"+Math.random().toString(36).substring(7),
+      text:text,
+      from:(A.user&&A.user.id)||"me",
+      time:Date.now(),
+      userName:_dmUserName,
+      userAvatar:_dmUserAvatar,
+      read:false
+    };
+    
+    // Save locally
+    var key="dl:dm_"+_dmUserId;
+    var msgs=[];
+    try{msgs=JSON.parse(localStorage.getItem(key)||"[]");}catch(e){}
+    msgs.push(msg);
+    localStorage.setItem(key,JSON.stringify(msgs));
+    
+    // Also save mirror for the recipient view (so it shows in their localStorage if same browser/test)
+    if(A.user){
+      var mirrorKey="dl:dm_"+A.user.id;
+      // skip mirror for own thread
+    }
+    
+    // Render the new message immediately
+    var msgContainer=document.getElementById("dm-messages");
+    if(msgContainer){
+      // Clear empty state if present
+      if(msgContainer.innerHTML.indexOf("Inizia la conversazione")>=0){msgContainer.innerHTML="";}
+      var bubble=document.createElement("div");
+      bubble.style.cssText="display:flex;justify-content:flex-end;margin-bottom:8px;padding:0 12px";
+      var inner=document.createElement("div");
+      inner.style.cssText="max-width:78%;padding:9px 14px;border-radius:14px 14px 4px 14px;background:linear-gradient(135deg,#B872E0,#FBBA00);color:#1c1b29;font-weight:600;font-size:13px;line-height:1.4;word-wrap:break-word";
+      inner.textContent=text;
+      bubble.appendChild(inner);
+      msgContainer.appendChild(bubble);
+      msgContainer.scrollTop=msgContainer.scrollHeight;
+    }
+    
+    input.value="";
+    
+    // Try send to Supabase (non-blocking)
+    if(sbReady()&&A.user){
+      sbFetch("POST","dl_messages",{
+        body:{from_user:A.user.id,to_user:_dmUserId,text:text,created_at:new Date().toISOString()}
+      }).catch(function(e){console.warn("Supabase send failed (saved locally):",e);});
+    }
+  }catch(e){
+    console.error("sendMsg error:",e);
+    showToast("Errore invio messaggio","");
+  }
 }
 
 function init(){
