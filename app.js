@@ -4121,11 +4121,23 @@ async function openRedline(postId, imageUrl){
   if(!modal){ showToast("Funzione redline non disponibile",""); return; }
   _redlinePostId=postId; _redlinePostImg=imageUrl;
   var bg=document.getElementById("redline-bg");
-  if(bg){ bg.src=imageUrl; }
+  if(bg){
+    bg.crossOrigin = "anonymous";
+    bg.onload = function(){
+      var c = document.getElementById("redline-canvas");
+      if(c){ c._rlInit = false; }
+      setTimeout(initRedlineCanvas, 50);
+    };
+    bg.onerror = function(){ showToast("Errore caricamento immagine",""); };
+    bg.src = imageUrl;
+  }
   var canvas=document.getElementById("redline-canvas");
-  if(canvas){ canvas.getContext("2d").clearRect(0,0,canvas.width,canvas.height); }
+  if(canvas){
+    canvas._rlInit = false;
+    canvas.getContext("2d").clearRect(0,0,canvas.width,canvas.height);
+  }
   modal.style.display="flex";
-  setTimeout(initRedlineCanvas, 100);
+  setTimeout(initRedlineCanvas, 200);
 }
 
 async function shareResult(imageUrl, caption){
@@ -4876,61 +4888,33 @@ async function loadChatInbox(){
 }
 
 async function openChat(userId,userName,userAvatar){
-  try{
-    _dmUserId=userId;
-    _dmUserName=userName;
-    _dmUserAvatar=userAvatar||"👤";
+    if(!userId){ showToast("Errore: utente non valido",""); return; }
+    _dmUserId=userId; _dmUserName=userName||"Utente"; _dmUserAvatar=userAvatar||"";
     
-    // Set header
-    var hdr=document.getElementById("dm-header-name");
-    if(hdr)hdr.textContent=userName;
-    var ava=document.getElementById("dm-header-avatar");
-    if(ava)ava.textContent=_dmUserAvatar;
+    var hAv=document.getElementById("dm-header-avatar");
+    if(hAv) hAv.textContent = _dmUserAvatar;
+    var hName=document.getElementById("dm-header-name");
+    if(hName) hName.textContent = _dmUserName;
     
     showScreen("dm");
-    hideBottomNav();
+    showBottomNav();
     
-    // Load messages
-    var msgs=[];
-    try{
-      var stored=localStorage.getItem("dl:dm_"+userId);
-      if(stored)msgs=JSON.parse(stored)||[];
-    }catch(e){}
-    
-    // Try Supabase merge
-    if(sbReady()&&A.user){
-      try{
-        var sbMsgs=await sbFetch("GET","dl_messages",{
-          filters:"or=(and(from_user.eq."+A.user.id+",to_user.eq."+userId+"),and(from_user.eq."+userId+",to_user.eq."+A.user.id+"))",
-          order:"created_at.asc",
-          limit:200
-        });
-        if(sbMsgs&&sbMsgs.length){
-          sbMsgs.forEach(function(m){
-            if(!msgs.find(function(x){return x.id===m.id;})){
-              msgs.push({id:m.id,text:m.text,from:m.from_user,time:new Date(m.created_at).getTime(),userName:userName,userAvatar:userAvatar});
-            }
-          });
-          msgs.sort(function(a,b){return a.time-b.time;});
-        }
-      }catch(e){console.warn("Supabase msg fetch failed");}
-    }
-    
-    // Mark as read
-    msgs.forEach(function(m){if(m.from!==(A.user&&A.user.id))m.read=true;});
-    localStorage.setItem("dl:dm_"+userId,JSON.stringify(msgs));
-    
-    // Render messages
     var msgContainer=document.getElementById("dm-messages");
-    if(!msgContainer)return;
-    msgContainer.innerHTML="";
+    if(!msgContainer) return;
+    msgContainer.innerHTML='<div style="text-align:center;padding:30px;color:#9896B8">Caricamento...</div>';
     
-    if(msgs.length===0){
-      msgContainer.innerHTML='<div style="text-align:center;padding:60px 20px;color:#8a82a8"><div style="font-size:48px;margin-bottom:12px">👋</div><div style="font-weight:700;color:#F5F1E8;margin-bottom:6px">Inizia la conversazione</div><div style="font-size:13px">Scrivi un messaggio a '+userName+'</div></div>';
-    } else {
+    if(window._dmPollInt){ clearInterval(window._dmPollInt); window._dmPollInt=null; }
+    
+    var renderMsgs = function(msgs){
+      msgContainer.innerHTML="";
+      if(!msgs||!msgs.length){
+        msgContainer.innerHTML='<div style="text-align:center;padding:40px 20px;color:#8a82a8"><div style="font-size:42px;margin-bottom:10px">DM</div>Inizia la conversazione</div>';
+        setTimeout(initMicButton, 50);
+        return;
+      }
       msgs.forEach(function(m){
-        var isMe=m.from===(A.user&&A.user.id);
-        if(m.type==="image" || m.type==="audio"){
+        var isMe = m.from===(A.user&&A.user.id);
+        if(m.type==="image"||m.type==="audio"){
           appendMediaBubble(m, isMe);
           return;
         }
@@ -4946,15 +4930,62 @@ async function openChat(userId,userName,userAvatar){
         bubble.appendChild(inner);
         msgContainer.appendChild(bubble);
       });
-      // Init mic button (press and hold)
-      setTimeout(initMicButton, 50);
       msgContainer.scrollTop=msgContainer.scrollHeight;
+      setTimeout(initMicButton, 50);
+    };
+    
+    var fetchMsgs = async function(){
+      if(!sbReady() || !A.user) return null;
+      try{
+        var sent = await sbFetch("GET","dl_messages",{
+          filters:"and=(from_user.eq."+A.user.id+",to_user.eq."+_dmUserId+")",
+          order:"created_at.asc",
+          limit:200
+        });
+        var received = await sbFetch("GET","dl_messages",{
+          filters:"and=(from_user.eq."+_dmUserId+",to_user.eq."+A.user.id+")",
+          order:"created_at.asc",
+          limit:200
+        });
+        var all = [].concat(sent||[]).concat(received||[]);
+        all.sort(function(a,b){return new Date(a.created_at) - new Date(b.created_at);});
+        return all.map(function(m){
+          return {
+            id: m.id,
+            text: m.text||"",
+            from: m.from_user,
+            time: new Date(m.created_at).getTime(),
+            type: m.type||"text",
+            media_url: m.media_url||"",
+            duration: m.duration||0
+          };
+        });
+      }catch(e){ console.warn("fetchMsgs error:",e); return null; }
+    };
+    
+    var key="dl:dm_"+_dmUserId;
+    var sbMsgs = await fetchMsgs();
+    if(sbMsgs){
+      try{localStorage.setItem(key, JSON.stringify(sbMsgs));}catch(e){}
+      renderMsgs(sbMsgs);
+    } else {
+      var local=[];
+      try{local=JSON.parse(localStorage.getItem(key)||"[]");}catch(e){}
+      renderMsgs(local);
     }
-  }catch(e){
-    console.error("openChat error:",e);
-    showToast("Errore apertura chat","");
+    
+    window._dmPollInt = setInterval(async function(){
+      if(_dmUserId !== userId){ clearInterval(window._dmPollInt); return; }
+      var fresh = await fetchMsgs();
+      if(fresh){
+        var cur = msgContainer.querySelectorAll(":scope > div").length;
+        if(fresh.length > cur){
+          try{localStorage.setItem(key, JSON.stringify(fresh));}catch(e){}
+          renderMsgs(fresh);
+        }
+      }
+    }, 4000);
   }
-}
 
 async function sendDM(){
   try{
