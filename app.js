@@ -164,6 +164,143 @@ var _currentLang=(function(){
 function t(key){ return (LANG_STRINGS[_currentLang]&&LANG_STRINGS[_currentLang][key])||(LANG_STRINGS["it"]&&LANG_STRINGS["it"][key])||key; }
 function setLang(code){ if(LANG_STRINGS[code]){_currentLang=code;localStorage.setItem("dl:lang",code);} }
 
+/* ═══════════════ GOOGLE LOGIN ═══════════════ */
+var GOOGLE_CLIENT_ID = "960440832519-rl65rjj2m36km08rp6mg2l1t18q4m0jl.apps.googleusercontent.com";
+var _googleInited = false;
+
+function initGoogleAuth(){
+  if(_googleInited) return;
+  if(typeof google === "undefined" || !google.accounts){
+    // SDK not ready yet, retry
+    setTimeout(initGoogleAuth, 300);
+    return;
+  }
+  try{
+    google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: handleGoogleCredential,
+      auto_select: false,
+      cancel_on_tap_outside: true
+    });
+    _googleInited = true;
+    console.log("Google Auth initialized");
+  }catch(e){ console.error("Google init error:", e); }
+}
+
+function loginGoogle(){
+  initGoogleAuth();
+  if(typeof google === "undefined" || !google.accounts || !google.accounts.id){
+    showToast("Servizio Google non disponibile","");
+    return;
+  }
+  try{
+    google.accounts.id.prompt(function(notification){
+      if(notification.isNotDisplayed() || notification.isSkippedMoment()){
+        // Fallback: use OAuth2 popup
+        var tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: GOOGLE_CLIENT_ID,
+          scope: "email profile openid",
+          callback: function(resp){
+            if(resp && resp.access_token){
+              // Use access token to get user info
+              fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+                headers:{Authorization:"Bearer "+resp.access_token}
+              }).then(function(r){return r.json();}).then(function(profile){
+                handleGoogleProfile(profile);
+              }).catch(function(e){console.error("Google profile fetch failed",e);showToast("Errore Google","");});
+            }
+          }
+        });
+        tokenClient.requestAccessToken();
+      }
+    });
+  }catch(e){
+    console.error("Google login error:", e);
+    showToast("Errore login Google","");
+  }
+}
+
+function handleGoogleCredential(response){
+  if(!response || !response.credential) return;
+  try{
+    // JWT decode (base64) — only the payload we need
+    var parts = response.credential.split(".");
+    var payload = JSON.parse(atob(parts[1].replace(/-/g,"+").replace(/_/g,"/")));
+    handleGoogleProfile(payload);
+  }catch(e){
+    console.error("JWT decode error:", e);
+    showToast("Errore verifica Google","");
+  }
+}
+
+async function handleGoogleProfile(profile){
+  // profile has: sub (Google ID), email, name, picture, given_name, family_name
+  if(!profile || !profile.email){ showToast("Profilo Google non valido",""); return; }
+  
+  showToast("Accesso in corso...","🔐");
+  
+  var googleId = profile.sub;
+  var email = profile.email;
+  var name = profile.name || (profile.given_name + " " + (profile.family_name||"")).trim() || email.split("@")[0];
+  var picture = profile.picture || "👤";
+  
+  // Stable user id based on Google ID
+  var userId = "g_" + googleId;
+  
+  // Try to find/create user in Supabase
+  var user = null;
+  if(sbReady()){
+    try{
+      var existing = await sbFetch("GET","dl_users",{filters:"id=eq."+userId});
+      if(existing && existing[0]){
+        user = existing[0];
+      } else {
+        // Create new user
+        var newUser = {
+          id: userId,
+          email: email,
+          name: name,
+          avatar: "👤",
+          picture: picture,
+          created_at: new Date().toISOString()
+        };
+        await sbFetch("POST","dl_users",{body:newUser}).catch(function(e){console.warn("create user failed",e);});
+        user = newUser;
+      }
+    }catch(e){ console.warn("Supabase user fetch failed",e); }
+  }
+  
+  // Fallback: local user
+  if(!user){
+    user = {id:userId, email:email, name:name, picture:picture, avatar:"👤"};
+  }
+  
+  // Set session
+  A.user = user;
+  A.profile = user;
+  localStorage.setItem("dl:uid", userId);
+  localStorage.setItem("dl:user", JSON.stringify(user));
+  
+  // Load progress & bio from localStorage
+  try{
+    var p = localStorage.getItem("dl:progress_all");
+    if(p) A.progress = JSON.parse(p);
+  }catch(e){}
+  
+  // Navigate to home
+  showToast("Bentornato, "+name.split(" ")[0]+"!","👋");
+  setTimeout(function(){
+    if(typeof renderHome==="function") renderHome();
+    showScreen("home");
+    showBottomNav();
+  }, 600);
+}
+
+// Auto-init Google when SDK loads
+window.addEventListener("load", function(){
+  setTimeout(initGoogleAuth, 500);
+});
+
 var APP_VERSION="3.0.0";
 console.log("%c DrawBound v3.0.0 ✓ — Founder Masters + 7 lingue","color:#8B5CF6;font-weight:bold;font-size:14px");
 
@@ -1099,32 +1236,127 @@ async function nextStep(){
 }
 
 function showLessonComplete(les,cat,prevDone){
-  var ac=AC[cat.id]||"#8B5CF6";
-  // Read from localStorage (bypass A.progress which can get corrupted)
+  var ac=AC[cat.id]||"#B872E0";
+  // Read progress from localStorage
   var _raw=localStorage.getItem("dl:progress_all")||"{}";
   var _prog={};
   try{_prog=JSON.parse(_raw);if(typeof _prog!=="object"||_prog===null||Array.isArray(_prog))_prog={};}catch(e){_prog={};}
   A.progress=_prog;
   var done=0;
   for(var _k in _prog){if(_prog.hasOwnProperty(_k)&&_prog[_k]&&_prog[_k].completed===true)done++;}
-  var overlay=document.createElement("div");overlay.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px";
-  var panel=document.createElement("div");panel.style.cssText="background:#1e1b3a;border-radius:24px;width:100%;max-width:380px;padding:32px 24px;text-align:center";
-  panel.innerHTML='<div style="font-size:64px;margin-bottom:12px">🎉</div><div style="font-weight:800;font-size:22px;color:#fff;margin-bottom:8px">Lezione completata!</div><div style="font-size:15px;color:'+ac+';font-weight:700;margin-bottom:6px">'+les.icon+' '+les.title+'</div><div style="font-size:13px;color:#9896B8;margin-bottom:20px">+'+les.mins+' XP · '+done+'/27 lezioni</div><div style="background:rgba(255,255,255,.06);border-radius:12px;height:8px;overflow:hidden;margin-bottom:20px"><div style="width:'+Math.round(done/27*100)+'%;height:100%;background:linear-gradient(90deg,'+ac+',#3DBE7A);border-radius:12px"></div></div><div id="les-complete-btns" style="display:flex;flex-direction:column;gap:10px"></div>';
-  overlay.appendChild(panel);document.body.appendChild(overlay);
-  var row=document.getElementById("les-complete-btns");
-  var cb=document.createElement("button");cb.style.cssText="padding:13px;background:linear-gradient(135deg,"+ac+","+ac+"cc);border:none;border-radius:12px;color:#fff;font-weight:800;font-size:15px;cursor:pointer";cb.textContent=t("nextLesson");
-  cb.onclick=function(){overlay.remove();var idx=cat.levels.findIndex(function(l){return l.id===les.id;});var next=cat.levels[idx+1];if(next&&(next.free||A.pro)){startLesson(cat,next);}else{goBackFromLesson();}};
-  var bb=document.createElement("button");bb.style.cssText="padding:13px;background:rgba(255,255,255,.08);border:none;border-radius:12px;color:#9896B8;font-weight:700;font-size:14px;cursor:pointer";bb.textContent=t("backToPath");
-  bb.onclick=function(){overlay.remove();showBottomNav();if(A.cat){renderCategory();}goBackFromLesson();};
-  row.appendChild(cb);row.appendChild(bb);
+  
+  var userName=(A.user&&(A.user.name||A.user.full_name))||"Artista";
+  // Get first name only
+  var firstName=userName.split(" ")[0];
+  var xp=les.mins||10;
+  var streak=(A.streak&&A.streak.current)||0;
+  
+  // Quote about what was learned
+  var quote=les.intro||"Hai appena completato un altro passo nel tuo percorso.";
+  // Make it sound past-tense
+  var pastQuote='"Hai appena imparato a '+les.title.toLowerCase()+'."';
+  
+  // Build overlay
+  var overlay=document.createElement("div");
+  overlay.id="lesson-complete-overlay";
+  overlay.style.cssText="position:fixed;inset:0;z-index:9999;background:radial-gradient(120% 60% at 50% 0%,#2a1d52 0%,#15102a 60%);overflow-y:auto;padding:40px 24px 100px;font-family:\'Geist\',sans-serif";
+  
+  // Big checkmark circle
+  var checkCircle=document.createElement("div");
+  checkCircle.style.cssText="width:120px;height:120px;margin:40px auto 32px;border-radius:50%;background:linear-gradient(135deg,#B872E0,#FBBA00);box-shadow:0 24px 60px rgba(184,114,224,0.45);display:flex;align-items:center;justify-content:center";
+  checkCircle.innerHTML='<svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#1c1b29" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+  overlay.appendChild(checkCircle);
+  
+  // Kicker
+  var kicker=document.createElement("div");
+  kicker.style.cssText="text-align:center;font-family:\'JetBrains Mono\',monospace;font-size:11px;letter-spacing:3px;color:#FBBA00;font-weight:700;text-transform:uppercase;margin-bottom:12px";
+  kicker.textContent="LEZIONE COMPLETATA";
+  overlay.appendChild(kicker);
+  
+  // Big greeting
+  var greeting=document.createElement("h1");
+  greeting.style.cssText="font-family:\'Bricolage Grotesque\',sans-serif;font-size:32px;font-weight:800;color:#F5F1E8;text-align:center;margin:0 0 16px;letter-spacing:-0.02em;line-height:1.1";
+  greeting.textContent="Bravissimo, "+firstName+"!";
+  overlay.appendChild(greeting);
+  
+  // Italic quote
+  var quoteEl=document.createElement("p");
+  quoteEl.style.cssText="font-family:\'Instrument Serif\',serif;font-style:italic;font-size:16px;color:#d8d2e8;text-align:center;margin:0 0 32px;line-height:1.4;max-width:340px;margin-left:auto;margin-right:auto";
+  quoteEl.textContent=pastQuote;
+  overlay.appendChild(quoteEl);
+  
+  // Stats cards (XP + streak)
+  var statsRow=document.createElement("div");
+  statsRow.style.cssText="display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:380px;margin:0 auto 16px";
+  
+  var xpCard=document.createElement("div");
+  xpCard.style.cssText="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:18px;padding:18px;text-align:center";
+  xpCard.innerHTML='<div style="font-size:30px;margin-bottom:4px">⭐</div>'+
+    '<div style="font-family:\'Bricolage Grotesque\',sans-serif;font-size:22px;font-weight:800;color:#FBBA00">+'+xp+'</div>'+
+    '<div style="font-family:\'JetBrains Mono\',monospace;font-size:9px;letter-spacing:1.5px;color:#8a82a8;text-transform:uppercase;margin-top:4px">DrawPass</div>';
+  
+  var streakCard=document.createElement("div");
+  streakCard.style.cssText="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:18px;padding:18px;text-align:center";
+  streakCard.innerHTML='<div style="font-size:30px;margin-bottom:4px">🔥</div>'+
+    '<div style="font-family:\'Bricolage Grotesque\',sans-serif;font-size:22px;font-weight:800;color:#E07172">'+streak+'</div>'+
+    '<div style="font-family:\'JetBrains Mono\',monospace;font-size:9px;letter-spacing:1.5px;color:#8a82a8;text-transform:uppercase;margin-top:4px">giorni streak</div>';
+  
+  statsRow.appendChild(xpCard);
+  statsRow.appendChild(streakCard);
+  overlay.appendChild(statsRow);
+  
+  // Badge unlock card  
+  var badgeCard=document.createElement("div");
+  badgeCard.style.cssText="max-width:380px;margin:0 auto 32px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:18px;padding:14px 16px;display:flex;align-items:center;gap:12px";
+  badgeCard.innerHTML='<div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#FBBA00,#FF9500);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🏅</div>'+
+    '<div style="flex:1"><div style="font-weight:700;font-size:13px;color:#F5F1E8;margin-bottom:2px">Badge sbloccato</div>'+
+    '<div style="font-size:11px;color:#8a82a8">"'+les.title+'" — '+done+'/27 completate</div></div>';
+  overlay.appendChild(badgeCard);
+  
+  // Buttons
+  var btnsRow=document.createElement("div");
+  btnsRow.style.cssText="max-width:380px;margin:0 auto;display:flex;flex-direction:column;gap:10px";
+  
+  var nextBtn=document.createElement("button");
+  nextBtn.style.cssText="width:100%;height:54px;background:linear-gradient(135deg,#B872E0,#FBBA00);border:none;border-radius:18px;color:#1c1b29;font-weight:800;font-size:15px;cursor:pointer;box-shadow:0 16px 40px rgba(184,114,224,0.35);font-family:\'Geist\',sans-serif";
+  nextBtn.textContent="Lezione successiva →";
+  nextBtn.onclick=function(){
+    overlay.remove();
+    var idx=cat.levels.findIndex(function(l){return l.id===les.id;});
+    var next=cat.levels[idx+1];
+    if(next&&(next.free||A.pro)){startLesson(cat,next);}
+    else{showBottomNav();goBackFromLesson();}
+  };
+  
+  var shareBtn=document.createElement("button");
+  shareBtn.style.cssText="width:100%;height:50px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);border-radius:18px;color:#F5F1E8;font-weight:700;font-size:14px;cursor:pointer;font-family:\'Geist\',sans-serif";
+  shareBtn.textContent="Condividi il tuo disegno";
+  shareBtn.onclick=function(){
+    overlay.remove();
+    showBottomNav();
+    if(typeof openShareSheet==="function"){openShareSheet(les);}
+    else if(typeof showNewPost==="function"){showNewPost();}
+    else{showToast("Condivisione in arrivo","");goBackFromLesson();}
+  };
+  
+  var backLink=document.createElement("button");
+  backLink.style.cssText="width:100%;background:none;border:none;color:#8a82a8;font-size:13px;cursor:pointer;padding:8px;margin-top:4px;font-family:\'Geist\',sans-serif";
+  backLink.textContent="↩ Torna al percorso";
+  backLink.onclick=function(){overlay.remove();showBottomNav();goBackFromLesson();};
+  
+  btnsRow.appendChild(nextBtn);
+  btnsRow.appendChild(shareBtn);
+  btnsRow.appendChild(backLink);
+  overlay.appendChild(btnsRow);
+  
+  document.body.appendChild(overlay);
+  
+  // Update progress bar in home (silent)
   setTimeout(function(){
-    checkNewUnlocks(prevDone);
-    var _p2=localStorage.getItem("dl:progress_all")||"{}";
-    var _pg2={};try{_pg2=JSON.parse(_p2);if(typeof _pg2!=="object"||_pg2===null)_pg2={};}catch(e){_pg2={};}
-    var newDone=0;for(var _k2 in _pg2){if(_pg2.hasOwnProperty(_k2)&&_pg2[_k2]&&_pg2[_k2].completed===true)newDone++;}
+    if(typeof checkNewUnlocks==="function")checkNewUnlocks(prevDone);
     var pb=document.getElementById("progress-bar"),pt=document.getElementById("progress-text");
-    if(pb)pb.style.width=Math.round(newDone/27*100)+"%";
-    if(pt)pt.textContent=newDone+" di 27 lezioni completate";
+    if(pb)pb.style.width=Math.round(done/27*100)+"%";
+    if(pt)pt.textContent=done+" di 27 lezioni completate";
   },400);
 }
 
@@ -2517,18 +2749,35 @@ var _searchTimer = null;
 
 async function onSearchInput(q){
   clearTimeout(_searchTimer);
+  // Try both possible containers (search screen + explore screen)
   var trending = document.getElementById("search-trending");
   var output = document.getElementById("search-output");
-  if(!q||!q.trim()){ if(trending) trending.style.display="block"; if(output) output.style.display="none"; return; }
+  // If we're in explore screen, use its grid as output
+  if(!output){
+    var explorePostsGrid = document.getElementById("explore-posts-grid");
+    if(explorePostsGrid) output = explorePostsGrid;
+  }
+  if(!q||!q.trim()){ 
+    if(trending) trending.style.display="block"; 
+    if(output) {
+      // If we replaced explore grid, reload it
+      if(output.id==="explore-posts-grid" && typeof loadExplore==="function") loadExplore();
+      else output.style.display="none";
+    }
+    return; 
+  }
   if(trending) trending.style.display="none";
-  if(output){ output.style.display="block"; output.innerHTML='<div style="text-align:center;padding:20px;color:#9896B8">Ricerca...</div>'; }
+  if(output){ 
+    output.style.display=""; 
+    output.innerHTML='<div style="text-align:center;padding:30px;color:#9896B8;grid-column:1/-1"><div style="width:24px;height:24px;border:3px solid rgba(255,255,255,.1);border-top:3px solid #B872E0;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px"></div>Ricerca in corso...</div>';
+  }
   _searchTimer = setTimeout(async function(){
-    await doSearch(q.trim());
+    await doSearch(q.trim(), output);
   }, 400);
 }
 
-async function doSearch(q){
-  var output = document.getElementById("search-output");
+async function doSearch(q, outputEl){
+  var output = outputEl || document.getElementById("search-output");
   if(!output) return;
   try {
     var isTag = q.startsWith("#");
@@ -4300,6 +4549,42 @@ async function sendDM(){
     showToast("Errore invio messaggio","");
   }
 }
+
+function goBackFromPaywall(){showScreen("home");showBottomNav();}
+function restorePurchases(){showToast("Ripristino in arrivo","");}
+function selectPlan(plan){
+  A.payPlan=plan;
+  var m=document.getElementById("plan-monthly"),a=document.getElementById("plan-annual");
+  if(m&&a){
+    if(plan==="monthly"){
+      m.style.background="linear-gradient(135deg,rgba(251,186,0,0.15),rgba(184,114,224,0.10))";
+      m.style.border="1px solid #FBBA00";
+      a.style.background="rgba(255,255,255,0.04)";
+      a.style.border="1px solid rgba(255,255,255,0.08)";
+    } else {
+      a.style.background="linear-gradient(135deg,rgba(251,186,0,0.15),rgba(184,114,224,0.10))";
+      a.style.border="1px solid #FBBA00";
+      m.style.background="rgba(255,255,255,0.04)";
+      m.style.border="1px solid rgba(255,255,255,0.08)";
+    }
+  }
+}
+function proceedToCheckout(){
+  if(!A.payPlan)A.payPlan="annual";
+  showScreen("checkout");
+}
+function toggleAuthMode(){
+  var t=document.getElementById("auth-title"),s=document.getElementById("auth-subtitle");
+  if(!t)return;
+  if(t.textContent==="Bentornato"){
+    t.textContent="Crea account";
+    s.textContent="Inizia il tuo percorso oggi.";
+  } else {
+    t.textContent="Bentornato";
+    s.textContent="Continua dove avevi lasciato.";
+  }
+}
+function showSplash(){showScreen("splash");}
 
 function init(){
   applyTheme(); // Apply saved theme

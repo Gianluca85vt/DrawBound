@@ -5,7 +5,7 @@
 <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>DrawBound</title>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Geist:wght@300;400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=v45-9863"/>
+<link rel="stylesheet" href="style.css?v=v48-1529"/>
   <!-- PayPal SDK: sostituisci YOUR_PAYPAL_CLIENT_ID con il tuo Client ID da developer.paypal.com -->
   <!-- PayPal SDK loaded dynamically when needed -->
   <!-- PWA -->
@@ -15,6 +15,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="apple-mobile-web-app-title" content="DrawBound"/>
   <link rel="manifest" href="data:application/json,{&quot;name&quot;:&quot;DrawBound&quot;,&quot;short_name&quot;:&quot;DrawBound&quot;,&quot;start_url&quot;:&quot;.&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;background_color&quot;:&quot;%231C1B2E&quot;,&quot;theme_color&quot;:&quot;%231C1B2E&quot;,&quot;icons&quot;:[{&quot;src&quot;:&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231C1B2E'/%3E%3Ctext y='.9em' font-size='80'%3E%E2%9C%8F%EF%B8%8F%3C/text%3E%3C/svg%3E&quot;,&quot;sizes&quot;:&quot;any&quot;,&quot;type&quot;:&quot;image/svg+xml&quot;}]}"/>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
@@ -77,98 +78,54 @@
 </div>
 
 <!-- AUTH -->
-<div class="screen" id="scr-auth" style="align-items:center;justify-content:center;padding:20px;">
-  <div style="width:100%;max-width:440px">
-    <div style="text-align:center;margin-bottom:20px">
-      <div style="font-size:50px;margin-bottom:5px">✏️</div>
-      <h1 style="font-weight:800;font-size:26px;color:#15102a;margin-bottom:3px">DrawBound</h1>
-      <p style="color:#9896B8;font-size:12px">Il tuo percorso artistico ti aspetta</p>
+<div class="screen" id="scr-auth" style="background:radial-gradient(120% 60% at 50% 0%,#2a1d52 0%,#15102a 60%);min-height:100vh;padding:20px;display:flex;flex-direction:column">
+
+  <!-- Back button -->
+  <button onclick="showSplash()" style="width:38px;height:38px;border-radius:12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);color:#F5F1E8;font-size:18px;cursor:pointer;align-self:flex-start;display:flex;align-items:center;justify-content:center">←</button>
+
+  <!-- Logo & title -->
+  <div style="text-align:center;margin-top:60px;margin-bottom:36px">
+    <div style="width:80px;height:80px;margin:0 auto 24px;border-radius:22px;background:linear-gradient(135deg,#814393 0%,#B872E0 45%,#FBBA00 100%);box-shadow:0 16px 40px rgba(184,114,224,0.35);display:flex;align-items:center;justify-content:center;font-size:40px">
+      <div style="width:48px;height:48px;background:#1C1B2E;border-radius:14px;display:flex;align-items:center;justify-content:center">
+        <svg width="24" height="28" viewBox="0 0 24 28" fill="none"><path d="M12 0L24 8V20L12 28L0 20V8L12 0Z" fill="url(#diamond_grad)"/><defs><linearGradient id="diamond_grad" x1="0" y1="0" x2="24" y2="28"><stop offset="0" stop-color="#B872E0"/><stop offset="1" stop-color="#FBBA00"/></linearGradient></defs></svg>
+      </div>
     </div>
-    <div style="display:flex;background:#eeecf8;border-radius:14px;padding:4px;margin-bottom:18px">
-      <button id="tab-login" onclick="setTab('login')" style="flex:1;padding:9px;border:none;border-radius:11px;font-weight:700;font-size:13px;background:#fff;color:#15102a;box-shadow:0 2px 8px rgba(0,0,0,.1)">Accedi</button>
-      <button id="tab-reg" onclick="setTab('register')" style="flex:1;padding:9px;border:none;border-radius:11px;font-weight:700;font-size:13px;background:transparent;color:#9896B8">Registrati</button>
-      <button id="tab-phone" onclick="setTab('phone')" style="flex:1;padding:9px;border:none;border-radius:11px;font-weight:700;font-size:13px;background:transparent;color:#9896B8">📱 Telefono</button>
+    <h1 id="auth-title" style="font-family:'Bricolage Grotesque',sans-serif;font-size:32px;font-weight:800;color:#F5F1E8;margin:0 0 8px;letter-spacing:-0.02em">Bentornato</h1>
+    <p id="auth-subtitle" style="font-size:14px;color:#8a82a8;margin:0">Continua dove avevi lasciato.</p>
+  </div>
+
+  <!-- Form fields -->
+  <div style="max-width:380px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:16px">
+    <div>
+      <label style="display:block;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:2px;color:#8a82a8;text-transform:uppercase;margin-bottom:6px">Email o Username</label>
+      <input type="email" id="auth-email" placeholder="gianluca@drawbound.app" style="width:100%;height:50px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);border-radius:14px;color:#F5F1E8;padding:0 16px;font-family:'Geist',sans-serif;font-size:14px;outline:none">
     </div>
-    <!-- Login panel -->
-    <div id="panel-login" style="background:#fff;border-radius:20px;padding:20px;box-shadow:0 4px 20px rgba(28,27,46,.08)">
-      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
-        <button onclick="loginWithGoogle()" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:11px;background:#fff;border:2px solid #ddd;border-radius:10px;font-weight:700;font-size:13px;color:#15102a;cursor:pointer;width:100%">
-          <span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;border:1.5px solid #e0e0e0;font-family:Arial;font-weight:900;font-size:13px;color:#4285F4">G</span>
-          Continua con Google
-        </button>
-        <button onclick="loginWithApple()" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:11px;background:#15102a;border:2px solid #15102a;border-radius:10px;font-weight:700;font-size:13px;color:#fff;cursor:pointer;width:100%">
-          <span style="font-size:16px">🍎</span> Continua con Apple
-        </button>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-        <div style="flex:1;height:1px;background:#e0ddf5"></div>
-        <span style="color:#9896B8;font-size:11px">oppure con email</span>
-        <div style="flex:1;height:1px;background:#e0ddf5"></div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:8px">
-        <input class="inp" id="l-email" type="email" placeholder="Email"/>
-        <div style="position:relative">
-          <input class="inp" id="l-pwd" type="password" placeholder="Password" style="padding-right:40px"/>
-          <button onclick="togglePwd('l-pwd',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:16px;opacity:.6">○</button>
-        </div>
-        <div id="l-err" style="display:none;background:#fff0f0;border:1px solid #ffcccc;border-radius:8px;padding:8px 12px;color:#c0392b;font-size:12px"></div>
-        <button class="btn" onclick="doLogin()" style="background:linear-gradient(135deg,#8B5CF6,#6d28d9);color:#fff">Accedi</button>
-      </div>
-      <p style="text-align:center;color:#9896B8;font-size:11px;margin-top:10px">Non hai un account? <span onclick="setTab('register')" style="color:#8B5CF6;font-weight:700;cursor:pointer">Registrati gratis</span></p>
+    <div>
+      <label style="display:block;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:2px;color:#8a82a8;text-transform:uppercase;margin-bottom:6px">Password</label>
+      <input type="password" id="auth-password" placeholder="••••••••••" style="width:100%;height:50px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);border-radius:14px;color:#F5F1E8;padding:0 16px;font-family:'Geist',sans-serif;font-size:14px;outline:none">
     </div>
-    <!-- Phone panel -->
-    <div id="panel-phone" style="display:none;background:#fff;border-radius:20px;padding:20px;box-shadow:0 4px 20px rgba(28,27,46,.08)">
-      <div id="phone-step-1">
-        <p style="font-size:12px;color:#9896B8;margin-bottom:12px;line-height:1.6">Inserisci il tuo numero. Riceverai un codice OTP via SMS.</p>
-        <div style="display:flex;gap:8px;margin-bottom:8px">
-          <select id="phone-prefix" style="padding:11px 8px;border:2px solid #e0ddf5;border-radius:10px;font-family:'Geist',system-ui,sans-serif;font-size:13px;color:#15102a;background:#faf9ff;width:90px">
-            <option value="+39">🇮🇹 +39</option>
-            <option value="+1">🇺🇸 +1</option>
-            <option value="+44">🇬🇧 +44</option>
-            <option value="+33">🇫🇷 +33</option>
-            <option value="+49">🇩🇪 +49</option>
-            <option value="+34">🇪🇸 +34</option>
-            <option value="+55">🇧🇷 +55</option>
-          </select>
-          <input class="inp" id="phone-number" type="tel" placeholder="333 1234567" style="flex:1"/>
-        </div>
-        <div id="phone-err" style="display:none;background:#fff0f0;border:1px solid #ffcccc;border-radius:8px;padding:8px 12px;color:#c0392b;font-size:12px;margin-bottom:8px"></div>
-        <button class="btn" id="phone-send-btn" onclick="sendOTP()" style="background:linear-gradient(135deg,#8B5CF6,#6d28d9);color:#fff">📲 Invia codice OTP</button>
-      </div>
-      <div id="phone-step-2" style="display:none">
-        <div style="text-align:center;margin-bottom:14px">
-          <div style="font-size:36px;margin-bottom:6px">📲</div>
-          <p style="font-weight:800;font-size:14px;color:#15102a">Codice inviato!</p>
-          <p id="phone-sent-to" style="font-size:12px;color:#9896B8">Controlla gli SMS</p>
-        </div>
-        <div style="display:flex;gap:8px;justify-content:center;margin-bottom:12px" id="otp-inputs">
-          <input type="text" maxlength="1" class="otp-box" oninput="otpNext(this,0)" style="width:44px;height:52px;text-align:center;font-size:22px;font-weight:800;border:2px solid #e0ddf5;border-radius:10px;color:#15102a;background:#faf9ff;outline:none"/>
-          <input type="text" maxlength="1" class="otp-box" oninput="otpNext(this,1)" style="width:44px;height:52px;text-align:center;font-size:22px;font-weight:800;border:2px solid #e0ddf5;border-radius:10px;color:#15102a;background:#faf9ff;outline:none"/>
-          <input type="text" maxlength="1" class="otp-box" oninput="otpNext(this,2)" style="width:44px;height:52px;text-align:center;font-size:22px;font-weight:800;border:2px solid #e0ddf5;border-radius:10px;color:#15102a;background:#faf9ff;outline:none"/>
-          <input type="text" maxlength="1" class="otp-box" oninput="otpNext(this,3)" style="width:44px;height:52px;text-align:center;font-size:22px;font-weight:800;border:2px solid #e0ddf5;border-radius:10px;color:#15102a;background:#faf9ff;outline:none"/>
-          <input type="text" maxlength="1" class="otp-box" oninput="otpNext(this,4)" style="width:44px;height:52px;text-align:center;font-size:22px;font-weight:800;border:2px solid #e0ddf5;border-radius:10px;color:#15102a;background:#faf9ff;outline:none"/>
-          <input type="text" maxlength="1" class="otp-box" oninput="otpNext(this,5)" style="width:44px;height:52px;text-align:center;font-size:22px;font-weight:800;border:2px solid #e0ddf5;border-radius:10px;color:#15102a;background:#faf9ff;outline:none"/>
-        </div>
-        <div id="otp-err" style="display:none;background:#fff0f0;border:1px solid #ffcccc;border-radius:8px;padding:8px 12px;color:#c0392b;font-size:12px;margin-bottom:8px;text-align:center"></div>
-        <button class="btn" id="otp-verify-btn" onclick="verifyOTP()" style="background:linear-gradient(135deg,#3DBE7A,#2D9B5E);color:#fff;margin-bottom:8px">Verifica codice</button>
-        <button onclick="resetPhone()" style="width:100%;padding:8px;background:none;border:none;color:#9896B8;font-size:12px;cursor:pointer">← Cambia numero</button>
-      </div>
+    <button onclick="showToast('Funzione in arrivo','')" style="align-self:flex-end;background:none;border:none;color:#FBBA00;font-size:12px;font-weight:700;cursor:pointer;padding:0">Password dimenticata?</button>
+
+    <!-- Primary login button -->
+    <button onclick="doLogin()" style="width:100%;height:54px;background:linear-gradient(135deg,#B872E0,#FBBA00);border:none;border-radius:18px;color:#1c1b29;font-weight:800;font-size:15px;cursor:pointer;box-shadow:0 16px 40px rgba(184,114,224,0.35);font-family:'Geist',sans-serif;margin-top:8px">Accedi →</button>
+
+    <!-- Divider -->
+    <div style="display:flex;align-items:center;gap:12px;margin:16px 0">
+      <div style="flex:1;height:1px;background:rgba(255,255,255,0.08)"></div>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;color:#6e6791;text-transform:uppercase">oppure</span>
+      <div style="flex:1;height:1px;background:rgba(255,255,255,0.08)"></div>
     </div>
 
-    <!-- Register panel -->
-    <div id="panel-reg" style="display:none;background:#fff;border-radius:20px;padding:20px;box-shadow:0 4px 20px rgba(28,27,46,.08)">
-      <div style="display:flex;flex-direction:column;gap:8px">
-        <input class="inp" id="r-name" type="text" placeholder="Nome completo"/>
-        <input class="inp" id="r-email" type="email" placeholder="Email"/>
-        <div style="position:relative">
-          <input class="inp" id="r-pwd" type="password" placeholder="Password (min. 6 caratteri)" style="padding-right:40px"/>
-          <button onclick="togglePwd('r-pwd',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:16px;opacity:.6">○</button>
-        </div>
-        <input class="inp" id="r-pwd2" type="password" placeholder="Conferma password"/>
-        <div id="r-err" style="display:none;background:#fff0f0;border:1px solid #ffcccc;border-radius:8px;padding:8px 12px;color:#c0392b;font-size:12px"></div>
-        <button class="btn" onclick="doReg()" id="r-btn" style="background:linear-gradient(135deg,#3DBE7A,#2D9B5E);color:#fff">🎉 Crea account</button>
-      </div>
-      <p style="text-align:center;color:#9896B8;font-size:11px;margin-top:10px">Hai un account? <span onclick="setTab('login')" style="color:#8B5CF6;font-weight:700;cursor:pointer">Accedi</span></p>
+    <!-- Social login buttons -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+      <button onclick="showToast('Apple login in arrivo','')" style="height:50px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);border-radius:14px;color:#F5F1E8;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center">🍎</button>
+      <button onclick="loginGoogle()" style="height:50px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);border-radius:14px;color:#F5F1E8;font-weight:800;font-size:18px;cursor:pointer;font-family:'Geist',sans-serif">G</button>
+      <button onclick="showToast('Facebook login in arrivo','')" style="height:50px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);border-radius:14px;color:#F5F1E8;font-weight:800;font-size:18px;cursor:pointer;font-family:'Geist',sans-serif">f</button>
+    </div>
+
+    <!-- Sign up link -->
+    <div style="text-align:center;margin-top:20px;font-size:13px;color:#8a82a8">
+      Non hai un account? <button onclick="toggleAuthMode()" style="background:none;border:none;color:#FBBA00;font-weight:700;cursor:pointer;font-size:13px">Registrati</button>
     </div>
   </div>
 </div>
@@ -261,38 +218,70 @@
 </div>
 
 <!-- PAYWALL -->
-<div class="screen" id="scr-paywall" style="background:linear-gradient(160deg,#15102a 0%,#2d2a4a 100%);align-items:center;justify-content:center;padding:24px;align-items:center;justify-content:center;padding:24px">
-  <div style="width:100%;max-width:360px">
-    <button onclick="showScreen(A.cat?'category':'home')" style="background:rgba(255,255,255,.1);border:none;border-radius:50px;padding:5px 11px;color:#9896B8;font-weight:600;font-size:11px;margin-bottom:14px">← Torna indietro</button>
-    <div style="background:rgba(255,255,255,.05);border-radius:20px;padding:22px;border:1px solid rgba(255,255,255,.1)">
-      <div style="text-align:center;margin-bottom:18px">
-        <div style="font-size:48px;margin-bottom:4px">👑</div>
-        <h2 style="font-weight:800;font-size:22px;color:#fff;margin-bottom:3px">DrawBound PRO</h2>
-        <p style="color:#9896B8;font-size:11px">Sblocca tutte le lezioni avanzate</p>
+<div class="screen" id="scr-paywall" style="background:radial-gradient(120% 60% at 50% 0%,#2a1d52 0%,#15102a 60%);min-height:100vh;padding:20px;padding-bottom:120px">
+
+  <!-- Top bar -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:32px">
+    <button onclick="goBackFromPaywall()" style="width:38px;height:38px;border-radius:12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);color:#F5F1E8;font-size:18px;cursor:pointer">✕</button>
+    <button onclick="restorePurchases()" style="background:none;border:none;color:#8a82a8;font-size:12px;font-weight:600;cursor:pointer">Ripristina acquisti</button>
+  </div>
+
+  <!-- Logo -->
+  <div style="text-align:center;margin-bottom:28px">
+    <div style="width:80px;height:80px;margin:0 auto;border-radius:22px;background:linear-gradient(135deg,#814393 0%,#B872E0 45%,#FBBA00 100%);box-shadow:0 16px 40px rgba(184,114,224,0.35);display:flex;align-items:center;justify-content:center">
+      <div style="width:48px;height:48px;background:#1C1B2E;border-radius:14px;display:flex;align-items:center;justify-content:center">
+        <svg width="24" height="28" viewBox="0 0 24 28" fill="none"><path d="M12 0L24 8V20L12 28L0 20V8L12 0Z" fill="url(#diamond_grad2)"/><defs><linearGradient id="diamond_grad2" x1="0" y1="0" x2="24" y2="28"><stop offset="0" stop-color="#B872E0"/><stop offset="1" stop-color="#FBBA00"/></linearGradient></defs></svg>
       </div>
-      <div style="margin-bottom:16px">
-        <div style="display:flex;gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.07)"><span>🎨</span><span style="color:#e0ddf5;font-size:12px;font-weight:600"> Lezioni Avanzate</span></div>
-        <div style="display:flex;gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.07)"><span>📐</span><span style="color:#e0ddf5;font-size:12px;font-weight:600"> SVG interattivi</span></div>
-        <div style="display:flex;gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.07)"><span>💡</span><span style="color:#e0ddf5;font-size:12px;font-weight:600"> Consigli pro</span></div>
-        <div style="display:flex;gap:6px;align-items:center;padding:6px 0"><span>🏆</span><span style="color:#e0ddf5;font-size:12px;font-weight:600"> Certificati</span></div>
-      </div>
-      <div style="display:flex;gap:7px;margin-bottom:12px">
-        <div onclick="setPayPlan('monthly')" id="plan-m" style="flex:1;border-radius:10px;padding:11px 7px;text-align:center;cursor:pointer;border:2px solid #FFD60A;background:rgba(255,214,10,.1)">
-          <div style="font-weight:800;font-size:10px;color:#FFD60A;margin-bottom:2px">Mensile</div>
-          <div style="font-weight:800;font-size:17px;color:#fff">€4,99</div>
-          <div style="font-size:9px;color:#9896B8">/mese</div>
-        </div>
-        <div onclick="setPayPlan('yearly')" id="plan-y" style="flex:1;border-radius:10px;padding:11px 7px;text-align:center;cursor:pointer;border:2px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);position:relative">
-          <div style="position:absolute;top:-7px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#FFD60A,#FF9500);border-radius:50px;padding:1px 7px;font-size:8px;font-weight:800;color:#fff">−40%</div>
-          <div style="font-weight:800;font-size:10px;color:#9896B8;margin-bottom:2px">Annuale</div>
-          <div style="font-weight:800;font-size:17px;color:#fff">€39,99</div>
-          <div style="font-size:9px;color:#9896B8">/anno</div>
-        </div>
-      </div>
-      <button class="btn" onclick="showScreen('checkout')" style="background:linear-gradient(135deg,#FFD60A,#FF9500);color:#fff">Abbonati ora 🚀</button>
-      <p style="text-align:center;color:#9896B8;font-size:9px;margin-top:7px">Disdici in qualsiasi momento</p>
     </div>
   </div>
+
+  <!-- Title -->
+  <h1 style="font-family:'Bricolage Grotesque',sans-serif;font-size:30px;font-weight:800;color:#F5F1E8;margin:0 0 12px;letter-spacing:-0.02em;line-height:1.1">
+    Sblocca il <span style="font-family:'Instrument Serif',serif;font-style:italic;font-weight:400">vero</span> potenziale
+  </h1>
+  <p style="color:#8a82a8;font-size:14px;margin:0 0 28px;line-height:1.5">DrawBound PRO: 77 lezioni complete, esercizi avanzati, e nessuna pubblicità.</p>
+
+  <!-- Features list -->
+  <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:32px">
+    <div style="display:flex;align-items:flex-start;gap:14px">
+      <div style="width:42px;height:42px;border-radius:12px;background:rgba(184,114,224,0.15);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🎨</div>
+      <div><div style="font-weight:700;font-size:14px;color:#F5F1E8">Lezioni avanzate</div><div style="font-size:12px;color:#8a82a8;margin-top:2px">77 tutorial dal vero, anatomia, prospettiva</div></div>
+    </div>
+    <div style="display:flex;align-items:flex-start;gap:14px">
+      <div style="width:42px;height:42px;border-radius:12px;background:rgba(251,186,0,0.13);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">✨</div>
+      <div><div style="font-weight:700;font-size:14px;color:#F5F1E8">Sblocchi DrawPass</div><div style="font-size:12px;color:#8a82a8;margin-top:2px">Premi premium e contenuti esclusivi</div></div>
+    </div>
+    <div style="display:flex;align-items:flex-start;gap:14px">
+      <div style="width:42px;height:42px;border-radius:12px;background:rgba(251,186,0,0.13);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🏆</div>
+      <div><div style="font-weight:700;font-size:14px;color:#F5F1E8">Certificati di completamento</div><div style="font-size:12px;color:#8a82a8;margin-top:2px">Per portfolio e CV artistici</div></div>
+    </div>
+    <div style="display:flex;align-items:flex-start;gap:14px">
+      <div style="width:42px;height:42px;border-radius:12px;background:rgba(102,224,181,0.13);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🖌️</div>
+      <div><div style="font-weight:700;font-size:14px;color:#F5F1E8">Masterclass dei founder</div><div style="font-size:12px;color:#8a82a8;margin-top:2px">Lezioni dirette da artisti professionisti</div></div>
+    </div>
+    <div style="display:flex;align-items:flex-start;gap:14px">
+      <div style="width:42px;height:42px;border-radius:12px;background:rgba(114,160,224,0.13);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🤖</div>
+      <div><div style="font-weight:700;font-size:14px;color:#F5F1E8">Feedback AI illimitato</div><div style="font-size:12px;color:#8a82a8;margin-top:2px">Analisi dei tuoi disegni con consigli mirati</div></div>
+    </div>
+  </div>
+
+  <!-- Pricing cards -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
+    <button onclick="selectPlan('monthly')" id="plan-monthly" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:18px;padding:16px;text-align:left;cursor:pointer;color:#F5F1E8;font-family:'Geist',sans-serif">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;color:#8a82a8;text-transform:uppercase;margin-bottom:6px">Mensile</div>
+      <div style="font-family:'Bricolage Grotesque',sans-serif;font-size:24px;font-weight:800">€4,99<span style="font-size:12px;font-weight:400;color:#8a82a8">/mese</span></div>
+      <div style="font-size:11px;color:#8a82a8;margin-top:4px">Disdici quando vuoi</div>
+    </button>
+    <button onclick="selectPlan('annual')" id="plan-annual" style="background:linear-gradient(135deg,rgba(251,186,0,0.15),rgba(184,114,224,0.10));border:1px solid #FBBA00;border-radius:18px;padding:16px;text-align:left;cursor:pointer;color:#F5F1E8;position:relative;font-family:'Geist',sans-serif">
+      <div style="position:absolute;top:-10px;right:12px;background:linear-gradient(135deg,#FBBA00,#FF9500);border-radius:50px;padding:3px 9px;font-size:9.5px;font-weight:800;color:#15102a;letter-spacing:0.5px">RISPARMI 33%</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;color:#FBBA00;text-transform:uppercase;margin-bottom:6px">Annuale</div>
+      <div style="font-family:'Bricolage Grotesque',sans-serif;font-size:24px;font-weight:800;color:#FBBA00">€39,99<span style="font-size:12px;font-weight:400">/anno</span></div>
+      <div style="font-size:11px;color:#FBBA00;margin-top:4px">€3,33/mese</div>
+    </button>
+  </div>
+
+  <!-- Bottom continue button -->
+  <button onclick="proceedToCheckout()" style="width:100%;height:54px;background:linear-gradient(135deg,#B872E0,#FBBA00);border:none;border-radius:18px;color:#1c1b29;font-weight:800;font-size:15px;cursor:pointer;box-shadow:0 16px 40px rgba(184,114,224,0.35);font-family:'Geist',sans-serif">Continua con PRO →</button>
 </div>
 
 <!-- CHECKOUT -->
@@ -434,7 +423,7 @@
   <div style="background:#161525;border-bottom:1px solid rgba(255,255,255,.08);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10">
     <span style="font-weight:800;font-size:20px;color:#fff">✏️ DrawBound</span>
     <div style="display:flex;align-items:center;gap:8px">
-      <button onclick="navTo('explore')" style="background:rgba(255,255,255,.08);border:none;border-radius:50%;width:34px;height:34px;font-size:17px;cursor:pointer">🔍</button>
+      <button onclick="navTo('search')" style="background:rgba(255,255,255,.08);border:none;border-radius:50%;width:34px;height:34px;font-size:17px;cursor:pointer">🔍</button>
       <button onclick="navTo('chat')" style="position:relative;background:rgba(255,255,255,.08);border:none;border-radius:50%;width:34px;height:34px;font-size:17px;cursor:pointer">
         💬<div id="feed-chat-badge" style="display:none;position:absolute;top:-2px;right:-2px;background:#e74c3c;border-radius:50%;width:14px;height:14px;font-size:8px;color:#fff;display:flex;align-items:center;justify-content:center"></div>
       </button>
@@ -734,7 +723,7 @@
   </div>
   <div id="challenges-content" style="max-width:640px;margin:0 auto;padding:16px"></div>
 </div>
-<script src="app.js?v=v45-9863" defer></script>
+<script src="app.js?v=v48-1529" defer></script>
 
 <!-- BOTTOM NAV (Facebook style) -->
 <div id="bottom-nav" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#161525;border-top:1px solid rgba(255,255,255,.08);z-index:100;padding:0 8px;padding-bottom:env(safe-area-inset-bottom,0)">
