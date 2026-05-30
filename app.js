@@ -6632,12 +6632,85 @@ async function openBottega(bottegaId){
     '<div onclick="openMentorProfile(\'' + bottega.mentor.id + '\')" style="cursor:pointer;display:flex;align-items:center;gap:8px;padding:6px 10px;background:rgba(184,114,224,0.10);border:1px solid rgba(184,114,224,0.25);border-radius:50px;font-size:11px;color:' + bottega.color + ';font-weight:700;width:fit-content"><span style="font-size:14px">' + bottega.mentor.avatar + '</span><span>Mentor: ' + bottega.mentor.name + ' \u203A</span></div>';
   container.appendChild(info);
   
-  // New post button
+  // Action buttons row
+  var actionsBar = document.createElement("div");
+  actionsBar.style.cssText = "margin:0 16px 16px;display:grid;grid-template-columns:1fr 1fr;gap:10px";
+  
+  var chatBtn = document.createElement("button");
+  chatBtn.style.cssText = "height:46px;background:rgba(184,114,224,0.10);border:1px solid rgba(184,114,224,0.30);border-radius:14px;color:#B872E0;font-weight:800;font-size:13px;cursor:pointer;font-family:Geist,sans-serif;display:flex;align-items:center;justify-content:center;gap:6px";
+  chatBtn.innerHTML = '<span style="font-size:16px">💬</span><span>Chat di gruppo</span>';
+  chatBtn.onclick = function(){ openBottegaChat(bottegaId); };
+  actionsBar.appendChild(chatBtn);
+  
   var newPostBtn = document.createElement("button");
-  newPostBtn.style.cssText = "width:calc(100% - 32px);margin:0 16px 16px;height:48px;background:linear-gradient(135deg,#B872E0,#FBBA00);border:none;border-radius:14px;color:#1c1b29;font-weight:800;font-size:14px;cursor:pointer;font-family:Geist,sans-serif;box-shadow:0 8px 24px rgba(184,114,224,0.30);display:flex;align-items:center;justify-content:center;gap:8px";
-  newPostBtn.innerHTML = '<span style="font-size:18px;line-height:1">+</span><span>Nuovo post in bottega</span>';
+  newPostBtn.style.cssText = "height:46px;background:linear-gradient(135deg,#B872E0,#FBBA00);border:none;border-radius:14px;color:#1c1b29;font-weight:800;font-size:13px;cursor:pointer;font-family:Geist,sans-serif;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 8px 24px rgba(184,114,224,0.25)";
+  newPostBtn.innerHTML = '<span style="font-size:16px">+</span><span>Nuovo post</span>';
   newPostBtn.onclick = function(){ openBottegaPostUpload(bottegaId); };
-  container.appendChild(newPostBtn);
+  actionsBar.appendChild(newPostBtn);
+  
+  container.appendChild(actionsBar);
+  
+  // ─── WEEKLY CHALLENGE CARD ───
+  try{
+    var challenge = getBottegaWeeklyChallenge(bottegaId);
+    if(challenge){
+      var alreadyDone = hasParticipatedInChallenge(challenge.id, challenge.week);
+      var timeLeft = getChallengeTimeLeft();
+      
+      var chlCard = document.createElement("div");
+      chlCard.style.cssText = "margin:0 16px 16px;background:linear-gradient(135deg,rgba(251,186,0,0.10),rgba(255,140,75,0.06));border:1px solid " + (alreadyDone?"rgba(102,224,181,0.30)":"rgba(251,186,0,0.40)") + ";border-radius:18px;padding:16px;cursor:" + (alreadyDone?"default":"pointer") + ";transition:transform .12s";
+      
+      var headerRow = document.createElement("div");
+      headerRow.style.cssText = "display:flex;align-items:center;justify-content:space-between;margin-bottom:10px";
+      var kickerEl = document.createElement("div");
+      kickerEl.innerHTML = '<div style="font-family:JetBrains Mono,monospace;font-size:10px;letter-spacing:2px;color:' + (alreadyDone?'#66E0B5':'#FBBA00') + ';font-weight:800;text-transform:uppercase">' + (alreadyDone?'SFIDA COMPLETATA':'SFIDA DELLA SETTIMANA') + '</div>';
+      headerRow.appendChild(kickerEl);
+      var timeChip = document.createElement("div");
+      timeChip.style.cssText = "background:rgba(255,255,255,0.06);border-radius:50px;padding:3px 8px;font-size:10px;color:#a8a2c8;font-weight:700;font-family:JetBrains Mono,monospace";
+      timeChip.textContent = (alreadyDone ? "✓" : "⏱️ " + timeLeft);
+      headerRow.appendChild(timeChip);
+      chlCard.appendChild(headerRow);
+      
+      var titleEl = document.createElement("div");
+      titleEl.style.cssText = "font-family:Bricolage Grotesque,sans-serif;font-weight:800;font-size:17px;color:#F5F1E8;letter-spacing:-0.01em;margin-bottom:6px";
+      titleEl.textContent = challenge.title;
+      chlCard.appendChild(titleEl);
+      
+      var descEl = document.createElement("div");
+      descEl.style.cssText = "font-size:12px;color:#a8a2c8;line-height:1.5;margin-bottom:12px";
+      descEl.textContent = challenge.prompt;
+      chlCard.appendChild(descEl);
+      
+      var bottomRow = document.createElement("div");
+      bottomRow.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:10px";
+      
+      var rewardChip = document.createElement("div");
+      rewardChip.style.cssText = "display:flex;align-items:center;gap:6px;background:rgba(251,186,0,0.15);border:1px solid rgba(251,186,0,0.35);border-radius:50px;padding:5px 12px;font-size:11px;color:#FBBA00;font-weight:800";
+      rewardChip.innerHTML = '<span style="font-size:14px">⭐</span><span>+' + challenge.reward + ' DrawPass (2x)</span>';
+      bottomRow.appendChild(rewardChip);
+      
+      if(!alreadyDone){
+        var actBtn = document.createElement("button");
+        actBtn.style.cssText = "padding:8px 16px;background:linear-gradient(135deg,#FBBA00,#FF9500);border:none;border-radius:50px;color:#15102a;font-weight:800;font-size:12px;cursor:pointer;font-family:Geist,sans-serif";
+        actBtn.textContent = "Partecipa  →";
+        actBtn.onclick = function(e){ e.stopPropagation(); openChallengeSubmit(challenge, bottegaId); };
+        bottomRow.appendChild(actBtn);
+      } else {
+        var doneChip = document.createElement("div");
+        doneChip.style.cssText = "display:flex;align-items:center;gap:6px;background:rgba(102,224,181,0.10);border:1px solid rgba(102,224,181,0.30);border-radius:50px;padding:5px 12px;font-size:11px;color:#66E0B5;font-weight:800";
+        doneChip.innerHTML = "✓ Completata";
+        bottomRow.appendChild(doneChip);
+      }
+      
+      chlCard.appendChild(bottomRow);
+      
+      if(!alreadyDone){
+        chlCard.onclick = function(){ openChallengeSubmit(challenge, bottegaId); };
+      }
+      
+      container.appendChild(chlCard);
+    }
+  }catch(e){console.warn("challenge render error:",e);}
   
   // Feed kicker
   var kicker = document.createElement("div");
@@ -7248,9 +7321,10 @@ function renderBottegaFeed(bottega, posts){
       ? '<img src="'+p.user_avatar+'" style="width:32px;height:32px;border-radius:50%;object-fit:cover">'
       : '<div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#814393,#FBBA00);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff">' + (p.user_name?p.user_name.charAt(0).toUpperCase():"?") + '</div>';
     var timeAgo = formatTimeAgo(p.created_at);
+    var sfidaBadge = p.challenge_id ? '<span style="background:linear-gradient(135deg,#FBBA00,#FF9500);color:#15102a;font-size:9px;font-weight:800;padding:2px 7px;border-radius:50px;font-family:JetBrains Mono,monospace;letter-spacing:0.5px;margin-left:6px">SFIDA</span>' : '';
     userRow.innerHTML = userAvatar +
       '<div style="flex:1;min-width:0">' +
-        '<div style="font-weight:700;font-size:13px;color:#F5F1E8">' + (p.user_name||"Membro") + '</div>' +
+        '<div style="display:flex;align-items:center"><span style="font-weight:700;font-size:13px;color:#F5F1E8">' + (p.user_name||"Membro") + '</span>' + sfidaBadge + '</div>' +
         '<div style="font-size:10px;color:#8a82a8;font-family:JetBrains Mono,monospace">' + timeAgo + '</div>' +
       '</div>';
     card.appendChild(userRow);
@@ -7898,6 +7972,491 @@ function _trackNav(screen){
   _navHistory.push(screen);
   if(_navHistory.length > 30) _navHistory.shift();
   try{ history.pushState({dlApp:true, screen:screen}, "", ""); }catch(e){}
+}
+
+/* BOTTEGA CHALLENGES (weekly, deterministic per bottega) */
+var BOTTEGA_CHALLENGES_POOL = {
+  atelier_volti: [
+    { id:"av_c1", title:"Ritratto in 3 stili", prompt:"Disegna lo stesso volto in 3 stili: realistico, manga, cartoon. Stessa luce, stessa angolazione.", reward:10 },
+    { id:"av_c2", title:"Emozione pura", prompt:"Un primo piano che trasmetta una singola emozione forte. Mostra solo gli occhi e la bocca.", reward:10 },
+    { id:"av_c3", title:"5 profili", prompt:"5 profili laterali diversi, focus su naso, mento, attaccatura del collo.", reward:10 },
+    { id:"av_c4", title:"Volto in azione", prompt:"Un volto durante un'azione: urlo, sorpresa, sforzo. Cattura il movimento.", reward:10 }
+  ],
+  officina_anatomica: [
+    { id:"oa_c1", title:"Gesture rapide", prompt:"10 gesture drawings da 30 secondi ciascuna. Solo le pose essenziali.", reward:10 },
+    { id:"oa_c2", title:"Braccio teso vs rilassato", prompt:"Disegna lo stesso braccio nelle due condizioni mostrando la differenza muscolare.", reward:10 },
+    { id:"oa_c3", title:"Figura in salto", prompt:"Un personaggio che salta in aria, mostrando dinamica del corpo.", reward:10 },
+    { id:"oa_c4", title:"Anatomia di una mano", prompt:"5 mani in pose diverse: pugno, apertura, presa, indicare, riposo.", reward:10 }
+  ],
+  studio_paesaggio: [
+    { id:"sp_c1", title:"Mood atmosferico", prompt:"Un paesaggio che evoca calma O tensione (scegli tu). Mostra l'emozione con luce/composizione.", reward:10 },
+    { id:"sp_c2", title:"Prospettiva infinita", prompt:"Una strada che si perde all'orizzonte con elementi laterali (alberi, lampioni).", reward:10 },
+    { id:"sp_c3", title:"Stagione contrastante", prompt:"Lo stesso luogo in due stagioni diverse. Diptych side-by-side.", reward:10 },
+    { id:"sp_c4", title:"Golden hour", prompt:"Un paesaggio illuminato dall'ora dorata. Focus su contrasto luci/ombre.", reward:10 }
+  ],
+  caverna_concept: [
+    { id:"cc_c1", title:"Citta fantasy", prompt:"Concept di una citta fantasy in 5 sketch + 1 versione finita. Stile a tua scelta.", reward:15 },
+    { id:"cc_c2", title:"Veicolo originale", prompt:"Un veicolo immaginario funzionante. Mostra le ruote, le hatch, i dettagli meccanici.", reward:15 },
+    { id:"cc_c3", title:"Creatura originale", prompt:"Una creatura inventata da te con anatomia coerente. Spiega in 1 frase la sua ecologia.", reward:15 },
+    { id:"cc_c4", title:"Mondo in 3 layer", prompt:"Foreground/midground/background di un'ambientazione. Atmosfera diversa per ogni layer.", reward:15 }
+  ]
+};
+
+function _getISOWeek(date){
+  var d = new Date(date || Date.now());
+  d.setHours(0,0,0,0);
+  d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+  var yearStart = new Date(d.getFullYear(), 0, 1);
+  return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+}
+
+function getBottegaWeeklyChallenge(bottegaId){
+  var pool = BOTTEGA_CHALLENGES_POOL[bottegaId];
+  if(!pool || !pool.length) return null;
+  var week = _getISOWeek();
+  var idx = week % pool.length;
+  var c = pool[idx];
+  // attach metadata for the current week
+  return Object.assign({}, c, { bottegaId: bottegaId, week: week });
+}
+
+function hasParticipatedInChallenge(challengeId, week){
+  try{ return localStorage.getItem("dl:chl_done_"+challengeId+"_"+week) === "1"; }catch(e){ return false; }
+}
+
+function markChallengeDone(challengeId, week){
+  try{ localStorage.setItem("dl:chl_done_"+challengeId+"_"+week, "1"); }catch(e){}
+}
+
+function getChallengeTimeLeft(){
+  // Time left until next Sunday midnight
+  var now = new Date();
+  var endOfWeek = new Date(now);
+  var daysToSunday = (7 - now.getDay()) % 7 || 7;
+  endOfWeek.setDate(now.getDate() + daysToSunday);
+  endOfWeek.setHours(0,0,0,0);
+  var ms = endOfWeek - now;
+  var days = Math.floor(ms / 86400000);
+  var hours = Math.floor((ms % 86400000) / 3600000);
+  if(days > 0) return days + (days===1?" giorno":" giorni");
+  if(hours > 0) return hours + (hours===1?" ora":" ore");
+  var mins = Math.floor((ms % 3600000) / 60000);
+  return mins + " min";
+}
+
+function openChallengeSubmit(challenge, bottegaId){
+  if(!A.user){ showToast("Accedi prima",""); return; }
+  if(!isMemberOf(bottegaId)){ showToast("Devi essere membro",""); return; }
+  
+  var inp = document.createElement("input");
+  inp.type = "file";
+  inp.accept = "image/*";
+  inp.style.display = "none";
+  document.body.appendChild(inp);
+  
+  inp.onchange = function(e){
+    var file = e.target.files && e.target.files[0];
+    document.body.removeChild(inp);
+    if(!file) return;
+    showChallengePreview(challenge, bottegaId, file);
+  };
+  
+  inp.click();
+}
+
+async function showChallengePreview(challenge, bottegaId, file){
+  var dataUrl = await new Promise(function(resolve, reject){
+    var r = new FileReader();
+    r.onload = function(ev){ resolve(ev.target.result); };
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
+  
+  try{ history.pushState({dlApp:true, overlay:"challenge"}, "", ""); }catch(e){}
+  
+  var overlay = document.createElement("div");
+  overlay.id = "challenge-submit-overlay";
+  overlay.style.cssText = "position:fixed;inset:0;z-index:10001;background:rgba(21,16,42,0.92);backdrop-filter:blur(12px);display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;animation:fadeIn 0.2s ease-out";
+  
+  var card = document.createElement("div");
+  card.style.cssText = "background:#1c1738;border:1px solid rgba(255,255,255,0.08);border-radius:24px;padding:20px;max-width:480px;width:100%;margin-top:40px;margin-bottom:40px";
+  
+  // Header
+  var header = document.createElement("div");
+  header.style.cssText = "display:flex;align-items:center;justify-content:space-between;margin-bottom:14px";
+  var titleWrap = document.createElement("div");
+  titleWrap.innerHTML = '<div style="font-family:JetBrains Mono,monospace;font-size:10px;letter-spacing:2px;color:#FBBA00;font-weight:700;text-transform:uppercase">SFIDA SETTIMANALE</div><div style="font-family:Bricolage Grotesque,sans-serif;font-weight:800;font-size:18px;color:#F5F1E8;margin-top:2px">' + challenge.title + '</div>';
+  header.appendChild(titleWrap);
+  var closeBtn = document.createElement("button");
+  closeBtn.style.cssText = "width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);color:#F5F1E8;font-size:16px;cursor:pointer";
+  closeBtn.textContent = "×";
+  closeBtn.onclick = function(){
+    var ov = document.getElementById("challenge-submit-overlay");
+    if(ov) ov.remove();
+    try{ history.back(); }catch(e){}
+  };
+  header.appendChild(closeBtn);
+  card.appendChild(header);
+  
+  // Image
+  var img = document.createElement("img");
+  img.src = dataUrl;
+  img.style.cssText = "width:100%;max-height:300px;object-fit:cover;border-radius:16px;margin-bottom:14px;background:#15102a";
+  card.appendChild(img);
+  
+  // Reward chip
+  var rewardChip = document.createElement("div");
+  rewardChip.style.cssText = "display:inline-flex;align-items:center;gap:6px;background:rgba(251,186,0,0.15);border:1px solid rgba(251,186,0,0.40);border-radius:50px;padding:6px 12px;margin-bottom:14px;font-size:12px;color:#FBBA00;font-weight:700";
+  rewardChip.innerHTML = '<span style="font-size:14px">⭐</span><span>Premio sfida: +' + challenge.reward + ' DrawPass (2x)</span>';
+  card.appendChild(rewardChip);
+  
+  // Caption
+  var capLabel = document.createElement("div");
+  capLabel.style.cssText = "font-family:JetBrains Mono,monospace;font-size:10px;letter-spacing:2px;color:#8a82a8;font-weight:700;text-transform:uppercase;margin-bottom:6px";
+  capLabel.textContent = "Descrizione (opzionale)";
+  card.appendChild(capLabel);
+  
+  var capInput = document.createElement("textarea");
+  capInput.id = "challenge-caption";
+  capInput.placeholder = "Racconta il tuo approccio...";
+  capInput.maxLength = 500;
+  capInput.style.cssText = "width:100%;min-height:70px;max-height:140px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);border-radius:14px;color:#F5F1E8;padding:12px 14px;font-family:Geist,sans-serif;font-size:14px;outline:none;resize:vertical;box-sizing:border-box;line-height:1.5";
+  card.appendChild(capInput);
+  
+  // Buttons
+  var btnRow = document.createElement("div");
+  btnRow.style.cssText = "display:flex;gap:10px;margin-top:18px";
+  var cancelBtn = document.createElement("button");
+  cancelBtn.style.cssText = "flex:1;height:48px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);border-radius:14px;color:#a8a2c8;font-weight:700;font-size:14px;cursor:pointer;font-family:Geist,sans-serif";
+  cancelBtn.textContent = "Annulla";
+  cancelBtn.onclick = function(){
+    var ov = document.getElementById("challenge-submit-overlay");
+    if(ov) ov.remove();
+    try{ history.back(); }catch(e){}
+  };
+  var submitBtn = document.createElement("button");
+  submitBtn.style.cssText = "flex:2;height:48px;background:linear-gradient(135deg,#FBBA00,#FF9500);border:none;border-radius:14px;color:#15102a;font-weight:800;font-size:14px;cursor:pointer;font-family:Geist,sans-serif;box-shadow:0 8px 24px rgba(251,186,0,0.35)";
+  submitBtn.textContent = "Partecipa";
+  submitBtn.onclick = async function(){
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Caricamento...";
+    submitBtn.style.opacity = "0.7";
+    var prevErr = card.querySelector(".challenge-error");
+    if(prevErr) prevErr.remove();
+    var result = await submitChallengeEntry(challenge, bottegaId, file, capInput.value.trim());
+    if(result === true){
+      overlay.remove();
+      try{ history.back(); }catch(e){}
+      // Refresh bottega
+      openBottega(bottegaId);
+    } else {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Riprova";
+      submitBtn.style.opacity = "1";
+      var errBox = document.createElement("div");
+      errBox.className = "challenge-error";
+      errBox.style.cssText = "margin-top:12px;padding:10px 12px;background:rgba(228,76,60,0.10);border:1px solid rgba(228,76,60,0.30);border-radius:10px;color:#E07172;font-size:12px;line-height:1.5";
+      errBox.textContent = "Errore: " + (typeof result === "string" ? result : "errore sconosciuto");
+      card.appendChild(errBox);
+    }
+  };
+  btnRow.appendChild(cancelBtn);
+  btnRow.appendChild(submitBtn);
+  card.appendChild(btnRow);
+  
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+}
+
+async function submitChallengeEntry(challenge, bottegaId, file, caption){
+  if(!A.user) return "non sei loggato";
+  if(!isMemberOf(bottegaId)) return "non sei membro";
+  if(!sbReady()) return "Supabase non disponibile";
+  
+  try{
+    var blob = await compressImage(file, 1600, 0.85);
+    var fname = A.user.id + "_chl_" + challenge.id + "_" + Date.now() + ".jpg";
+    var imageUrl = await sbUpload("Posts", fname, blob);
+    if(!imageUrl) return "upload immagine fallito";
+    
+    // Insert as post WITH challenge_id metadata
+    await sbFetchStrict("POST","dl_bottega_posts",{body:{
+      bottega_id: bottegaId,
+      user_id: A.user.id,
+      user_name: A.user.name || "Membro",
+      user_avatar: A.user.picture || A.user.avatar || "",
+      image_url: imageUrl,
+      caption: caption || "",
+      challenge_id: challenge.id,
+      likes_count: 0,
+      comments_count: 0,
+      created_at: new Date().toISOString()
+    }});
+    
+    // Mark done and reward
+    markChallengeDone(challenge.id, challenge.week);
+    A.tokens = (A.tokens || 0) + challenge.reward;
+    try{ localStorage.setItem("dl:tokens", String(A.tokens)); }catch(e){}
+    
+    try{ if(typeof track==="function") track("challenge_submitted", {challenge_id: challenge.id, bottega_id: bottegaId, reward: challenge.reward}); }catch(e){}
+    
+    showToast("+" + challenge.reward + " DrawPass! Sfida completata!", "⭐");
+    return true;
+  }catch(e){
+    console.error("[challenge] error:", e);
+    var msg = e.message || String(e);
+    if(msg.indexOf("challenge_id") >= 0 || msg.indexOf("column") >= 0)
+      return "Colonna challenge_id mancante. ALTER TABLE dl_bottega_posts ADD COLUMN challenge_id TEXT;";
+    if(msg.indexOf("HTTP 403") >= 0) return "Permesso negato (RLS)";
+    return msg.slice(0, 130);
+  }
+}
+
+/* BOTTEGA GROUP CHAT */
+var _bcPollInterval = null;
+var _bcLastSeenTs = 0;
+
+async function loadBottegaChat(bottegaId, sinceTs){
+  if(!sbReady()) return [];
+  try{
+    var filters = "bottega_id=eq."+bottegaId;
+    if(sinceTs){
+      filters += "&created_at=gt." + encodeURIComponent(new Date(sinceTs).toISOString());
+    }
+    var rows = await sbFetchStrict("GET","dl_bottega_chat",{
+      filters: filters,
+      order: "created_at.asc",
+      limit: 300
+    });
+    return rows || [];
+  }catch(e){
+    console.error("[bchat] load error:", e);
+    return [];
+  }
+}
+
+async function openBottegaChat(bottegaId){
+  if(!A.user){ showToast("Accedi prima",""); return; }
+  if(!isMemberOf(bottegaId)){ showToast("Devi essere membro",""); return; }
+  
+  var bottega = getBottega(bottegaId);
+  if(!bottega) return;
+  
+  try{ history.pushState({dlApp:true, overlay:"bottega-chat"}, "", ""); }catch(e){}
+  
+  var overlay = document.createElement("div");
+  overlay.id = "bottega-chat-overlay";
+  overlay.style.cssText = "position:fixed;inset:0;z-index:10002;background:#15102a;display:flex;flex-direction:column;animation:fadeIn 0.2s ease-out";
+  
+  // Header
+  var header = document.createElement("div");
+  header.style.cssText = "padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:12px;background:#1c1738;flex-shrink:0";
+  
+  var backBtn = document.createElement("button");
+  backBtn.style.cssText = "width:36px;height:36px;border-radius:12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);color:#F5F1E8;font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center";
+  backBtn.textContent = "←";
+  backBtn.onclick = function(){
+    var ov = document.getElementById("bottega-chat-overlay");
+    if(ov) ov.remove();
+    if(_bcPollInterval){ clearInterval(_bcPollInterval); _bcPollInterval=null; }
+    try{ history.back(); }catch(e){}
+  };
+  header.appendChild(backBtn);
+  
+  var titleWrap = document.createElement("div");
+  titleWrap.style.cssText = "flex:1;min-width:0";
+  var kicker = document.createElement("div");
+  kicker.style.cssText = "font-family:JetBrains Mono,monospace;font-size:9px;letter-spacing:2px;color:#8a82a8;font-weight:700;text-transform:uppercase";
+  kicker.textContent = "CHAT DI GRUPPO";
+  titleWrap.appendChild(kicker);
+  var titleEl = document.createElement("div");
+  titleEl.style.cssText = "font-weight:700;font-size:14px;color:#F5F1E8";
+  titleEl.textContent = bottega.name;
+  titleWrap.appendChild(titleEl);
+  header.appendChild(titleWrap);
+  
+  var bottegaIcon = document.createElement("div");
+  bottegaIcon.style.cssText = "width:36px;height:36px;border-radius:12px;background:" + bottega.coverGradient + ";display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0";
+  bottegaIcon.textContent = bottega.icon;
+  header.appendChild(bottegaIcon);
+  
+  overlay.appendChild(header);
+  
+  // Messages scrollable area
+  var msgArea = document.createElement("div");
+  msgArea.id = "bottega-chat-messages";
+  msgArea.style.cssText = "flex:1;overflow-y:auto;padding:14px 12px 80px";
+  msgArea.innerHTML = '<div style="text-align:center;padding:30px;color:#9896B8"><div style="width:24px;height:24px;border:3px solid rgba(255,255,255,.1);border-top:3px solid #B872E0;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px"></div>Caricamento chat...</div>';
+  overlay.appendChild(msgArea);
+  
+  // Input bar
+  var inputBar = document.createElement("div");
+  inputBar.style.cssText = "position:absolute;left:0;right:0;bottom:0;padding:10px 12px;background:#1c1738;border-top:1px solid rgba(255,255,255,0.08);display:flex;gap:8px;align-items:center";
+  
+  var input = document.createElement("input");
+  input.id = "bottega-chat-input";
+  input.type = "text";
+  input.placeholder = "Messaggio per la bottega...";
+  input.maxLength = 1000;
+  input.style.cssText = "flex:1;height:42px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);border-radius:14px;color:#F5F1E8;padding:0 14px;font-family:Geist,sans-serif;font-size:13px;outline:none";
+  inputBar.appendChild(input);
+  
+  var sendBtn = document.createElement("button");
+  sendBtn.id = "bottega-chat-send";
+  sendBtn.style.cssText = "width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#B872E0,#FBBA00);border:none;color:#1c1b29;font-size:16px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center";
+  sendBtn.textContent = "↑";
+  sendBtn.onclick = function(){
+    var text = input.value.trim();
+    if(!text) return;
+    submitBottegaChat(bottegaId, text);
+    input.value = "";
+  };
+  inputBar.appendChild(sendBtn);
+  overlay.appendChild(inputBar);
+  
+  document.body.appendChild(overlay);
+  
+  input.addEventListener("keydown", function(e){
+    if(e.key === "Enter"){ sendBtn.click(); }
+  });
+  
+  // Initial load
+  var msgs = await loadBottegaChat(bottegaId, 0);
+  renderBottegaChat(msgs, bottega);
+  if(msgs.length) _bcLastSeenTs = new Date(msgs[msgs.length-1].created_at).getTime();
+  
+  // Poll for new messages
+  if(_bcPollInterval) clearInterval(_bcPollInterval);
+  _bcPollInterval = setInterval(async function(){
+    if(!document.getElementById("bottega-chat-overlay")){
+      clearInterval(_bcPollInterval); _bcPollInterval = null; return;
+    }
+    var fresh = await loadBottegaChat(bottegaId, _bcLastSeenTs);
+    if(fresh && fresh.length){
+      fresh.forEach(function(m){ appendBottegaChatMsg(m, bottega); });
+      _bcLastSeenTs = new Date(fresh[fresh.length-1].created_at).getTime();
+      var area = document.getElementById("bottega-chat-messages");
+      if(area) area.scrollTop = area.scrollHeight;
+    }
+  }, 4000);
+}
+
+function renderBottegaChat(msgs, bottega){
+  var area = document.getElementById("bottega-chat-messages");
+  if(!area) return;
+  area.innerHTML = "";
+  if(!msgs.length){
+    area.innerHTML = '<div style="text-align:center;padding:60px 20px;color:#8a82a8"><div style="font-size:48px;margin-bottom:14px;opacity:0.5">💬</div><div style="font-family:Bricolage Grotesque,sans-serif;font-size:18px;font-weight:700;color:#F5F1E8;margin-bottom:6px">Nessun messaggio</div><div style="font-size:13px;line-height:1.5;max-width:260px;margin:0 auto">Inizia la conversazione con i membri della tua bottega.</div></div>';
+    return;
+  }
+  msgs.forEach(function(m){ appendBottegaChatMsg(m, bottega); });
+  setTimeout(function(){ area.scrollTop = area.scrollHeight; }, 50);
+}
+
+function appendBottegaChatMsg(m, bottega){
+  var area = document.getElementById("bottega-chat-messages");
+  if(!area) return;
+  
+  var isMe = (A.user && m.user_id === A.user.id);
+  var isMentor = (bottega && bottega.mentor && m.user_id === bottega.mentor.id);
+  
+  var bubble = document.createElement("div");
+  bubble.style.cssText = "display:flex;gap:8px;margin-bottom:10px;padding:0 4px;" + (isMe ? "flex-direction:row-reverse" : "");
+  
+  // Avatar
+  var avEl;
+  if(m.user_avatar && m.user_avatar.indexOf("http") === 0){
+    avEl = document.createElement("img");
+    avEl.src = m.user_avatar;
+    avEl.style.cssText = "width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;align-self:flex-end";
+  } else {
+    avEl = document.createElement("div");
+    avEl.style.cssText = "width:32px;height:32px;border-radius:50%;background:" + (isMentor?'linear-gradient(135deg,#FBBA00,#FF9500)':'linear-gradient(135deg,#814393,#FBBA00)') + ";display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0;align-self:flex-end";
+    avEl.textContent = m.user_name ? m.user_name.charAt(0).toUpperCase() : "?";
+  }
+  if(!isMe) bubble.appendChild(avEl);
+  
+  // Content wrapper
+  var content = document.createElement("div");
+  content.style.cssText = "max-width:78%;display:flex;flex-direction:column;" + (isMe ? "align-items:flex-end" : "");
+  
+  // Name + mentor badge (only if not me)
+  if(!isMe){
+    var nameRow = document.createElement("div");
+    nameRow.style.cssText = "display:flex;align-items:center;gap:5px;margin-bottom:3px;padding-left:6px";
+    var nameEl = document.createElement("span");
+    nameEl.style.cssText = "font-size:11px;font-weight:700;color:" + (isMentor?'#FBBA00':'#a8a2c8');
+    nameEl.textContent = m.user_name || "Membro";
+    nameRow.appendChild(nameEl);
+    if(isMentor){
+      var badge = document.createElement("span");
+      badge.style.cssText = "background:linear-gradient(135deg,#FBBA00,#FF9500);color:#15102a;font-size:8px;font-weight:800;padding:1px 5px;border-radius:50px;font-family:JetBrains Mono,monospace;letter-spacing:0.5px";
+      badge.textContent = "MENTOR";
+      nameRow.appendChild(badge);
+    }
+    content.appendChild(nameRow);
+  }
+  
+  // Bubble body
+  var body = document.createElement("div");
+  if(isMe){
+    body.style.cssText = "padding:9px 14px;border-radius:14px 14px 4px 14px;background:linear-gradient(135deg,#B872E0,#FBBA00);color:#1c1b29;font-weight:600;font-size:13px;line-height:1.4;word-wrap:break-word;white-space:pre-wrap";
+  } else {
+    body.style.cssText = "padding:9px 14px;border-radius:14px 14px 14px 4px;background:" + (isMentor?'rgba(251,186,0,0.10)':'rgba(255,255,255,0.06)') + ";color:#F5F1E8;font-size:13px;line-height:1.4;word-wrap:break-word;border:1px solid " + (isMentor?'rgba(251,186,0,0.30)':'rgba(255,255,255,0.08)') + ";white-space:pre-wrap";
+  }
+  body.textContent = m.text;
+  content.appendChild(body);
+  
+  // Time
+  var timeEl = document.createElement("div");
+  timeEl.style.cssText = "font-size:9px;color:#6e6791;margin-top:3px;padding:0 6px;font-family:JetBrains Mono,monospace";
+  timeEl.textContent = formatTimeAgo(m.created_at);
+  content.appendChild(timeEl);
+  
+  bubble.appendChild(content);
+  area.appendChild(bubble);
+}
+
+async function submitBottegaChat(bottegaId, text){
+  if(!A.user) return;
+  if(!sbReady()){ showToast("Connessione assente",""); return; }
+  text = (text || "").trim();
+  if(!text) return;
+  
+  var sendBtn = document.getElementById("bottega-chat-send");
+  if(sendBtn){ sendBtn.disabled = true; sendBtn.style.opacity = "0.6"; }
+  
+  try{
+    var bottega = getBottega(bottegaId);
+    var newMsg = {
+      bottega_id: bottegaId,
+      user_id: A.user.id,
+      user_name: A.user.name || "Membro",
+      user_avatar: A.user.picture || A.user.avatar || "",
+      text: text,
+      created_at: new Date().toISOString()
+    };
+    await sbFetchStrict("POST","dl_bottega_chat",{body: newMsg});
+    
+    // Optimistic append
+    appendBottegaChatMsg(newMsg, bottega);
+    _bcLastSeenTs = new Date(newMsg.created_at).getTime();
+    var area = document.getElementById("bottega-chat-messages");
+    if(area) area.scrollTop = area.scrollHeight;
+    
+    try{ if(typeof track==="function") track("bottega_chat_sent", {bottega_id: bottegaId}); }catch(e){}
+  }catch(e){
+    console.error("[bchat] submit error:", e);
+    var msg = e.message || String(e);
+    if(msg.indexOf("dl_bottega_chat") >= 0 || msg.indexOf("relation") >= 0)
+      showToast("Tabella dl_bottega_chat non creata","");
+    else if(msg.indexOf("HTTP 403") >= 0)
+      showToast("Permesso negato (RLS)","");
+    else
+      showToast("Errore: " + msg.slice(0,80), "");
+  }
+  
+  if(sendBtn){ sendBtn.disabled = false; sendBtn.style.opacity = "1"; }
 }
 
 function init(){
