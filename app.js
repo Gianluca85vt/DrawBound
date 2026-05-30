@@ -1404,6 +1404,19 @@ async function nextStep(){
 }
 
 function showLessonComplete(les,cat,prevDone){
+  // Self-rating gate (only once per call)
+  if(!showLessonComplete._ratingShownFor){ showLessonComplete._ratingShownFor = {}; }
+  var _key = cat.id + "_" + les.id;
+  if(!showLessonComplete._ratingShownFor[_key]){
+    showLessonComplete._ratingShownFor[_key] = true;
+    showSelfRating(les.id, cat.id, function(){
+      showLessonComplete._ratingShownFor[_key] = false; // reset for next time
+      showLessonComplete(les, cat, prevDone);
+    });
+    return;
+  }
+  showLessonComplete._ratingShownFor[_key] = false;
+
   try{trackLessonCompleted(cat.id, les.id);}catch(e){}
   var ac=AC[cat.id]||"#B872E0";
   // Read progress from localStorage
@@ -6667,12 +6680,57 @@ function openDailyLesson(){
     actionBtn.style.cssText = "width:100%;height:54px;background:rgba(102,224,181,0.15);border:1px solid rgba(102,224,181,0.40);border-radius:18px;color:#66E0B5;font-weight:800;font-size:15px;cursor:default;font-family:Geist,sans-serif";
     actionBtn.textContent = "Gia completata oggi";
     actionBtn.disabled = true;
+    overlay.appendChild(actionBtn);
   } else {
-    actionBtn.style.cssText = "width:100%;height:54px;background:linear-gradient(135deg,#B872E0,#FBBA00);border:none;border-radius:18px;color:#1c1b29;font-weight:800;font-size:15px;cursor:pointer;box-shadow:0 16px 40px rgba(184,114,224,0.35);font-family:Geist,sans-serif";
-    actionBtn.textContent = "Ho completato il disegno";
-    actionBtn.onclick = function(){ completeDailyLesson(lesson, overlay); };
+    // Time-gate: button is disabled for the first 60 seconds
+    var gateSeconds = 60;
+    actionBtn.style.cssText = "width:100%;height:54px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:18px;color:#6e6791;font-weight:800;font-size:15px;cursor:not-allowed;font-family:Geist,sans-serif;transition:background .25s,color .25s,border-color .25s";
+    actionBtn.disabled = true;
+    actionBtn.textContent = "Disegna ancora 1:00";
+    overlay.appendChild(actionBtn);
+    
+    // Sub-message
+    var gateHint = document.createElement("div");
+    gateHint.style.cssText = "text-align:center;margin-top:8px;font-size:11px;color:#6e6791;font-style:italic;line-height:1.5;transition:opacity .3s";
+    gateHint.textContent = "Prenditi il tempo che serve. Il bottone si attiva tra 1 minuto.";
+    overlay.appendChild(gateHint);
+    
+    // Countdown
+    var startTime = Date.now();
+    var gateInterval = setInterval(function(){
+      var elapsed = Math.floor((Date.now() - startTime) / 1000);
+      var remaining = gateSeconds - elapsed;
+      if(remaining <= 0){
+        clearInterval(gateInterval);
+        actionBtn.disabled = false;
+        actionBtn.style.background = "linear-gradient(135deg,#B872E0,#FBBA00)";
+        actionBtn.style.color = "#1c1b29";
+        actionBtn.style.border = "none";
+        actionBtn.style.cursor = "pointer";
+        actionBtn.style.boxShadow = "0 16px 40px rgba(184,114,224,0.35)";
+        actionBtn.textContent = "Ho completato il disegno";
+        gateHint.style.opacity = "0";
+        setTimeout(function(){gateHint.textContent = "Pronto a confermare!"; gateHint.style.color = "#FBBA00"; gateHint.style.opacity = "1";}, 300);
+        actionBtn.onclick = function(){
+          // Show self-rating BEFORE completing
+          showSelfRating(lesson.id, lesson.category, function(){
+            completeDailyLesson(lesson, overlay);
+          });
+        };
+      } else {
+        var mm = Math.floor(remaining/60);
+        var ss = String(remaining%60).padStart(2,"0");
+        actionBtn.textContent = "Disegna ancora " + mm + ":" + ss;
+      }
+    }, 250);
+    
+    // Cleanup interval if overlay is closed
+    var origClose = overlay.remove.bind(overlay);
+    overlay.remove = function(){
+      clearInterval(gateInterval);
+      origClose();
+    };
   }
-  overlay.appendChild(actionBtn);
   
   // Tip note
   var tipNote = document.createElement("div");
@@ -6747,6 +6805,87 @@ function completeDailyLesson(lesson, overlay){
     };
     overlay.appendChild(doneBtn);
   }
+}
+
+/* SELF-RATING (post-lesson nudge, no gating) */
+function showSelfRating(lessonId, category, onContinue){
+  var overlay = document.createElement("div");
+  overlay.style.cssText = "position:fixed;inset:0;z-index:10001;background:rgba(21,16,42,0.85);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn 0.2s ease-out";
+  
+  var card = document.createElement("div");
+  card.style.cssText = "background:#1c1738;border:1px solid rgba(255,255,255,0.08);border-radius:24px;padding:28px 24px;max-width:380px;width:100%;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,0.5)";
+  
+  var kicker = document.createElement("div");
+  kicker.style.cssText = "font-family:JetBrains Mono,monospace;font-size:10px;letter-spacing:2px;color:#FBBA00;font-weight:700;text-transform:uppercase;margin-bottom:8px";
+  kicker.textContent = "UN ATTIMO";
+  card.appendChild(kicker);
+  
+  var title = document.createElement("h2");
+  title.style.cssText = "font-family:Bricolage Grotesque,sans-serif;font-size:22px;font-weight:800;color:#F5F1E8;margin:0 0 6px;letter-spacing:-0.01em";
+  title.textContent = "Come e andata?";
+  card.appendChild(title);
+  
+  var sub = document.createElement("p");
+  sub.style.cssText = "font-size:13px;color:#8a82a8;margin:0 0 24px;line-height:1.5";
+  sub.textContent = "Aiutaci a migliorare le lezioni con un voto onesto.";
+  card.appendChild(sub);
+  
+  // Emoji row
+  var emojiRow = document.createElement("div");
+  emojiRow.style.cssText = "display:flex;justify-content:space-between;gap:6px;margin-bottom:20px";
+  
+  var emojis = [
+    { e: "😞", label: "Difficile", value: 1 },
+    { e: "😐", label: "OK", value: 2 },
+    { e: "🙂", label: "Bene", value: 3 },
+    { e: "😊", label: "Ottimo", value: 4 },
+    { e: "🤩", label: "Adorata", value: 5 }
+  ];
+  
+  emojis.forEach(function(em){
+    var btn = document.createElement("button");
+    btn.style.cssText = "flex:1;aspect-ratio:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:16px;font-size:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s,border-color .15s,background .15s;padding:0";
+    btn.textContent = em.e;
+    btn.title = em.label;
+    btn.onmouseover = function(){ this.style.transform="scale(1.12)"; this.style.borderColor="rgba(184,114,224,0.40)"; this.style.background="rgba(184,114,224,0.10)"; };
+    btn.onmouseout = function(){ this.style.transform="scale(1)"; this.style.borderColor="rgba(255,255,255,0.08)"; this.style.background="rgba(255,255,255,0.04)"; };
+    (function(value, label){
+      btn.onclick = function(){
+        // Save rating
+        try{
+          var ratings = JSON.parse(localStorage.getItem("dl:lesson_ratings")||"[]");
+          ratings.push({ lesson_id: lessonId, category: category, rating: value, ts: Date.now() });
+          if(ratings.length > 200) ratings = ratings.slice(-200);
+          localStorage.setItem("dl:lesson_ratings", JSON.stringify(ratings));
+        }catch(e){}
+        // GA4
+        try{ if(typeof track==="function") track("lesson_rated", {lesson_id:lessonId, rating:value, category:category}); }catch(e){}
+        // Persist to Supabase if available (non-blocking)
+        try{
+          if(sbReady() && A.user){
+            sbFetch("POST","dl_lesson_ratings",{body:{user_id:A.user.id, lesson_id:lessonId, category:category, rating:value, created_at:new Date().toISOString()}}).catch(function(){});
+          }
+        }catch(e){}
+        overlay.remove();
+        if(typeof onContinue === "function") onContinue();
+      };
+    })(em.value, em.label);
+    emojiRow.appendChild(btn);
+  });
+  card.appendChild(emojiRow);
+  
+  // Skip option
+  var skipBtn = document.createElement("button");
+  skipBtn.style.cssText = "background:none;border:none;color:#6e6791;font-size:12px;cursor:pointer;font-family:Geist,sans-serif;padding:8px;text-decoration:underline";
+  skipBtn.textContent = "Salta";
+  skipBtn.onclick = function(){
+    overlay.remove();
+    if(typeof onContinue === "function") onContinue();
+  };
+  card.appendChild(skipBtn);
+  
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
 }
 
 function init(){
