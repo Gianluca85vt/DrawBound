@@ -1946,6 +1946,42 @@ function renderProfileSettings(cont){
     }
   },50);
 
+  
+  // Gender selector
+  var genderSec = document.createElement("div");
+  genderSec.style.cssText = "background:#161525;border-radius:12px;padding:14px;margin-bottom:10px";
+  genderSec.innerHTML = '<div style="font-weight:800;font-size:13px;color:#fff;margin-bottom:6px">Come ti senti chiamato?</div><div style="font-size:11px;color:#8a82a8;margin-bottom:12px;line-height:1.4">Personalizziamo il saluto in base alla tua preferenza.</div>';
+  
+  var genderRow = document.createElement("div");
+  genderRow.id = "gender-selector-row";
+  genderRow.style.cssText = "display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px";
+  
+  var currentG = getUserGender();
+  var options = [
+    { v: "m", label: "Maschile", example: "ben tornato" },
+    { v: "f", label: "Femminile", example: "ben tornata" },
+    { v: "n", label: "Neutro", example: "senza genere" }
+  ];
+  
+  options.forEach(function(o){
+    var b = document.createElement("button");
+    var isActive = (currentG === o.v);
+    b.style.cssText = "padding:10px 8px;border-radius:10px;cursor:pointer;font-family:Geist,sans-serif;font-weight:700;font-size:12px;transition:background .15s,border-color .15s;" +
+      (isActive ? "background:linear-gradient(135deg,rgba(184,114,224,0.20),rgba(251,186,0,0.12));border:1px solid #B872E0;color:#F5F1E8" : "background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#a8a2c8");
+    b.innerHTML = '<div style="font-weight:800;font-size:13px;margin-bottom:2px">' + o.label + '</div><div style="font-size:10px;color:#8a82a8;font-style:italic">' + o.example + '</div>';
+    (function(value){
+      b.onclick = function(){
+        setUserGender(value);
+        renderProfileSettings(cont);
+        showToast("Saluto aggiornato!","");
+      };
+    })(o.v);
+    genderRow.appendChild(b);
+  });
+  
+  genderSec.appendChild(genderRow);
+  cont.appendChild(genderSec);
+
   // DEV TOOLS
   var devSec = document.createElement("div");
   devSec.style.cssText = "background:linear-gradient(135deg,rgba(184,114,224,0.10),rgba(251,186,0,0.08));border:1px solid rgba(184,114,224,0.30);border-radius:14px;padding:14px;margin-bottom:10px;margin-top:14px";
@@ -5261,10 +5297,8 @@ function renderDashboard(){
   // Greeting with first name
   var name = (A.user&&(A.user.name||A.user.full_name))||"";
   var firstName = name.split(" ")[0] || "amico";
-  var hour = new Date().getHours();
-  var hi = hour<5?"Notte fonda":hour<12?"Buongiorno":hour<18?"Ciao":"Buonasera";
   var greet = document.getElementById("dash-greeting");
-  if(greet) greet.textContent = hi+", "+firstName+", ben tornato";
+  if(greet) greet.textContent = formatGreeting(firstName);
 
   // Tokens
   var tokens = (A.tokens||248);  // fallback display value
@@ -5522,14 +5556,31 @@ function openSettings(){
 }
 
 function setActiveNav(name){
-  var ids=["nav-dashboard","nav-feed","nav-home","nav-profile"];
-  ids.forEach(function(id){
-    var el=document.getElementById(id);
-    if(el){el.style.color="#8a82a8";el.style.opacity="0.6";}
+  var navTabs = ["nav-dashboard","nav-feed","nav-home","nav-profile"];
+  navTabs.forEach(function(id){
+    var el = document.getElementById(id);
+    if(el){
+      el.classList.remove("nav-active");
+      el.style.color = "";
+      el.style.opacity = "";
+      var svgEl = el.querySelector("svg");
+      if(svgEl) svgEl.style.stroke = "";
+    }
   });
-  var activeId = "nav-"+(name==="dashboard"?"dashboard":name==="feed"?"feed":name==="home"?"home":name==="profile"?"profile":"");
-  var active=document.getElementById(activeId);
-  if(active){active.style.color="#FBBA00";active.style.opacity="1";}
+  var map = {
+    dashboard:"nav-dashboard", home:"nav-home", feed:"nav-feed", profile:"nav-profile",
+    category:"nav-home", lesson:"nav-home", pubprofile:"nav-feed",
+    chat:"nav-dashboard", dm:"nav-dashboard", search:"nav-dashboard",
+    botteghe:"nav-dashboard", bottega:"nav-dashboard",
+    badges:"nav-profile", drawpass:"nav-profile"
+  };
+  var activeId = map[name] || "nav-dashboard";
+  var active = document.getElementById(activeId);
+  if(active){
+    active.classList.add("nav-active");
+    var svgEl = active.querySelector("svg");
+    if(svgEl) svgEl.style.stroke = "#FBBA00";
+  }
 }
 
 /* ═══════════════ TOKEN ECONOMY TRACKING ═══════════════ */
@@ -6886,6 +6937,165 @@ function showSelfRating(lessonId, category, onContinue){
   
   overlay.appendChild(card);
   document.body.appendChild(overlay);
+}
+
+/* GENDER-AWARE GREETINGS */
+function getUserGender(){
+  // Returns: "m" | "f" | "n" (neutral or unset)
+  if(A.user && A.user.gender){ return A.user.gender; }
+  try{
+    var g = localStorage.getItem("dl:gender");
+    if(g === "m" || g === "f" || g === "n") return g;
+  }catch(e){}
+  return "n";
+}
+
+function setUserGender(g){
+  if(["m","f","n"].indexOf(g) < 0) g = "n";
+  if(A.user) A.user.gender = g;
+  try{ localStorage.setItem("dl:gender", g); }catch(e){}
+  if(sbReady() && A.user){
+    sbFetch("PATCH","dl_users?id=eq."+A.user.id,{body:{gender:g}}).catch(function(){});
+  }
+}
+
+function formatGreeting(firstName){
+  // Returns "Buongiorno, X, ben tornato/a" or neutral form
+  var hour = new Date().getHours();
+  var hi = hour<5 ? "Notte fonda" : hour<12 ? "Buongiorno" : hour<18 ? "Ciao" : "Buonasera";
+  var g = getUserGender();
+  var welcome;
+  if(g === "f") welcome = "ben tornata";
+  else if(g === "m") welcome = "ben tornato";
+  else welcome = ""; // gender-neutral: drop the gendered word
+  
+  if(welcome){
+    return hi + ", " + firstName + ", " + welcome;
+  } else {
+    return hi + ", " + firstName;
+  }
+}
+
+/* HAMBURGER MENU (slide-in drawer) */
+function openHamburger(){
+  if(document.getElementById("hamburger-overlay")) return;
+  
+  // Backdrop
+  var backdrop = document.createElement("div");
+  backdrop.id = "hamburger-overlay";
+  backdrop.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9998;backdrop-filter:blur(4px);animation:fadeIn 0.2s ease-out";
+  backdrop.onclick = function(e){
+    if(e.target === backdrop) closeHamburger();
+  };
+  
+  // Drawer
+  var drawer = document.createElement("div");
+  drawer.id = "hamburger-drawer";
+  drawer.style.cssText = "position:fixed;top:0;right:0;bottom:0;width:min(320px,85vw);background:#1c1738;border-left:1px solid rgba(255,255,255,0.08);box-shadow:-16px 0 48px rgba(0,0,0,0.4);overflow-y:auto;animation:slideInRight 0.25s ease-out;z-index:9999";
+  
+  // Header — quick profile
+  var userName = (A.user && (A.user.name || A.user.full_name)) || "Ospite";
+  var firstName = userName.split(" ")[0];
+  var avatar = (A.user && A.user.picture && A.user.picture.indexOf("http")===0)
+    ? '<img src="' + A.user.picture + '" style="width:100%;height:100%;border-radius:50%;object-fit:cover">'
+    : firstName.charAt(0).toUpperCase();
+  var tokens = A.tokens || 0;
+  
+  var header = document.createElement("div");
+  header.style.cssText = "padding:20px;background:linear-gradient(135deg,rgba(184,114,224,0.10),rgba(251,186,0,0.06));border-bottom:1px solid rgba(255,255,255,0.06)";
+  header.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">' +
+    '<button onclick="closeHamburger()" style="width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);color:#F5F1E8;font-size:14px;cursor:pointer">×</button>' +
+    '<div style="font-family:JetBrains Mono,monospace;font-size:10px;letter-spacing:2px;color:#8a82a8;text-transform:uppercase">MENU</div>' +
+    '</div>' +
+    '<div style="display:flex;align-items:center;gap:12px;cursor:pointer" onclick="closeHamburger();navTo(\u0027profile\u0027)">' +
+    '<div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#814393,#FBBA00);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:20px;flex-shrink:0">' + avatar + '</div>' +
+    '<div style="flex:1;min-width:0"><div style="font-family:Bricolage Grotesque,sans-serif;font-weight:800;font-size:16px;color:#F5F1E8">' + userName + '</div>' +
+    '<div style="font-size:11px;color:#FBBA00;font-family:JetBrains Mono,monospace;font-weight:700">⭐ ' + tokens + ' DrawPass</div></div>' +
+    '<div style="color:#8a82a8;font-size:16px">›</div>' +
+    '</div>';
+  drawer.appendChild(header);
+  
+  // Build menu items dynamically
+  function makeItem(icon, label, sub, onClick, badge){
+    var item = document.createElement("button");
+    item.style.cssText = "width:100%;display:flex;align-items:center;gap:12px;padding:14px 20px;background:none;border:none;color:#F5F1E8;cursor:pointer;text-align:left;border-bottom:1px solid rgba(255,255,255,0.04);font-family:Geist,sans-serif;transition:background .15s";
+    item.onmouseover = function(){this.style.background="rgba(255,255,255,0.03)";};
+    item.onmouseout = function(){this.style.background="none";};
+    var iconWrap = '<div style="width:38px;height:38px;border-radius:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;color:#F5F1E8">' + icon + '</div>';
+    var info = '<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px;color:#F5F1E8">' + label + '</div>' + (sub ? '<div style="font-size:11px;color:#8a82a8;margin-top:2px">' + sub + '</div>' : '') + '</div>';
+    var badgeHTML = badge ? '<div style="background:linear-gradient(135deg,#B872E0,#FBBA00);color:#1c1b29;font-size:10px;font-weight:800;padding:3px 8px;border-radius:50px;font-family:JetBrains Mono,monospace">' + badge + '</div>' : '';
+    item.innerHTML = iconWrap + info + badgeHTML;
+    item.onclick = function(){ closeHamburger(); setTimeout(onClick, 80); };
+    return item;
+  }
+  
+  // Section: Navigation
+  var navSection = document.createElement("div");
+  navSection.style.cssText = "padding:8px 0";
+  
+  var dailyDone = isDailyDone();
+  navSection.appendChild(makeItem("🏠","Home","Dashboard principale", function(){ navTo("dashboard"); }));
+  navSection.appendChild(makeItem("📅","Lezione del giorno", dailyDone?"Completata":"Da fare oggi", function(){ openDailyLesson(); }, dailyDone?"✓":"•"));
+  navSection.appendChild(makeItem("🖼️","Feed","Galleria community", function(){ navTo("feed"); }));
+  navSection.appendChild(makeItem("🎯","Skill Tree","Tutte le lezioni", function(){ navTo("home"); }));
+  navSection.appendChild(makeItem("🏛️","Botteghe","Gilde private", function(){ navTo("botteghe"); }));
+  navSection.appendChild(makeItem("💬","Chat","Messaggi privati", function(){ navTo("chat"); }));
+  navSection.appendChild(makeItem("🏆","Badge","Achievement sbloccati", function(){ navTo("badges"); }));
+  navSection.appendChild(makeItem("🔍","Cerca","Utenti e post", function(){ navTo("search"); }));
+  drawer.appendChild(navSection);
+  
+  // Section: Settings
+  var divider1 = document.createElement("div");
+  divider1.style.cssText = "padding:8px 20px;background:rgba(255,255,255,0.02)";
+  divider1.innerHTML = '<div style="font-family:JetBrains Mono,monospace;font-size:9px;letter-spacing:2px;color:#6e6791;text-transform:uppercase;font-weight:700">IMPOSTAZIONI</div>';
+  drawer.appendChild(divider1);
+  
+  var settingsSection = document.createElement("div");
+  settingsSection.style.cssText = "padding:8px 0";
+  settingsSection.appendChild(makeItem("👤","Profilo","Modifica le tue info", function(){ navTo("profile"); }));
+  settingsSection.appendChild(makeItem("⚙️","Impostazioni","Lingua, tema, privacy", function(){ navTo("profile"); setTimeout(function(){ if(typeof switchProfileTab==="function") switchProfileTab("settings"); }, 200); }));
+  settingsSection.appendChild(makeItem("✨","Sblocca PRO","Tutte le funzioni premium", function(){ navTo("paywall"); }));
+  drawer.appendChild(settingsSection);
+  
+  // Section: Account
+  var divider2 = document.createElement("div");
+  divider2.style.cssText = "padding:8px 20px;background:rgba(255,255,255,0.02)";
+  divider2.innerHTML = '<div style="font-family:JetBrains Mono,monospace;font-size:9px;letter-spacing:2px;color:#6e6791;text-transform:uppercase;font-weight:700">ACCOUNT</div>';
+  drawer.appendChild(divider2);
+  
+  var accountSection = document.createElement("div");
+  accountSection.style.cssText = "padding:8px 0 24px";
+  accountSection.appendChild(makeItem("🚪","Esci","Disconnetti il tuo account", function(){
+    if(confirm("Sei sicuro di voler uscire?")){
+      try{ localStorage.removeItem("dl:uid"); localStorage.removeItem("dl:user"); }catch(e){}
+      A.user = null;
+      A.profile = null;
+      showScreen("auth");
+      hideBottomNav();
+    }
+  }));
+  drawer.appendChild(accountSection);
+  
+  // Version footer
+  var footer = document.createElement("div");
+  footer.style.cssText = "padding:12px 20px 24px;text-align:center;color:#6e6791;font-size:10px;font-family:JetBrains Mono,monospace";
+  footer.textContent = "DrawBound v3.0";
+  drawer.appendChild(footer);
+  
+  backdrop.appendChild(drawer);
+  document.body.appendChild(backdrop);
+}
+
+function closeHamburger(){
+  var overlay = document.getElementById("hamburger-overlay");
+  if(overlay){
+    var drawer = document.getElementById("hamburger-drawer");
+    if(drawer){
+      drawer.style.animation = "slideOutRight 0.2s ease-in";
+    }
+    overlay.style.animation = "fadeOut 0.2s ease-in";
+    setTimeout(function(){ if(overlay && overlay.parentNode) overlay.remove(); }, 200);
+  }
 }
 
 function init(){

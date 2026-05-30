@@ -5,7 +5,7 @@
 <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>DrawBound</title>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Geist:wght@300;400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=v66-1780123672"/>
+<link rel="stylesheet" href="style.css?v=v67-1780125160"/>
   <!-- PayPal SDK: sostituisci YOUR_PAYPAL_CLIENT_ID con il tuo Client ID da developer.paypal.com -->
   <!-- PayPal SDK loaded dynamically when needed -->
   <!-- PWA -->
@@ -173,11 +173,13 @@
     <div onclick="navTo('profile')" id="dash-avatar" style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#814393,#FBBA00);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:16px;cursor:pointer;flex-shrink:0">G</div>
   </div>
 
-  <!-- Action icons row (search, chat, settings) -->
+  <!-- Action icons row (search, chat, hamburger) -->
   <div style="padding:12px 16px;display:flex;gap:8px;justify-content:flex-end">
     <button onclick="navTo('search')" style="width:36px;height:36px;border-radius:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);color:#F5F1E8;font-size:15px;cursor:pointer">🔍</button>
     <button onclick="navTo('chat')" style="width:36px;height:36px;border-radius:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);color:#F5F1E8;font-size:15px;cursor:pointer;position:relative">💬<span id="dash-chat-badge" style="display:none;position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:#FBBA00"></span></button>
-    <button onclick="openSettings()" style="width:36px;height:36px;border-radius:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);color:#F5F1E8;font-size:15px;cursor:pointer">⚙️</button>
+    <button onclick="openHamburger()" style="width:36px;height:36px;border-radius:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);color:#F5F1E8;cursor:pointer;display:flex;align-items:center;justify-content:center" title="Menu">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
   </div>
 
   <!-- STREAK BAR -->
@@ -823,7 +825,7 @@
   </div>
   <div id="challenges-content" style="max-width:640px;margin:0 auto;padding:16px"></div>
 </div>
-<script src="app.js?v=v66-1780123672" defer></script>
+<script src="app.js?v=v67-1780125160" defer></script>
 
 <!-- BOTTOM NAV (Facebook style) -->
 <!-- BADGES -->

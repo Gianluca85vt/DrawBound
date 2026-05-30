@@ -1117,3 +1117,39 @@ div[style*="color:#FFD60A"] {
 @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+
+/* ── BOTTOM NAV ACTIVE STATE (forced via class) ── */
+.nav-tab {
+  color: #8a82a8 !important;
+  opacity: 0.6;
+  transition: color 0.15s, opacity 0.15s;
+}
+.nav-tab.nav-active {
+  color: #FBBA00 !important;
+  opacity: 1 !important;
+}
+.nav-tab svg {
+  stroke: currentColor;
+  transition: stroke 0.15s;
+}
+.nav-tab.nav-active svg {
+  stroke: #FBBA00 !important;
+}
+.nav-tab .nav-label {
+  color: inherit !important;
+}
+
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+@keyframes slideOutRight {
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
+}
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
