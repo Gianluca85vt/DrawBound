@@ -7200,14 +7200,21 @@ function closeHamburger(){
 async function loadBottegaPosts(bottegaId){
   if(!sbReady()) return [];
   try{
-    var posts = await sbFetch("GET","dl_bottega_posts",{
+    console.log("[bottega] loading posts for bottega:", bottegaId);
+    var posts = await sbFetchStrict("GET","dl_bottega_posts",{
       filters:"bottega_id=eq."+bottegaId,
       order:"created_at.desc",
       limit:50
     });
+    console.log("[bottega] loaded", (posts||[]).length, "posts");
     return posts || [];
   }catch(e){
-    console.warn("loadBottegaPosts error:", e);
+    console.error("[bottega] loadBottegaPosts error:", e);
+    if(e.message && e.message.indexOf("does not exist") >= 0){
+      showToast("Tabella dl_bottega_posts non esiste","");
+    } else if(e.message && e.message.indexOf("relation") >= 0){
+      showToast("Tabella non creata - controlla Supabase","");
+    }
     return [];
   }
 }
@@ -7472,7 +7479,7 @@ async function submitBottegaPost(bottegaId, file, caption){
     console.log("[bottega] image url:", imageUrl);
     if(!imageUrl) return "upload immagine fallito (verifica bucket Posts)";
     console.log("[bottega] saving row to dl_bottega_posts...");
-    await sbFetch("POST","dl_bottega_posts",{body:{
+    await sbFetchStrict("POST","dl_bottega_posts",{body:{
       bottega_id: bottegaId,
       user_id: A.user.id,
       user_name: A.user.name || "Membro",
@@ -7489,14 +7496,25 @@ async function submitBottegaPost(bottegaId, file, caption){
     showToast("Post pubblicato!", "");
     return true;
   }catch(e){
-    console.error("[bottega] error:", e);
+    console.error("[bottega] submitBottegaPost error:", e);
     var msg = e.message || String(e) || "errore sconosciuto";
-    if(msg.indexOf("dl_bottega_posts")>=0 || msg.indexOf("relation")>=0 || msg.indexOf("does not exist")>=0)
-      return "tabella dl_bottega_posts non creata - esegui lo SQL su Supabase";
+    // Map common errors to readable messages
+    if(msg.indexOf("dl_bottega_posts") >= 0 && msg.indexOf("does not exist") >= 0)
+      return "Tabella dl_bottega_posts NON ESISTE. Esegui SQL su Supabase.";
+    if(msg.indexOf("relation") >= 0 && msg.indexOf("does not exist") >= 0)
+      return "Tabella non trovata. Verifica SQL su Supabase.";
+    if(msg.indexOf("HTTP 401") >= 0) return "Non autenticato (controlla API key)";
+    if(msg.indexOf("HTTP 403") >= 0) return "Permesso negato. Controlla policy RLS.";
+    if(msg.indexOf("HTTP 404") >= 0) return "Endpoint non trovato. Tabella inesistente?";
+    if(msg.indexOf("HTTP 409") >= 0) return "Conflitto: forse colonna mancante";
+    if(msg.indexOf("HTTP 400") >= 0){
+      // Try to extract specific column error
+      if(msg.indexOf("column") >= 0) return "Colonna inesistente: " + msg.slice(msg.indexOf("column"), msg.indexOf("column")+80);
+      return "Richiesta malformata. Vedi console (F12).";
+    }
     if(msg.indexOf("bucket")>=0||msg.indexOf("Bucket")>=0||msg.indexOf("storage")>=0)
-      return "bucket Posts non accessibile";
-    if(msg.indexOf("403")>=0) return "permesso negato (RLS)";
-    return msg.slice(0, 130);
+      return "Bucket Posts non accessibile";
+    return "Errore: " + msg.slice(0, 180);
   }
 }
 
@@ -7725,6 +7743,41 @@ function getCurrentPersona(){
   if(!A.user) return "me";
   if(A.user.is_persona && A.user.id) return A.user.id;
   return "me";
+}
+
+/* Strict sbFetch that THROWS with actual server error message */
+async function sbFetchStrict(method, table, opts){
+  opts = opts || {};
+  var tableParts = table.split("?");
+  var url = SB_URL + "/rest/v1/" + tableParts[0];
+  var qs = tableParts[1] ? [tableParts[1]] : [];
+  if(opts.select)  qs.push("select=" + opts.select);
+  if(opts.filters) qs.push(opts.filters);
+  if(opts.order)   qs.push("order=" + opts.order);
+  if(opts.limit)   qs.push("limit=" + opts.limit);
+  if(qs.length)    url += "?" + qs.join("&");
+  var headers = {
+    "apikey": SB_KEY,
+    "Authorization": "Bearer " + SB_KEY,
+    "Content-Type": "application/json"
+  };
+  if(method === "POST")  headers["Prefer"] = "return=representation";
+  if(method === "PATCH") headers["Prefer"] = "return=representation";
+  if(method === "DELETE") headers["Prefer"] = "return=minimal";
+  var res = await fetch(url, {
+    method: method,
+    headers: headers,
+    body: opts.body ? JSON.stringify(opts.body) : undefined
+  });
+  if(!res.ok){
+    var errText = await res.text();
+    console.error("[Supabase " + res.status + "]", errText, "URL:", url);
+    throw new Error("HTTP " + res.status + " - " + errText.slice(0, 200));
+  }
+  if(res.status === 204) return true;
+  var ct = res.headers.get("content-type") || "";
+  if(ct.indexOf("application/json") >= 0) return res.json();
+  return res.text();
 }
 
 function init(){
