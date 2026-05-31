@@ -1883,12 +1883,6 @@ async function loadProfilePosts(cont){
       d.addEventListener("touchend", function(){ if(lpTimer){ clearTimeout(lpTimer); lpTimer=null; } });
       d.addEventListener("touchmove", function(){ if(lpTimer){ clearTimeout(lpTimer); lpTimer=null; } });
       d.addEventListener("contextmenu", function(e){ e.preventDefault(); openPostActions(p, !!p._isBottegaPost, function(){ loadProfilePosts(cont); }); });
-      // Visual hint: a small 3-dot button
-      var dots = document.createElement("button");
-      dots.style.cssText = "position:absolute;top:6px;right:6px;width:28px;height:28px;border-radius:8px;background:rgba(0,0,0,0.55);backdrop-filter:blur(4px);border:none;color:#fff;font-size:14px;cursor:pointer;font-weight:800;line-height:1;z-index:2;display:flex;align-items:center;justify-content:center";
-      dots.textContent = "⋯";
-      dots.onclick = function(e){ e.stopPropagation(); openPostActions(p, !!p._isBottegaPost, function(){ loadProfilePosts(cont); }); };
-      d.appendChild(dots);
     }
     grid.appendChild(d);
   });
@@ -2476,7 +2470,7 @@ function buildPostCard(post, liked){
   var img = document.createElement("img");
   img.src = post.image_url; img.loading = "lazy";
   img.style.cssText = "width:100%;display:block;max-height:480px;object-fit:cover";
-    img.onclick=function(e){e.stopPropagation();var lb=document.createElement("div");lb.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;cursor:pointer";lb.onclick=function(){lb.remove();};var fi=document.createElement("img");fi.src=img.src;fi.style.cssText="max-width:100%;max-height:90vh;object-fit:contain;border-radius:12px";lb.appendChild(fi);document.body.appendChild(lb);};
+
   imgWrap.appendChild(img); card.appendChild(imgWrap);
 
   /* ── Actions ── */
@@ -9832,7 +9826,14 @@ async function reportContent(contentType, contentId, reportedUserId, reasonId, d
     return true;
   }catch(e){
     console.error("reportContent:", e);
-    if(typeof showToast === "function") showToast("Errore: "+(e.message||"sconosciuto"),"");
+    var msg = e.message || String(e) || "errore sconosciuto";
+    // Detect missing table
+    if(msg.indexOf("dl_reports") >= 0 || msg.indexOf("relation") >= 0 || msg.indexOf("404") >= 0){
+      msg = "Tabella dl_reports non creata - esegui SQL setup";
+    } else if(msg.indexOf("403") >= 0){
+      msg = "Permesso negato - verifica RLS policies";
+    }
+    if(typeof showToast === "function") showToast(msg.slice(0,100),"");
     return false;
   }
 }
@@ -9876,12 +9877,28 @@ function openReportSheet(contentType, contentId, reportedUserId){
     btn.style.cssText = "width:100%;padding:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;color:#F5F1E8;font-weight:700;font-size:13px;cursor:pointer;font-family:Geist,sans-serif;display:flex;align-items:center;gap:12px;margin-bottom:8px;text-align:left";
     btn.innerHTML = '<span style="font-size:18px;flex-shrink:0">' + r.icon + '</span><span style="flex:1">' + r.label + '</span><span style="color:#8a82a8">\u203A</span>';
     btn.onclick = async function(){
-      overlay.remove();
-      try{history.back();}catch(e){}
+      // Loading state - DON'T close the sheet yet
+      var origHTML = btn.innerHTML;
+      btn.disabled = true;
+      btn.style.opacity = "0.6";
+      btn.style.cursor = "wait";
+      btn.innerHTML = '<span style="font-size:18px;flex-shrink:0">⏳</span><span style="flex:1">Invio in corso...</span>';
+      
       var ok = await reportContent(contentType, contentId, reportedUserId, r.id, "");
-      if(ok && reportedUserId){
-        // Offer to block as well
-        setTimeout(function(){ confirmBlockUser(reportedUserId); }, 600);
+      
+      if(ok){
+        // Success - close sheet, then offer block
+        try{ overlay.remove(); }catch(e){}
+        try{ history.back(); }catch(e){}
+        if(reportedUserId){
+          setTimeout(function(){ confirmBlockUser(reportedUserId); }, 600);
+        }
+      } else {
+        // Failure - restore button so user can retry
+        btn.disabled = false;
+        btn.style.opacity = "1";
+        btn.style.cursor = "pointer";
+        btn.innerHTML = origHTML;
       }
     };
     sheet.appendChild(btn);
