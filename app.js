@@ -2422,7 +2422,15 @@ async function renderFeed(){
 function buildPostCard(post, liked){
   var timeAgo = getTimeAgo(new Date(post.created_at));
   var card = document.createElement("div");
-  card.style.cssText = "background:#161525;margin-bottom:2px;border-bottom:1px solid rgba(255,255,255,.05)";
+  // Detect challenge submission: explicit challenge_id, hashtags, or caption mention
+  var isChallengeSubmission = !!post.challenge_id ||
+    (post.tags && (post.tags.indexOf("#DrawBound")>=0 || post.tags.indexOf("#sfida")>=0 || post.tags.indexOf("#DTIYS")>=0)) ||
+    (post.caption && post.caption.toLowerCase().indexOf("sfida")>=0);
+  if(isChallengeSubmission){
+    card.style.cssText = "background:linear-gradient(135deg,rgba(255,61,165,0.06),rgba(184,114,224,0.04));margin-bottom:12px;border:2px solid #FF3DA5;border-radius:18px;box-shadow:0 0 28px rgba(255,61,165,0.25),inset 0 0 0 1px rgba(255,61,165,0.10);overflow:hidden";
+  } else {
+    card.style.cssText = "background:#161525;margin-bottom:2px;border-bottom:1px solid rgba(255,255,255,.05)";
+  }
 
   /* ── Header ── */
   var header = document.createElement("div");
@@ -2433,8 +2441,8 @@ function buildPostCard(post, liked){
   avatar.onclick = function(){ openPubProfile(post.user_id, post.user_name); };
   var userInfo = document.createElement("div"); userInfo.style.flex = "1";
   var userName = document.createElement("div");
-  userName.style.cssText = "font-weight:800;font-size:13px;color:#fff;cursor:pointer";
-  userName.textContent = post.user_name;
+  userName.style.cssText = "font-weight:800;font-size:13px;color:#fff;cursor:pointer;display:flex;align-items:center;gap:6px";
+  userName.innerHTML = '<span>' + post.user_name + '</span>' + (isChallengeSubmission ? '<span style="background:linear-gradient(135deg,#FF3DA5,#B872E0);color:#fff;font-size:9px;font-weight:800;padding:2px 7px;border-radius:50px;font-family:JetBrains Mono,monospace;letter-spacing:0.5px">SFIDA</span>' : '');
   userName.style.cursor="pointer"; userName.onclick=function(e){e.stopPropagation();openPubProfile(post.user_id,post.user_name);};
   userName.onclick = function(){ openPubProfile(post.user_id, post.user_name); };
   var userMeta = document.createElement("div");
@@ -2443,11 +2451,21 @@ function buildPostCard(post, liked){
   userInfo.appendChild(userName); userInfo.appendChild(userMeta);
   header.appendChild(avatar); header.appendChild(userInfo);
   if(A.user && post.user_id===A.user.id){
-    var delBtn = document.createElement("button");
-    delBtn.style.cssText = "background:none;border:none;color:#9896B8;font-size:18px;cursor:pointer;padding:0";
-    delBtn.textContent = "⋯";
-    delBtn.onclick = function(){ deletePost(post.id); };
-    header.appendChild(delBtn);
+    var actBtn = document.createElement("button");
+    actBtn.style.cssText = "width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);color:#a8a2c8;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:800;line-height:1;flex-shrink:0";
+    actBtn.textContent = "⋯";
+    actBtn.onclick = function(e){
+      e.stopPropagation();
+      if(typeof openPostActions === "function"){
+        openPostActions(post, false, function(){
+          // Re-render the feed after change/delete
+          if(typeof renderFeed === "function") renderFeed();
+        });
+      } else if(typeof deletePost === "function"){
+        deletePost(post.id);
+      }
+    };
+    header.appendChild(actBtn);
   }
   card.appendChild(header);
 
@@ -2633,7 +2651,7 @@ async function publishPost(){
     var location = document.getElementById("post-location").value.trim();
     var lessonId = A.lesson ? (A.cat&&A.cat.id||"")+(A.lesson.id||"") : "";
 
-    await sbFetch("POST","dl_posts",{body:{
+    var postBody = {
       user_id: A.user.id,
       user_name: A.user.name,
       user_avatar: A.user.avatar||"👤",
@@ -2645,7 +2663,17 @@ async function publishPost(){
       likes_count: 0,
       comments_count: 0,
       created_at: new Date().toISOString()
-    }});
+    };
+    // If this is a community challenge submission, tag it
+    var willBeChallenge = _activeChallengeId || 
+      (tags && (tags.indexOf("#DrawBound")>=0 || tags.indexOf("#sfida")>=0 || tags.indexOf("#DTIYS")>=0)) ||
+      (caption && (caption.toLowerCase().indexOf("sfida")>=0));
+    if(willBeChallenge && _activeChallengeId){
+      postBody.challenge_id = _activeChallengeId;
+    } else if(willBeChallenge){
+      postBody.challenge_id = "feed_tag"; // flag for hashtag submissions
+    }
+    await sbFetch("POST","dl_posts",{body: postBody});
 
     closeNewPost();
     // Detect challenge submission via tags or active flag
@@ -2709,6 +2737,21 @@ async function openPostDetail(postId){
   hideBottomNav();
   var content = document.getElementById("post-detail-content");
   content.innerHTML='<div style="text-align:center;padding:40px;color:#9896B8">Caricamento...</div>';
+    // Wire up the 3-dot button
+    if(isMyPost){
+      var pdDots = document.getElementById("post-detail-dots");
+      if(pdDots){
+        pdDots.onclick = function(e){
+          e.stopPropagation();
+          openPostActions(post, false, function(){
+            // After action, close the modal if post was deleted
+            document.getElementById("modal-post-detail").style.display = "none";
+            if(typeof showBottomNav === "function") showBottomNav();
+            if(typeof renderProfile === "function") renderProfile();
+          });
+        };
+      }
+    }
   try {
     var posts = await sbFetch("GET","dl_posts",{filters:"id=eq."+postId});
     var comments = await sbFetch("GET","dl_comments",{filters:"post_id=eq."+postId,order:"created_at.asc"});
@@ -2717,8 +2760,10 @@ async function openPostDetail(postId){
     var myLikes=[];
     if(A.user){ var l=await sbFetch("GET","dl_likes",{filters:"user_id=eq."+A.user.id+"&post_id=eq."+postId}); if(l) myLikes=l.map(function(x){return x.post_id;}); }
     var liked = myLikes.indexOf(postId) > -1;
+    var isMyPost = (A.user && post.user_id === A.user.id);
+    var dotsBtn = isMyPost ? '<button id="post-detail-dots" style="position:absolute;top:14px;right:14px;width:34px;height:34px;border-radius:10px;background:rgba(0,0,0,0.55);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.15);color:#fff;font-size:18px;cursor:pointer;z-index:5;font-weight:800;display:flex;align-items:center;justify-content:center">\u22EF</button>' : '';
     content.innerHTML =
-      '<img src="'+post.image_url+'" style="width:100%;display:block;max-height:400px;object-fit:cover"/>'+
+      '<div style="position:relative">' + dotsBtn + '<img src="'+post.image_url+'" style="width:100%;display:block;max-height:400px;object-fit:cover"/></div>'+
       '<div style="padding:14px 16px">'+
         '<div style="display:flex;gap:16px;margin-bottom:12px">'+
           '<button id="like-btn-'+post.id+'" onclick="toggleLike(\"'+post.id+'\")" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:5px;color:'+( liked?"#e74c3c":"#9896B8")+';font-weight:700;font-size:14px">'+
@@ -6817,6 +6862,7 @@ async function openBottega(bottegaId){
       var timeLeft = getChallengeTimeLeft();
       
       var chlCard = document.createElement("div");
+      chlCard.setAttribute("data-challenge-card", "1");
       chlCard.style.cssText = "margin:0 16px 16px;background:linear-gradient(135deg,rgba(251,186,0,0.10),rgba(255,140,75,0.06));border:1px solid " + (alreadyDone?"rgba(102,224,181,0.30)":"rgba(251,186,0,0.40)") + ";border-radius:18px;padding:16px;cursor:" + (alreadyDone?"default":"pointer") + ";transition:transform .12s";
       
       var headerRow = document.createElement("div");
@@ -6852,7 +6898,7 @@ async function openBottega(bottegaId){
         var actBtn = document.createElement("button");
         actBtn.style.cssText = "padding:8px 16px;background:linear-gradient(135deg,#FBBA00,#FF9500);border:none;border-radius:50px;color:#15102a;font-weight:800;font-size:12px;cursor:pointer;font-family:Geist,sans-serif";
         actBtn.textContent = "Partecipa  →";
-        actBtn.onclick = function(e){ e.stopPropagation(); openChallengeSubmit(challenge, bottegaId); };
+        actBtn.onclick = function(e){ e.stopPropagation(); openBottegaChallengeSubmit(challenge, bottegaId); };
         bottomRow.appendChild(actBtn);
       } else {
         var doneChip = document.createElement("div");
@@ -6864,7 +6910,7 @@ async function openBottega(bottegaId){
       chlCard.appendChild(bottomRow);
       
       if(!alreadyDone){
-        chlCard.onclick = function(){ openChallengeSubmit(challenge, bottegaId); };
+        chlCard.onclick = function(){ openBottegaChallengeSubmit(challenge, bottegaId); };
       }
       
       container.appendChild(chlCard);
@@ -8220,7 +8266,7 @@ function getChallengeTimeLeft(){
   return mins + " min";
 }
 
-function openChallengeSubmit(challenge, bottegaId){
+function openBottegaChallengeSubmit(challenge, bottegaId){
   if(!A.user){ showToast("Accedi prima",""); return; }
   if(!isMemberOf(bottegaId)){ showToast("Devi essere membro",""); return; }
   
@@ -8323,12 +8369,28 @@ async function showChallengePreview(challenge, bottegaId, file){
     if(result === true){
       overlay.remove();
       try{ history.back(); }catch(e){}
-      // Brief delay so localStorage writes flush, then full re-render of bottega
+      // CRITICAL: ensure localStorage is committed BEFORE re-render
+      // Force a re-render by clearing state and calling openBottega
       setTimeout(function(){
-        // Force full re-fetch by clearing cached state
-        if(A && A.currentBottega) A.currentBottega = null;
+        try{
+          // Direct DOM update first (immediate feedback)
+          var cur = document.getElementById("scr-bottega");
+          if(cur){
+            // Find and update the challenge card if visible
+            var existingChlCard = cur.querySelector("[data-challenge-card]");
+            if(existingChlCard){
+              existingChlCard.style.background = "linear-gradient(135deg,rgba(102,224,181,0.10),rgba(102,224,181,0.04))";
+              existingChlCard.style.borderColor = "rgba(102,224,181,0.40)";
+              existingChlCard.style.cursor = "default";
+              existingChlCard.onclick = null;
+              existingChlCard.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div style="font-family:JetBrains Mono,monospace;font-size:10px;letter-spacing:2px;color:#66E0B5;font-weight:800;text-transform:uppercase">SFIDA COMPLETATA</div><div style="background:rgba(102,224,181,0.15);border-radius:50px;padding:3px 10px;font-size:11px;color:#66E0B5;font-weight:800">\u2713</div></div><div style="font-family:Bricolage Grotesque,sans-serif;font-weight:800;font-size:17px;color:#F5F1E8;letter-spacing:-0.01em">Hai partecipato!</div><div style="font-size:12px;color:#a8a2c8;line-height:1.5;margin-top:4px">Torna lunedi prossimo per la nuova sfida.</div>';
+            }
+          }
+        }catch(e){console.warn(e);}
+        // Then full re-render to refresh the feed with the new submission
+        if(A) A.currentBottega = null;
         if(typeof openBottega === "function") openBottega(bottegaId);
-      }, 200);
+      }, 300);
     } else {
       submitBtn.disabled = false;
       submitBtn.textContent = "Riprova";
@@ -9250,6 +9312,8 @@ async function spendTokens(amount, reason){
 function openDailyStreakCalendar(){
   try{ history.pushState({dlApp:true, overlay:"streak-cal"}, "", ""); }catch(e){}
   
+  var viewMode = "timeline"; // "timeline" | "calendar"
+  
   var overlay = document.createElement("div");
   overlay.id = "streak-cal-overlay";
   overlay.style.cssText = "position:fixed;inset:0;z-index:10002;background:#15102a;overflow-y:auto;animation:fadeIn 0.2s ease-out";
@@ -9267,7 +9331,6 @@ function openDailyStreakCalendar(){
   titleEl.style.flex = "1";
   header.appendChild(titleEl);
   
-  // Streak stat
   var streak = (typeof getDailyStreak === "function") ? getDailyStreak() : 0;
   var streakChip = document.createElement("div");
   streakChip.style.cssText = "background:rgba(228,76,60,0.15);border:1px solid rgba(228,76,60,0.40);border-radius:50px;padding:5px 12px;display:flex;align-items:center;gap:5px;font-weight:800;font-size:13px;color:#E07172";
@@ -9275,15 +9338,50 @@ function openDailyStreakCalendar(){
   header.appendChild(streakChip);
   overlay.appendChild(header);
   
-  // Stats summary
+  // View toggle
+  var toggleRow = document.createElement("div");
+  toggleRow.style.cssText = "padding:14px 16px 0;display:flex;gap:8px";
+  
+  function makeToggleBtn(label, mode){
+    var b = document.createElement("button");
+    b.dataset.mode = mode;
+    b.textContent = label;
+    b.style.cssText = "flex:1;padding:10px;border-radius:12px;font-family:Geist,sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all .15s";
+    return b;
+  }
+  
+  function applyToggleStyles(){
+    toggleRow.querySelectorAll("button").forEach(function(b){
+      if(b.dataset.mode === viewMode){
+        b.style.background = "linear-gradient(135deg,#B872E0,#FBBA00)";
+        b.style.color = "#15102a";
+        b.style.border = "none";
+      } else {
+        b.style.background = "rgba(255,255,255,0.04)";
+        b.style.color = "#a8a2c8";
+        b.style.border = "1px solid rgba(255,255,255,0.08)";
+      }
+    });
+  }
+  
+  var tlBtn = makeToggleBtn("\u23F1\uFE0F Timeline", "timeline");
+  var calBtn = makeToggleBtn("\u{1F4C5} Calendario", "calendar");
+  tlBtn.onclick = function(){ viewMode = "timeline"; applyToggleStyles(); renderContent(); };
+  calBtn.onclick = function(){ viewMode = "calendar"; applyToggleStyles(); renderContent(); };
+  toggleRow.appendChild(tlBtn);
+  toggleRow.appendChild(calBtn);
+  applyToggleStyles();
+  overlay.appendChild(toggleRow);
+  
+  // Stats
   var totalDone = 0;
   var thisMonthDone = 0;
   var now = new Date();
   var thisMonth = now.getMonth();
   var thisYear = now.getFullYear();
   try{
-    for(var i=0; i<localStorage.length; i++){
-      var k = localStorage.key(i);
+    for(var ki=0; ki<localStorage.length; ki++){
+      var k = localStorage.key(ki);
       if(k && k.indexOf("dl:daily_done_") === 0 && localStorage.getItem(k) === "1"){
         totalDone++;
         var datePart = k.replace("dl:daily_done_", "");
@@ -9303,78 +9401,168 @@ function openDailyStreakCalendar(){
     '<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:12px;text-align:center"><div style="font-family:Bricolage Grotesque,sans-serif;font-size:22px;font-weight:800;color:#66E0B5">' + totalDone + '</div><div style="font-family:JetBrains Mono,monospace;font-size:9px;letter-spacing:1.5px;color:#8a82a8;text-transform:uppercase;margin-top:3px">Totali</div></div>';
   overlay.appendChild(statsRow);
   
-  // Month-by-month calendar (last 3 months)
-  var calsWrap = document.createElement("div");
-  calsWrap.style.cssText = "padding:0 16px 30px";
+  // Content area (changes based on viewMode)
+  var contentArea = document.createElement("div");
+  contentArea.style.cssText = "padding:0 16px 30px";
+  overlay.appendChild(contentArea);
   
-  function makeMonthCal(monthOffset){
-    var d = new Date(thisYear, thisMonth + monthOffset, 1);
-    var monthName = d.toLocaleDateString("it-IT", { month: "long", year: "numeric" });
-    var daysInMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-    var firstDay = new Date(d.getFullYear(), d.getMonth(), 1).getDay() || 7; // Mon=1..Sun=7
-    
-    var card = document.createElement("div");
-    card.style.cssText = "background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:18px;padding:16px;margin-bottom:14px";
-    
-    var monthLabel = document.createElement("div");
-    monthLabel.style.cssText = "font-family:Bricolage Grotesque,sans-serif;font-weight:800;font-size:15px;color:#F5F1E8;text-transform:capitalize;margin-bottom:12px";
-    monthLabel.textContent = monthName;
-    card.appendChild(monthLabel);
-    
-    // Weekday headers
-    var weekdays = document.createElement("div");
-    weekdays.style.cssText = "display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:6px";
-    ["L","M","M","G","V","S","D"].forEach(function(w){
-      var h = document.createElement("div");
-      h.style.cssText = "text-align:center;font-family:JetBrains Mono,monospace;font-size:9px;color:#8a82a8;font-weight:700;letter-spacing:1px";
-      h.textContent = w;
-      weekdays.appendChild(h);
-    });
-    card.appendChild(weekdays);
-    
-    // Days grid
-    var grid = document.createElement("div");
-    grid.style.cssText = "display:grid;grid-template-columns:repeat(7,1fr);gap:4px";
-    
-    // Empty cells before first day (firstDay is Mon=1..Sun=7, we use 7 columns Mon-Sun)
-    for(var i=1; i<firstDay; i++){
-      var empty = document.createElement("div");
-      empty.style.cssText = "aspect-ratio:1";
-      grid.appendChild(empty);
-    }
-    
-    for(var day=1; day<=daysInMonth; day++){
-      var fullDate = d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(day).padStart(2,"0");
-      var done = false;
-      try{ done = localStorage.getItem("dl:daily_done_" + fullDate) === "1"; }catch(e){}
-      var isToday = (d.getMonth() === thisMonth && day === now.getDate() && monthOffset === 0);
-      var isFuture = monthOffset > 0 || (monthOffset === 0 && day > now.getDate());
-      
-      var cell = document.createElement("div");
-      var bg = done ? "linear-gradient(135deg,#E07172,#FBBA00)" : (isFuture ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.05)");
-      var border = isToday ? "2px solid #B872E0" : "1px solid rgba(255,255,255,0.06)";
-      var color = done ? "#fff" : (isFuture ? "#5a5478" : "#a8a2c8");
-      cell.style.cssText = "aspect-ratio:1;background:" + bg + ";border:" + border + ";border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:" + color + ";font-family:JetBrains Mono,monospace;position:relative";
-      cell.textContent = day;
-      if(done){
-        var dot = document.createElement("div");
-        dot.style.cssText = "position:absolute;bottom:3px;right:4px;width:5px;height:5px;border-radius:50%;background:#fff";
-        cell.appendChild(dot);
-      }
-      grid.appendChild(cell);
-    }
-    
-    card.appendChild(grid);
-    return card;
+  function fmtDate(d){
+    return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
   }
   
-  // Show current month + previous 2 months
-  calsWrap.appendChild(makeMonthCal(0));
-  calsWrap.appendChild(makeMonthCal(-1));
-  calsWrap.appendChild(makeMonthCal(-2));
+  function isDoneOn(date){
+    try{ return localStorage.getItem("dl:daily_done_" + fmtDate(date)) === "1"; }catch(e){ return false; }
+  }
   
-  overlay.appendChild(calsWrap);
+  function renderTimeline(){
+    contentArea.innerHTML = "";
+    var card = document.createElement("div");
+    card.style.cssText = "background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:18px;padding:16px";
+    
+    var label = document.createElement("div");
+    label.style.cssText = "font-family:Bricolage Grotesque,sans-serif;font-weight:800;font-size:15px;color:#F5F1E8;margin-bottom:14px";
+    label.textContent = "Ultime 2 settimane";
+    card.appendChild(label);
+    
+    // Horizontal scroll container
+    var scroll = document.createElement("div");
+    scroll.style.cssText = "display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none;-ms-overflow-style:none";
+    scroll.style.cssText += ";-webkit-overflow-scrolling:touch";
+    
+    var dayLabels = ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
+    var monthLabelsShort = ["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
+    
+    // Build 14 days ending today
+    var days = [];
+    for(var i=13; i>=0; i--){
+      var d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+      days.push(d);
+    }
+    
+    days.forEach(function(d){
+      var done = isDoneOn(d);
+      var isToday = (d.toDateString() === now.toDateString());
+      var col = document.createElement("div");
+      col.style.cssText = "min-width:56px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:6px";
+      
+      var dayName = document.createElement("div");
+      dayName.style.cssText = "font-family:JetBrains Mono,monospace;font-size:9px;color:#8a82a8;font-weight:700;letter-spacing:1px;text-transform:uppercase";
+      dayName.textContent = dayLabels[d.getDay()];
+      col.appendChild(dayName);
+      
+      var dot = document.createElement("div");
+      var bg = done ? "linear-gradient(135deg,#E07172,#FBBA00)" : "rgba(255,255,255,0.04)";
+      var border = isToday ? "2px solid #B872E0" : (done ? "none" : "1px solid rgba(255,255,255,0.08)");
+      dot.style.cssText = "width:48px;height:48px;border-radius:50%;background:" + bg + ";border:" + border + ";display:flex;align-items:center;justify-content:center;font-family:Bricolage Grotesque,sans-serif;font-weight:800;font-size:15px;color:" + (done ? "#fff" : (isToday ? "#B872E0" : "#a8a2c8")) + ";position:relative";
+      dot.textContent = d.getDate();
+      if(done){
+        var check = document.createElement("div");
+        check.style.cssText = "position:absolute;bottom:-2px;right:-2px;width:18px;height:18px;border-radius:50%;background:#66E0B5;border:2px solid #15102a;display:flex;align-items:center;justify-content:center;font-size:10px;color:#15102a;font-weight:800";
+        check.textContent = "\u2713";
+        dot.appendChild(check);
+      }
+      col.appendChild(dot);
+      
+      var monthLbl = document.createElement("div");
+      monthLbl.style.cssText = "font-size:10px;color:" + (done ? "#FBBA00" : "#8a82a8") + ";font-weight:600";
+      monthLbl.textContent = monthLabelsShort[d.getMonth()];
+      col.appendChild(monthLbl);
+      
+      scroll.appendChild(col);
+    });
+    
+    card.appendChild(scroll);
+    contentArea.appendChild(card);
+    
+    // Quick stats below
+    var doneIn14 = days.filter(isDoneOn).length;
+    var pct = Math.round((doneIn14 / 14) * 100);
+    
+    var bottomCard = document.createElement("div");
+    bottomCard.style.cssText = "background:linear-gradient(135deg,rgba(184,114,224,0.10),rgba(251,186,0,0.06));border:1px solid rgba(184,114,224,0.20);border-radius:18px;padding:16px;margin-top:14px;display:flex;align-items:center;gap:16px";
+    bottomCard.innerHTML = 
+      '<div style="flex-shrink:0;width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,0.05);border:2px solid rgba(184,114,224,0.30);display:flex;align-items:center;justify-content:center;font-family:Bricolage Grotesque,sans-serif;font-weight:800;font-size:18px;color:#FBBA00">' + pct + '%</div>' +
+      '<div><div style="font-family:Bricolage Grotesque,sans-serif;font-weight:800;font-size:16px;color:#F5F1E8;margin-bottom:3px">' + doneIn14 + ' di 14 giorni</div><div style="font-size:12px;color:#a8a2c8;line-height:1.5">Tasso di completamento di queste 2 settimane</div></div>';
+    contentArea.appendChild(bottomCard);
+    
+    // Auto-scroll to the end (today)
+    setTimeout(function(){
+      scroll.scrollLeft = scroll.scrollWidth;
+    }, 50);
+  }
   
+  function renderCalendar(){
+    contentArea.innerHTML = "";
+    
+    function makeMonthCal(monthOffset){
+      var d = new Date(thisYear, thisMonth + monthOffset, 1);
+      var monthName = d.toLocaleDateString("it-IT", { month: "long", year: "numeric" });
+      var daysInMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+      var firstDay = new Date(d.getFullYear(), d.getMonth(), 1).getDay() || 7;
+      
+      var card = document.createElement("div");
+      card.style.cssText = "background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:18px;padding:16px;margin-bottom:14px";
+      
+      var monthLabel = document.createElement("div");
+      monthLabel.style.cssText = "font-family:Bricolage Grotesque,sans-serif;font-weight:800;font-size:15px;color:#F5F1E8;text-transform:capitalize;margin-bottom:12px";
+      monthLabel.textContent = monthName;
+      card.appendChild(monthLabel);
+      
+      var weekdays = document.createElement("div");
+      weekdays.style.cssText = "display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:6px";
+      ["L","M","M","G","V","S","D"].forEach(function(w){
+        var h = document.createElement("div");
+        h.style.cssText = "text-align:center;font-family:JetBrains Mono,monospace;font-size:9px;color:#8a82a8;font-weight:700;letter-spacing:1px";
+        h.textContent = w;
+        weekdays.appendChild(h);
+      });
+      card.appendChild(weekdays);
+      
+      var grid = document.createElement("div");
+      grid.style.cssText = "display:grid;grid-template-columns:repeat(7,1fr);gap:4px";
+      
+      for(var ii=1; ii<firstDay; ii++){
+        var empty = document.createElement("div");
+        empty.style.cssText = "aspect-ratio:1";
+        grid.appendChild(empty);
+      }
+      
+      for(var day=1; day<=daysInMonth; day++){
+        var fullDate = d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(day).padStart(2,"0");
+        var done = false;
+        try{ done = localStorage.getItem("dl:daily_done_" + fullDate) === "1"; }catch(e){}
+        var isToday = (d.getMonth() === thisMonth && day === now.getDate() && monthOffset === 0);
+        var isFuture = monthOffset > 0 || (monthOffset === 0 && day > now.getDate());
+        
+        var cell = document.createElement("div");
+        var bg = done ? "linear-gradient(135deg,#E07172,#FBBA00)" : (isFuture ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.05)");
+        var border = isToday ? "2px solid #B872E0" : "1px solid rgba(255,255,255,0.06)";
+        var color = done ? "#fff" : (isFuture ? "#5a5478" : "#a8a2c8");
+        cell.style.cssText = "aspect-ratio:1;background:" + bg + ";border:" + border + ";border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:" + color + ";font-family:JetBrains Mono,monospace;position:relative";
+        cell.textContent = day;
+        if(done){
+          var dot2 = document.createElement("div");
+          dot2.style.cssText = "position:absolute;bottom:3px;right:4px;width:5px;height:5px;border-radius:50%;background:#fff";
+          cell.appendChild(dot2);
+        }
+        grid.appendChild(cell);
+      }
+      
+      card.appendChild(grid);
+      return card;
+    }
+    
+    contentArea.appendChild(makeMonthCal(0));
+    contentArea.appendChild(makeMonthCal(-1));
+    contentArea.appendChild(makeMonthCal(-2));
+  }
+  
+  function renderContent(){
+    if(viewMode === "timeline") renderTimeline();
+    else renderCalendar();
+  }
+  
+  renderContent();
   document.body.appendChild(overlay);
 }
 
