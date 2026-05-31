@@ -1835,6 +1835,17 @@ async function loadProfilePosts(cont){
     return;
   }
   cont.innerHTML="";
+  console.log("[loadProfilePosts] regular:", regular.length, "bottega:", botPosts.length, "total after merge:", posts.length);
+  // Filter out posts without image_url (broken data)
+  var valid = posts.filter(function(p){ return p && p.image_url; });
+  if(valid.length !== posts.length){
+    console.warn("[loadProfilePosts] filtered out " + (posts.length - valid.length) + " posts without image_url");
+  }
+  posts = valid;
+  if(!posts.length){
+    cont.innerHTML='<div style="text-align:center;padding:48px 20px"><div style="font-size:48px;margin-bottom:12px">\u{1F4F8}</div><div style="font-weight:800;color:#fff;margin-bottom:6px">Nessun post ancora</div><div style="color:#9896B8;font-size:13px">Pubblica il tuo primo disegno!</div></div>';
+    return;
+  }
   var grid=document.createElement("div");
   grid.style.cssText="display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px";
   posts.forEach(function(p){
@@ -1842,6 +1853,7 @@ async function loadProfilePosts(cont){
     d.style.cssText="aspect-ratio:1;overflow:hidden;cursor:pointer;position:relative;background:#161525";
     var img=document.createElement("img");
     img.src=p.image_url; img.loading="lazy";
+    img.onerror = function(){ d.style.display = "none"; }; // hide broken images
     img.style.cssText="width:100%;height:100%;object-fit:cover;display:block";
     var overlay=document.createElement("div");
     overlay.style.cssText="position:absolute;inset:0;background:rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s";
@@ -1849,7 +1861,14 @@ async function loadProfilePosts(cont){
     d.appendChild(img); d.appendChild(overlay);
     d.onmouseenter=function(){overlay.style.opacity="1";};
     d.onmouseleave=function(){overlay.style.opacity="0";};
-    d.onclick=function(){openPostDetail(p.id);};
+    d.onclick=function(){
+      if(p._isBottegaPost && p.bottega_id){
+        // Open the bottega and scroll to that post (best we can do)
+        if(typeof openBottega === "function") openBottega(p.bottega_id);
+      } else {
+        openPostDetail(p.id);
+      }
+    };
     grid.appendChild(d);
   });
   cont.appendChild(grid);
@@ -2574,6 +2593,11 @@ function onPostImageSelected(e){
 
 async function publishPost(){
   if(!_postImageFile){ showToast("Aggiungi una foto!",""); return; }
+  // Rate limit check (anti-spam)
+  var rlPost = checkRateLimit("post");
+  if(rlPost){ showToast(rlPost,""); return; }
+  var rlUpload = checkRateLimit("upload");
+  if(rlUpload){ showToast(rlUpload,""); return; }
   var btn=document.getElementById("publish-btn");
   btn.textContent="Pubblicazione..."; btn.disabled=true;
   try {
@@ -2630,7 +2654,9 @@ async function publishPost(){
       _activeChallengeId = null;
       window._currentBannerChallengeId = null;
     }
-    try{localStorage.setItem("dl:posted_any","1");}catch(e){} showToast("Post pubblicato!","🎨");
+    try{localStorage.setItem("dl:posted_any","1");}catch(e){}
+    recordRateAction("post"); recordRateAction("upload");
+    showToast("Post pubblicato!","🎨");
     navTo("feed");
   } catch(e){
     console.error("Publish error:", e);
@@ -3893,6 +3919,7 @@ function isTokenRewardClaimed(id){
 }
 
 function claimTokenReward(id, tokens){
+  tokens = parseInt(tokens) || 1; // defensive: never undefined/NaN
   var claimed=JSON.parse(localGet("dl:claimed")||"[]");
   if(claimed.indexOf(id)>-1) return false;
   claimed.push(id);
@@ -3954,7 +3981,7 @@ function renderDrawPass(){
         var btn=document.createElement("button");
         btn.style.cssText="background:linear-gradient(135deg,#FFD60A,#FF9500);border:none;border-radius:50px;padding:5px 12px;font-weight:800;font-size:11px;color:#fff;cursor:pointer";
         btn.textContent="Riscatta";
-        (function(rid,rtok){btn.onclick=function(){claimTokenReward(rid,rtok);renderDrawPass();};})(r.id,r.tokens);
+        (function(rid,rtok){btn.onclick=function(){claimTokenReward(rid,rtok);renderDrawPass();};})(r.id, (r.tokens || (r.id==="r_tok_1"?1:(r.id==="r_tok_2"?2:1))));
         action.appendChild(btn);
       } else if(claimed){
         action.innerHTML="<span style=\"font-size:11px;color:#3DBE7A;font-weight:700\">Riscattato</span>";
