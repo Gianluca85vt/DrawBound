@@ -5548,6 +5548,10 @@ function showSplash(){showScreen("splash");}
 
 /* ═══════════════ DASHBOARD (new Home) ═══════════════ */
 function renderDashboard(){
+  // Show onboarding tutorial on first dashboard render
+  if(A.user && typeof startOnboarding === "function" && !isOnboardingDone()){
+    setTimeout(function(){ startOnboarding(false); }, 600);
+  }
   // Validate progress
   try{
     var _p=localStorage.getItem("dl:progress_all");
@@ -7449,7 +7453,9 @@ function openHamburger(){
   
   var accountSection = document.createElement("div");
   accountSection.style.cssText = "padding:8px 0 24px";
+  accountSection.appendChild(makeItem("🎓","Rivedi tutorial","Mostra di nuovo l'introduzione", function(){ startOnboarding(true); }));
   accountSection.appendChild(makeItem("🚫","Utenti bloccati","Gestisci la tua lista", function(){ openBlockedUsersList(); }));
+  accountSection.appendChild(makeItem("📚","Tutorial introduttivo","Rivedi la guida iniziale", function(){ openTutorial(true); }));
   accountSection.appendChild(makeItem("🛡️","Privacy Policy","Come trattiamo i tuoi dati", function(){ showLegalModal("privacy"); }));
   accountSection.appendChild(makeItem("📜","Termini di Servizio","Le regole dell'app", function(){ showLegalModal("terms"); }));
   accountSection.appendChild(makeItem("🚪","Esci","Disconnetti il tuo account", function(){
@@ -10043,6 +10049,484 @@ function openBlockedUsersList(){
   });
 }
 
+/* ─── ONBOARDING TUTORIAL ─── */
+var TUTORIAL_STEPS = [
+  {
+    kicker: "01 / 06 - IMPARA",
+    icon: "🎯",
+    iconBg: "linear-gradient(135deg,#22c55e,#15803d)",
+    title: "Lezioni & Percorsi",
+    description: "Segui percorsi strutturati di disegno divisi per livello.\n\nOgni categoria ha le sue lezioni: Fondamentali (gratis), Character, Environment e Prop Design.\n\nCompleta una lezione, guadagni DrawToken, sblocchi quella successiva.",
+    accent: "#66E0B5",
+    bullets: [
+      "9 lezioni Fondamentali per iniziare",
+      "Categorie PRO con percorsi specializzati",
+      "Token come ricompensa per ogni completamento"
+    ]
+  },
+  {
+    kicker: "02 / 06 - COMMUNITY",
+    icon: "🎨",
+    iconBg: "linear-gradient(135deg,#8B5CF6,#6D28D9)",
+    title: "Il Feed",
+    description: "Il feed e il cuore sociale di DrawBound.\n\nPubblica i tuoi disegni, scorri quelli degli altri, metti like, commenta. Segui gli artisti che ti ispirano.\n\nUsa hashtag come #DrawBound per partecipare alle sfide community.",
+    accent: "#B872E0",
+    bullets: [
+      "Pubblica con il pulsante + al centro",
+      "Filtra tra Tutti / Seguiti",
+      "Modifica o elimina i tuoi post"
+    ]
+  },
+  {
+    kicker: "03 / 06 - COSTANZA",
+    icon: "🔥",
+    iconBg: "linear-gradient(135deg,#E07172,#FBBA00)",
+    title: "Daily Streak",
+    description: "Ogni giorno c'e una mini-lezione veloce nella dashboard.\n\nCompletala per tenere viva la tua streak quotidiana. Tap sulla card del fuoco per vedere il calendario.\n\nStreak lunghi sbloccano badge esclusivi.",
+    accent: "#E07172",
+    bullets: [
+      "Solo 5 minuti al giorno",
+      "Timeline e calendario con storico",
+      "+5 DrawToken ogni daily completata"
+    ]
+  },
+  {
+    kicker: "04 / 06 - COMPETIZIONE",
+    icon: "🏆",
+    iconBg: "linear-gradient(135deg,#FF3DA5,#B872E0)",
+    title: "Sfide e Daily Drawings",
+    description: "Le sfide settimanali community ti propongono un tema specifico.\n\nPartecipa pubblicando un post taggato come sfida, guadagni token extra. Le submission si riconoscono dal bordo fucsia.\n\nNelle botteghe esistono anche sfide private esclusive.",
+    accent: "#FF3DA5",
+    bullets: [
+      "Banner sfida community sul feed",
+      "Bordo fucsia sui post submission",
+      "Ricompense raddoppiate"
+    ]
+  },
+  {
+    kicker: "05 / 06 - PROGRESSIONE",
+    icon: "⭐",
+    iconBg: "linear-gradient(135deg,#FBBA00,#FF9500)",
+    title: "Diventa Esperto",
+    description: "Completa tutte le 9 lezioni Fondamentali per sbloccare:\n\n  - Modalita Redline: correggi i disegni degli altri direttamente sopra l'immagine\n  - Accesso alle Botteghe (gruppi esclusivi)\n  - Funzioni avanzate da mentor\n\nIl livello Esperto e la chiave per la community piu attiva.",
+    accent: "#FBBA00",
+    bullets: [
+      "9/9 Fondamentali = Esperto",
+      "Sblocca la modalita Redline",
+      "Accesso alle Botteghe dei Master"
+    ]
+  },
+  {
+    kicker: "06 / 06 - BOTTEGHE",
+    icon: "🏛️",
+    iconBg: "linear-gradient(135deg,#814393,#FBBA00)",
+    title: "Le Botteghe",
+    description: "Gruppi tematici fondati dai Founder Master (Sofia Ricci, Luca Ferretti).\n\nDentro hai un feed privato, chat di gruppo, sfide settimanali con bonus token e mentorship diretta del founder.\n\nOgni bottega ha i suoi requisiti di accesso (% completamento di una categoria).",
+    accent: "#814393",
+    bullets: [
+      "Feed e chat private della bottega",
+      "Sfide esclusive a doppia ricompensa",
+      "Mentorship diretta di Sofia e Luca"
+    ]
+  }
+];
+
+function openTutorial(force){
+  // Don't auto-show if already done, unless forced
+  if(!force){
+    try{ if(localStorage.getItem("dl:tutorial_done") === "1") return; }catch(e){}
+  }
+  
+  // Remove any existing tutorial overlay (defensive)
+  try{ var existing = document.getElementById("tutorial-overlay"); if(existing) existing.remove(); }catch(e){}
+  
+  try{ history.pushState({dlApp:true, overlay:"tutorial"}, "", ""); }catch(e){}
+  
+  var step = 0;
+  
+  var overlay = document.createElement("div");
+  overlay.id = "tutorial-overlay";
+  overlay.style.cssText = "position:fixed;inset:0;z-index:10006;background:#15102a;overflow:hidden;animation:fadeIn 0.25s ease-out;display:flex;flex-direction:column";
+  
+  // Header bar
+  var topBar = document.createElement("div");
+  topBar.style.cssText = "padding:14px 16px 0;display:flex;align-items:center;gap:10px;flex-shrink:0";
+  
+  // Progress dots
+  var progress = document.createElement("div");
+  progress.id = "tut-progress";
+  progress.style.cssText = "flex:1;display:flex;gap:4px";
+  for(var i=0; i<TUTORIAL_STEPS.length; i++){
+    var dot = document.createElement("div");
+    dot.style.cssText = "flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,0.10);transition:background .3s";
+    dot.id = "tut-dot-" + i;
+    progress.appendChild(dot);
+  }
+  topBar.appendChild(progress);
+  
+  var skipBtn = document.createElement("button");
+  skipBtn.style.cssText = "background:transparent;border:none;color:#8a82a8;font-size:13px;font-weight:700;font-family:Geist,sans-serif;cursor:pointer;padding:6px 10px;letter-spacing:0.5px";
+  skipBtn.textContent = "Salta";
+  skipBtn.onclick = function(){ completeTutorial(); };
+  topBar.appendChild(skipBtn);
+  
+  overlay.appendChild(topBar);
+  
+  // Scrollable content area
+  var scrollArea = document.createElement("div");
+  scrollArea.style.cssText = "flex:1;overflow-y:auto;padding:20px 20px 100px";
+  scrollArea.id = "tut-scroll";
+  overlay.appendChild(scrollArea);
+  
+  // Bottom buttons
+  var bottom = document.createElement("div");
+  bottom.style.cssText = "position:absolute;left:0;right:0;bottom:0;padding:14px 16px 24px;background:linear-gradient(180deg,rgba(21,16,42,0) 0%,#15102a 30%);display:flex;gap:10px";
+  
+  var prevBtn = document.createElement("button");
+  prevBtn.id = "tut-prev";
+  prevBtn.style.cssText = "padding:14px 18px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);border-radius:14px;color:#F5F1E8;font-weight:700;font-size:14px;cursor:pointer;font-family:Geist,sans-serif;display:flex;align-items:center;gap:6px";
+  prevBtn.innerHTML = "<span>\u2190</span><span>Indietro</span>";
+  prevBtn.onclick = function(){ if(step > 0){ step--; renderStep(); } };
+  bottom.appendChild(prevBtn);
+  
+  var nextBtn = document.createElement("button");
+  nextBtn.id = "tut-next";
+  nextBtn.style.cssText = "flex:1;padding:14px 18px;background:linear-gradient(135deg,#B872E0,#FBBA00);border:none;border-radius:14px;color:#15102a;font-weight:800;font-size:14px;cursor:pointer;font-family:Geist,sans-serif;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 8px 24px rgba(184,114,224,0.30)";
+  nextBtn.onclick = function(){
+    if(step < TUTORIAL_STEPS.length - 1){
+      step++;
+      renderStep();
+    } else {
+      completeTutorial();
+    }
+  };
+  bottom.appendChild(nextBtn);
+  
+  overlay.appendChild(bottom);
+  
+  function renderStep(){
+    var s = TUTORIAL_STEPS[step];
+    
+    // Update progress dots
+    for(var i=0; i<TUTORIAL_STEPS.length; i++){
+      var dot = document.getElementById("tut-dot-" + i);
+      if(!dot) continue;
+      if(i < step){
+        dot.style.background = s.accent;
+      } else if(i === step){
+        dot.style.background = s.accent;
+        dot.style.boxShadow = "0 0 8px " + s.accent;
+      } else {
+        dot.style.background = "rgba(255,255,255,0.10)";
+        dot.style.boxShadow = "none";
+      }
+    }
+    
+    // Update prev button visibility
+    prevBtn.style.opacity = (step === 0) ? "0.4" : "1";
+    prevBtn.style.pointerEvents = (step === 0) ? "none" : "auto";
+    
+    // Update next button label
+    var isLast = (step === TUTORIAL_STEPS.length - 1);
+    nextBtn.innerHTML = isLast 
+      ? "<span>Iniziamo!</span><span style='font-size:18px'>\u2192</span>" 
+      : "<span>Avanti</span><span>\u2192</span>";
+    
+    // Build content
+    var content = '<div style="max-width:480px;margin:0 auto;animation:fadeInUp 0.4s ease-out">' +
+      '<div style="width:100px;height:100px;border-radius:28px;background:' + s.iconBg + ';display:flex;align-items:center;justify-content:center;margin:20px auto 28px;box-shadow:0 20px 40px ' + s.accent + '30;font-size:48px">' + s.icon + '</div>' +
+      '<div style="font-family:JetBrains Mono,monospace;font-size:11px;letter-spacing:2.5px;color:' + s.accent + ';font-weight:800;text-transform:uppercase;text-align:center;margin-bottom:8px">' + s.kicker + '</div>' +
+      '<h1 style="font-family:Bricolage Grotesque,sans-serif;font-size:32px;font-weight:800;color:#F5F1E8;margin:0 0 16px;text-align:center;letter-spacing:-0.02em;line-height:1.1">' + s.title + '</h1>' +
+      '<p style="font-size:14px;color:#a8a2c8;line-height:1.6;margin:0 0 24px;text-align:center;white-space:pre-line">' + s.description + '</p>';
+    
+    if(s.bullets && s.bullets.length){
+      content += '<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:18px;padding:18px;margin-top:8px">';
+      s.bullets.forEach(function(b){
+        content += '<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;font-size:13px;color:#F5F1E8;line-height:1.5">' +
+          '<span style="flex-shrink:0;width:20px;height:20px;border-radius:6px;background:' + s.accent + '30;color:' + s.accent + ';display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;margin-top:2px">\u2713</span>' +
+          '<span>' + b + '</span>' +
+        '</div>';
+      });
+      content = content.replace(/margin-bottom:10px(?=[^]*$)/, "margin-bottom:0"); // last bullet
+      content += '</div>';
+    }
+    
+    content += '</div>';
+    scrollArea.innerHTML = content;
+    scrollArea.scrollTop = 0;
+  }
+  
+  function completeTutorial(){
+    try{ localStorage.setItem("dl:tutorial_done", "1"); }catch(e){}
+    try{ history.back(); }catch(e){}
+    var ov = document.getElementById("tutorial-overlay");
+    if(ov){
+      ov.style.animation = "fadeOut 0.2s ease-out";
+      setTimeout(function(){ if(ov.parentNode) ov.remove(); }, 200);
+    }
+  }
+  
+  document.body.appendChild(overlay);
+  renderStep();
+}
+
+function maybeAutoShowTutorial(){
+  if(!A || !A.user) return;
+  try{
+    if(localStorage.getItem("dl:tutorial_done") === "1") return;
+  }catch(e){ return; }
+  // Show after a short delay so the user sees the dashboard first
+  setTimeout(function(){
+    openTutorial(false);
+  }, 1500);
+}
+
+/* ─── ONBOARDING TUTORIAL ─── */
+var ONBOARDING_STEPS = [
+  {
+    id: "lessons",
+    icon: "🌱",
+    kicker: "PASSO 1 DI 6",
+    title: "Lezioni e percorso",
+    body: "Il tuo viaggio inizia dal Skill Tree. Comincia con i Fondamentali e procedi a tuo ritmo: ogni lezione \u00E8 corta (3-10 minuti) e dura quanto basta per capire e provare. Completa le lezioni di una categoria per sbloccare la successiva.",
+    bullets: [
+      "Tap su una categoria per vedere le sue lezioni",
+      "Ogni lezione ha un timer e un piccolo esercizio",
+      "Guadagni DrawPass token completandole",
+      "Le lezioni completate restano sempre rivedibili"
+    ],
+    accent: "#66E0B5"
+  },
+  {
+    id: "feed",
+    icon: "🖼️",
+    kicker: "PASSO 2 DI 6",
+    title: "Il Feed",
+    body: "Qui condividi i tuoi disegni con la community e scopri il lavoro degli altri. Tap sul + centrale per pubblicare. Tap sui post per commentare, mettere like, seguire utenti che ti ispirano.",
+    bullets: [
+      "Pubblica i tuoi progressi con foto del disegno",
+      "Like e commenta i lavori che ti piacciono",
+      "Filtra tra 'Tutti' e 'Seguiti' per personalizzare",
+      "I post con bordo fucsia sono partecipazioni a sfide"
+    ],
+    accent: "#B872E0"
+  },
+  {
+    id: "streak",
+    icon: "🔥",
+    kicker: "PASSO 3 DI 6",
+    title: "Lo Streak giornaliero",
+    body: "Disegnare ogni giorno \u00E8 il segreto dei migliori artisti. Lo streak conta i giorni consecutivi in cui completi una Lezione del Giorno. Pi\u00F9 lungo lo streak, pi\u00F9 ricompense.",
+    bullets: [
+      "Una lezione corta ogni giorno = +5 token",
+      "Tap sulla card 'fiamma' nella Dashboard per vedere il calendario",
+      "Se salti un giorno, lo streak si azzera",
+      "Sblocchi il badge 'Mese perfetto' a 30 giorni consecutivi"
+    ],
+    accent: "#FF6B35"
+  },
+  {
+    id: "challenges",
+    icon: "⭐",
+    kicker: "PASSO 4 DI 6",
+    title: "Sfide e lezioni del giorno",
+    body: "Ogni giorno c'\u00E8 una micro-lezione tematica nella Dashboard. Ogni settimana, una sfida community ti invita a creare qualcosa con un tema specifico. \u00C8 il modo migliore per mettersi alla prova.",
+    bullets: [
+      "Lezione del Giorno: 3-5 min, +5 token",
+      "Sfida settimanale: tema specifico, +10 token doppi",
+      "Le tue partecipazioni alle sfide hanno bordo fucsia + badge SFIDA",
+      "Le sfide si rinnovano ogni luned\u00EC mattina"
+    ],
+    accent: "#FBBA00"
+  },
+  {
+    id: "expert",
+    icon: "🎓",
+    kicker: "PASSO 5 DI 6",
+    title: "Livello Esperto",
+    body: "Completando le lezioni guadagni esperienza che ti porta al livello Esperto. Sblocchi due funzioni avanzate: il Redline (correggere disegni con un tool di sovrapposizione) e l'accesso alle Botteghe.",
+    bullets: [
+      "Sblocca Redline a 9/9 lezioni Fondamentali",
+      "Sblocca Atelier dei Volti al 50% di Character Design",
+      "Sblocca Studio del Paesaggio al 50% di Environment",
+      "Sblocca Caverna del Concept a 15 lezioni totali"
+    ],
+    accent: "#B872E0"
+  },
+  {
+    id: "botteghe",
+    icon: "🏛️",
+    kicker: "PASSO 6 DI 6",
+    title: "Le Botteghe",
+    body: "Una bottega \u00E8 un piccolo studio guidato da un Founder Master (Sofia, Luca). Quando ne sblocchi una, accedi a un feed privato, una chat di gruppo, e sfide settimanali con il mentore. \u00C8 il livello successivo della community.",
+    bullets: [
+      "4 Botteghe: Atelier Volti, Officina Anatomica, Studio Paesaggio, Caverna Concept",
+      "Ogni bottega ha max 30-50 posti",
+      "Feed privato + chat di gruppo con il mentor",
+      "Sfide esclusive con premi raddoppiati"
+    ],
+    accent: "#FF3DA5"
+  }
+];
+
+function isOnboardingDone(){
+  try{ return localStorage.getItem("dl:onboarding_done") === "1"; }catch(e){ return false; }
+}
+
+function markOnboardingDone(){
+  try{ localStorage.setItem("dl:onboarding_done", "1"); }catch(e){}
+}
+
+function startOnboarding(force){
+  if(!force && isOnboardingDone()) return false;
+  
+  // Avoid showing during specific screens
+  if(A && A.screen === "auth") return false;
+  
+  try{ history.pushState({dlApp:true, overlay:"onboarding"}, "", ""); }catch(e){}
+  
+  var currentStep = 0;
+  
+  var overlay = document.createElement("div");
+  overlay.id = "onboarding-overlay";
+  overlay.style.cssText = "position:fixed;inset:0;z-index:10010;background:#15102a;display:flex;flex-direction:column;animation:fadeIn 0.3s ease-out";
+  
+  // Skip button (top-right)
+  var skipBtn = document.createElement("button");
+  skipBtn.style.cssText = "position:absolute;top:14px;right:14px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);border-radius:50px;padding:6px 14px;color:#a8a2c8;font-size:12px;font-weight:700;cursor:pointer;font-family:Geist,sans-serif;z-index:5";
+  skipBtn.textContent = "Salta";
+  skipBtn.onclick = function(){ closeOnboarding(true); };
+  overlay.appendChild(skipBtn);
+  
+  // Step content area
+  var content = document.createElement("div");
+  content.id = "onboarding-content";
+  content.style.cssText = "flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 24px 0;overflow-y:auto";
+  overlay.appendChild(content);
+  
+  // Bottom controls
+  var bottom = document.createElement("div");
+  bottom.style.cssText = "padding:14px 20px 28px;background:rgba(28,23,56,0.6);backdrop-filter:blur(8px);border-top:1px solid rgba(255,255,255,0.06);flex-shrink:0";
+  
+  // Progress dots
+  var dotsRow = document.createElement("div");
+  dotsRow.id = "onboarding-dots";
+  dotsRow.style.cssText = "display:flex;gap:6px;justify-content:center;margin-bottom:16px";
+  for(var i=0; i<ONBOARDING_STEPS.length; i++){
+    var dot = document.createElement("div");
+    dot.dataset.step = i;
+    dot.style.cssText = "width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.15);transition:all .2s";
+    dotsRow.appendChild(dot);
+  }
+  bottom.appendChild(dotsRow);
+  
+  // Buttons row
+  var btnRow = document.createElement("div");
+  btnRow.style.cssText = "display:flex;gap:10px";
+  
+  var prevBtn = document.createElement("button");
+  prevBtn.id = "onb-prev";
+  prevBtn.style.cssText = "flex:1;height:48px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);border-radius:14px;color:#F5F1E8;font-weight:700;font-size:14px;cursor:pointer;font-family:Geist,sans-serif";
+  prevBtn.textContent = "Indietro";
+  prevBtn.onclick = function(){ if(currentStep > 0){ currentStep--; renderStep(); } };
+  btnRow.appendChild(prevBtn);
+  
+  var nextBtn = document.createElement("button");
+  nextBtn.id = "onb-next";
+  nextBtn.style.cssText = "flex:2;height:48px;background:linear-gradient(135deg,#B872E0,#FBBA00);border:none;border-radius:14px;color:#15102a;font-weight:800;font-size:14px;cursor:pointer;font-family:Geist,sans-serif;box-shadow:0 8px 24px rgba(184,114,224,0.30)";
+  nextBtn.textContent = "Continua";
+  nextBtn.onclick = function(){
+    if(currentStep < ONBOARDING_STEPS.length - 1){
+      currentStep++;
+      renderStep();
+    } else {
+      closeOnboarding(false);
+    }
+  };
+  btnRow.appendChild(nextBtn);
+  
+  bottom.appendChild(btnRow);
+  overlay.appendChild(bottom);
+  
+  function renderStep(){
+    var step = ONBOARDING_STEPS[currentStep];
+    content.innerHTML = "";
+    
+    // Icon (large, in colored circle)
+    var iconWrap = document.createElement("div");
+    iconWrap.style.cssText = "width:96px;height:96px;border-radius:50%;background:" + step.accent + "33;border:2px solid " + step.accent + "60;display:flex;align-items:center;justify-content:center;font-size:48px;margin-bottom:24px;box-shadow:0 12px 40px " + step.accent + "30";
+    iconWrap.textContent = step.icon;
+    content.appendChild(iconWrap);
+    
+    // Kicker
+    var kickerEl = document.createElement("div");
+    kickerEl.style.cssText = "font-family:JetBrains Mono,monospace;font-size:10px;letter-spacing:2px;color:" + step.accent + ";font-weight:800;text-transform:uppercase;margin-bottom:8px";
+    kickerEl.textContent = step.kicker;
+    content.appendChild(kickerEl);
+    
+    // Title
+    var titleEl = document.createElement("div");
+    titleEl.style.cssText = "font-family:Bricolage Grotesque,sans-serif;font-weight:800;font-size:28px;color:#F5F1E8;letter-spacing:-0.02em;text-align:center;margin-bottom:14px;max-width:340px";
+    titleEl.textContent = step.title;
+    content.appendChild(titleEl);
+    
+    // Body
+    var bodyEl = document.createElement("div");
+    bodyEl.style.cssText = "font-size:14px;color:#a8a2c8;line-height:1.6;text-align:center;max-width:380px;margin-bottom:20px";
+    bodyEl.textContent = step.body;
+    content.appendChild(bodyEl);
+    
+    // Bullets
+    if(step.bullets && step.bullets.length){
+      var bulletsBox = document.createElement("div");
+      bulletsBox.style.cssText = "background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:14px 16px;max-width:380px;width:100%";
+      step.bullets.forEach(function(b){
+        var row = document.createElement("div");
+        row.style.cssText = "display:flex;align-items:flex-start;gap:10px;font-size:13px;color:#a8a2c8;line-height:1.5;margin-bottom:10px";
+        row.innerHTML = '<span style="color:' + step.accent + ';font-weight:800;flex-shrink:0;margin-top:1px">\u2022</span><span>' + b + '</span>';
+        bulletsBox.appendChild(row);
+      });
+      // Remove margin-bottom from last
+      if(bulletsBox.lastChild) bulletsBox.lastChild.style.marginBottom = "0";
+      content.appendChild(bulletsBox);
+    }
+    
+    // Update dots
+    var dotEls = dotsRow.querySelectorAll("div");
+    dotEls.forEach(function(dot, idx){
+      if(idx === currentStep){
+        dot.style.background = step.accent;
+        dot.style.transform = "scale(1.4)";
+      } else if(idx < currentStep){
+        dot.style.background = "rgba(255,255,255,0.40)";
+        dot.style.transform = "scale(1)";
+      } else {
+        dot.style.background = "rgba(255,255,255,0.15)";
+        dot.style.transform = "scale(1)";
+      }
+    });
+    
+    // Update buttons
+    prevBtn.style.opacity = currentStep === 0 ? "0.4" : "1";
+    prevBtn.disabled = currentStep === 0;
+    nextBtn.textContent = (currentStep === ONBOARDING_STEPS.length - 1) ? "Inizia! \u2192" : "Continua";
+  }
+  
+  function closeOnboarding(skipped){
+    var ov = document.getElementById("onboarding-overlay");
+    if(ov) ov.remove();
+    markOnboardingDone();
+    try{ history.back(); }catch(e){}
+    if(!skipped && typeof showToast === "function"){
+      showToast("Benvenuto in DrawBound!","\u270F\uFE0F");
+    }
+  }
+  
+  renderStep();
+  document.body.appendChild(overlay);
+  return true;
+}
+
 function init(){
   _initBackHandler();
   applyTheme(); // Apply saved theme
@@ -10126,6 +10610,9 @@ function proceedInit(){
   } else {
     setTimeout(function(){ navTo(lastScreen); }, 50);
   }
+  
+  // Auto-show tutorial on first login
+  setTimeout(function(){ if(typeof maybeAutoShowTutorial === "function") maybeAutoShowTutorial(); }, 2000);
   
   // Sync with Supabase in BACKGROUND (non-blocking, never logs out)
   if(uid && typeof sbReady === "function" && sbReady()){
