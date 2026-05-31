@@ -2737,21 +2737,6 @@ async function openPostDetail(postId){
   hideBottomNav();
   var content = document.getElementById("post-detail-content");
   content.innerHTML='<div style="text-align:center;padding:40px;color:#9896B8">Caricamento...</div>';
-    // Wire up the 3-dot button
-    if(isMyPost){
-      var pdDots = document.getElementById("post-detail-dots");
-      if(pdDots){
-        pdDots.onclick = function(e){
-          e.stopPropagation();
-          openPostActions(post, false, function(){
-            // After action, close the modal if post was deleted
-            document.getElementById("modal-post-detail").style.display = "none";
-            if(typeof showBottomNav === "function") showBottomNav();
-            if(typeof renderProfile === "function") renderProfile();
-          });
-        };
-      }
-    }
   try {
     var posts = await sbFetch("GET","dl_posts",{filters:"id=eq."+postId});
     var comments = await sbFetch("GET","dl_comments",{filters:"post_id=eq."+postId,order:"created_at.asc"});
@@ -2761,7 +2746,8 @@ async function openPostDetail(postId){
     if(A.user){ var l=await sbFetch("GET","dl_likes",{filters:"user_id=eq."+A.user.id+"&post_id=eq."+postId}); if(l) myLikes=l.map(function(x){return x.post_id;}); }
     var liked = myLikes.indexOf(postId) > -1;
     var isMyPost = (A.user && post.user_id === A.user.id);
-    var dotsBtn = isMyPost ? '<button id="post-detail-dots" style="position:absolute;top:14px;right:14px;width:34px;height:34px;border-radius:10px;background:rgba(0,0,0,0.55);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.15);color:#fff;font-size:18px;cursor:pointer;z-index:5;font-weight:800;display:flex;align-items:center;justify-content:center">\u22EF</button>' : '';
+    // Show dots for own posts (edit/delete) OR for others' posts (report)
+    var dotsBtn = (A.user) ? '<button id="post-detail-dots" style="position:absolute;top:14px;right:14px;width:34px;height:34px;border-radius:10px;background:rgba(0,0,0,0.55);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.15);color:#fff;font-size:18px;cursor:pointer;z-index:5;font-weight:800;display:flex;align-items:center;justify-content:center">\u22EF</button>' : '';
     content.innerHTML =
       '<div style="position:relative">' + dotsBtn + '<img src="'+post.image_url+'" style="width:100%;display:block;max-height:400px;object-fit:cover"/></div>'+
       '<div style="padding:14px 16px">'+
@@ -2785,6 +2771,31 @@ async function openPostDetail(postId){
           '<button onclick="submitComment(\"'+post.id+'\")" style="background:#8B5CF6;border:none;border-radius:50px;padding:10px 16px;color:#fff;font-weight:800;font-size:12px;cursor:pointer">Invia</button>'+
         '</div>'+
       '</div>';
+  
+    // Wire up the 3-dot button NOW that the DOM exists
+    if(isMyPost){
+      var pdDots = document.getElementById("post-detail-dots");
+      if(pdDots){
+        pdDots.onclick = function(e){
+          e.stopPropagation();
+          openPostActions(post, false, function(){
+            document.getElementById("modal-post-detail").style.display = "none";
+            if(typeof showBottomNav === "function") showBottomNav();
+            if(typeof renderProfile === "function") renderProfile();
+            if(typeof renderFeed === "function") renderFeed();
+          });
+        };
+      }
+    } else if(A.user){
+      // Report option for others' posts
+      var pdDots = document.getElementById("post-detail-dots");
+      if(pdDots){
+        pdDots.onclick = function(e){
+          e.stopPropagation();
+          openReportSheet("post", post.id, post.user_id);
+        };
+      }
+    }
   } catch(e){ content.innerHTML='<div style="padding:20px;color:#9896B8">Errore: '+e.message+'</div>'; }
 }
 
@@ -7444,6 +7455,7 @@ function openHamburger(){
   
   var accountSection = document.createElement("div");
   accountSection.style.cssText = "padding:8px 0 24px";
+  accountSection.appendChild(makeItem("🚫","Utenti bloccati","Gestisci la tua lista", function(){ openBlockedUsersList(); }));
   accountSection.appendChild(makeItem("🛡️","Privacy Policy","Come trattiamo i tuoi dati", function(){ showLegalModal("privacy"); }));
   accountSection.appendChild(makeItem("📜","Termini di Servizio","Le regole dell'app", function(){ showLegalModal("terms"); }));
   accountSection.appendChild(makeItem("🚪","Esci","Disconnetti il tuo account", function(){
@@ -9699,6 +9711,321 @@ function confirmDeletePost(post, isBottegaPost, refreshFn){
   })();
 }
 
+/* ─── CONTENT MODERATION (Apple Guideline 1.2 compliance) ─── */
+
+var REPORT_REASONS = [
+  { id: "spam",          label: "Spam o pubblicita",        icon: "📢" },
+  { id: "harassment",    label: "Molestie o bullismo",       icon: "🛑" },
+  { id: "hate",          label: "Discorsi d'odio",          icon: "⚠️" },
+  { id: "sexual",        label: "Contenuto sessuale",        icon: "👁️" },
+  { id: "violence",      label: "Violenza o autolesionismo", icon: "❗" },
+  { id: "minor",         label: "Coinvolge un minore",       icon: "🛡️" },
+  { id: "copyright",     label: "Violazione copyright",      icon: "©️" },
+  { id: "impersonation", label: "Impersonificazione",        icon: "🎭" },
+  { id: "other",         label: "Altro",                     icon: "❔" }
+];
+
+/* Block list cached in localStorage + synced via Supabase dl_blocks */
+var _blockedUsers = null; // lazy-loaded array of blocked user_ids
+
+async function loadBlockedUsers(force){
+  if(!A.user || !A.user.id) { _blockedUsers = []; return _blockedUsers; }
+  if(_blockedUsers && !force) return _blockedUsers;
+  
+  // Try Supabase
+  if(sbReady()){
+    try{
+      var rows = await sbFetch("GET","dl_blocks",{filters:"blocker_id=eq."+A.user.id, select:"blocked_id"});
+      _blockedUsers = (rows || []).map(function(r){ return r.blocked_id; });
+      try{ localStorage.setItem("dl:blocks", JSON.stringify(_blockedUsers)); }catch(e){}
+      return _blockedUsers;
+    }catch(e){ console.warn("loadBlockedUsers:", e); }
+  }
+  // Fallback localStorage
+  try{
+    var s = localStorage.getItem("dl:blocks");
+    _blockedUsers = s ? JSON.parse(s) : [];
+  }catch(e){ _blockedUsers = []; }
+  return _blockedUsers;
+}
+
+function isUserBlocked(userId){
+  if(!_blockedUsers) return false;
+  return _blockedUsers.indexOf(userId) >= 0;
+}
+
+async function blockUserById(targetUserId){
+  if(!A.user || !A.user.id) return false;
+  if(targetUserId === A.user.id) return false;
+  
+  if(sbReady()){
+    try{
+      await sbFetch("POST","dl_blocks",{body:{
+        blocker_id: A.user.id,
+        blocked_id: targetUserId,
+        created_at: new Date().toISOString()
+      }});
+    }catch(e){ console.warn("block insert failed:", e); }
+  }
+  // Update local cache
+  if(!_blockedUsers) _blockedUsers = [];
+  if(_blockedUsers.indexOf(targetUserId) < 0) _blockedUsers.push(targetUserId);
+  try{ localStorage.setItem("dl:blocks", JSON.stringify(_blockedUsers)); }catch(e){}
+  
+  // Also unfollow (if we were following)
+  if(sbReady()){
+    try{
+      await sbFetch("DELETE","dl_follows?follower_id=eq."+A.user.id+"&following_id=eq."+targetUserId, {});
+    }catch(e){}
+  }
+  
+  if(typeof showToast === "function") showToast("Utente bloccato","");
+  return true;
+}
+
+async function unblockUserById(targetUserId){
+  if(!A.user || !A.user.id) return false;
+  if(sbReady()){
+    try{
+      await sbFetch("DELETE","dl_blocks?blocker_id=eq."+A.user.id+"&blocked_id=eq."+targetUserId, {});
+    }catch(e){}
+  }
+  if(_blockedUsers){
+    _blockedUsers = _blockedUsers.filter(function(x){ return x !== targetUserId; });
+    try{ localStorage.setItem("dl:blocks", JSON.stringify(_blockedUsers)); }catch(e){}
+  }
+  if(typeof showToast === "function") showToast("Utente sbloccato","");
+  return true;
+}
+
+async function reportContent(contentType, contentId, reportedUserId, reasonId, details){
+  if(!A.user || !A.user.id){
+    if(typeof showToast === "function") showToast("Accedi per segnalare","");
+    return false;
+  }
+  
+  // Local dedup: don't report same content twice
+  var key = "dl:reported_" + contentType + "_" + contentId;
+  if(localStorage.getItem(key) === "1"){
+    if(typeof showToast === "function") showToast("Hai gia segnalato","");
+    return false;
+  }
+  
+  if(!sbReady()){
+    if(typeof showToast === "function") showToast("Connessione assente","");
+    return false;
+  }
+  
+  try{
+    await sbFetch("POST","dl_reports",{body:{
+      reporter_id: A.user.id,
+      reported_user_id: reportedUserId || null,
+      content_type: contentType,  // "post" | "comment" | "chat" | "user" | "bottega_post"
+      content_id: String(contentId),
+      reason: reasonId,
+      details: details || "",
+      status: "pending",
+      created_at: new Date().toISOString()
+    }});
+    try{ localStorage.setItem(key, "1"); }catch(e){}
+    if(typeof showToast === "function") showToast("Segnalazione inviata","\u2713");
+    return true;
+  }catch(e){
+    console.error("reportContent:", e);
+    if(typeof showToast === "function") showToast("Errore: "+(e.message||"sconosciuto"),"");
+    return false;
+  }
+}
+
+/* Report bottom sheet UI */
+function openReportSheet(contentType, contentId, reportedUserId){
+  if(!A.user){ if(typeof showToast === "function") showToast("Accedi per segnalare",""); return; }
+  if(reportedUserId === A.user.id){ if(typeof showToast === "function") showToast("Non puoi segnalare te stesso",""); return; }
+  
+  try{ history.pushState({dlApp:true, overlay:"report-sheet"}, "", ""); }catch(e){}
+  
+  var overlay = document.createElement("div");
+  overlay.id = "report-sheet-overlay";
+  overlay.style.cssText = "position:fixed;inset:0;z-index:10005;background:rgba(0,0,0,0.6);display:flex;align-items:flex-end;animation:fadeIn 0.15s ease-out";
+  overlay.onclick = function(e){ if(e.target===overlay){ overlay.remove(); try{history.back();}catch(e){} } };
+  
+  var sheet = document.createElement("div");
+  sheet.style.cssText = "background:#1c1738;border-radius:24px 24px 0 0;padding:20px 16px 28px;width:100%;border-top:1px solid rgba(255,255,255,0.08);max-height:85vh;overflow-y:auto";
+  
+  var grip = document.createElement("div");
+  grip.style.cssText = "width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,0.20);margin:0 auto 18px";
+  sheet.appendChild(grip);
+  
+  var title = document.createElement("div");
+  title.style.cssText = "font-family:JetBrains Mono,monospace;font-size:10px;letter-spacing:2px;color:#E07172;font-weight:800;text-transform:uppercase;margin-bottom:6px;text-align:center";
+  title.textContent = "SEGNALA";
+  sheet.appendChild(title);
+  
+  var subtitle = document.createElement("div");
+  subtitle.style.cssText = "font-family:Bricolage Grotesque,sans-serif;font-weight:800;font-size:18px;color:#F5F1E8;margin-bottom:6px;text-align:center";
+  subtitle.textContent = "Perche segnali?";
+  sheet.appendChild(subtitle);
+  
+  var note = document.createElement("div");
+  note.style.cssText = "font-size:12px;color:#a8a2c8;line-height:1.5;margin-bottom:18px;text-align:center;max-width:320px;margin-left:auto;margin-right:auto";
+  note.textContent = "La segnalazione resta anonima. La rivedremo entro 24 ore.";
+  sheet.appendChild(note);
+  
+  REPORT_REASONS.forEach(function(r){
+    var btn = document.createElement("button");
+    btn.style.cssText = "width:100%;padding:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;color:#F5F1E8;font-weight:700;font-size:13px;cursor:pointer;font-family:Geist,sans-serif;display:flex;align-items:center;gap:12px;margin-bottom:8px;text-align:left";
+    btn.innerHTML = '<span style="font-size:18px;flex-shrink:0">' + r.icon + '</span><span style="flex:1">' + r.label + '</span><span style="color:#8a82a8">\u203A</span>';
+    btn.onclick = async function(){
+      overlay.remove();
+      try{history.back();}catch(e){}
+      var ok = await reportContent(contentType, contentId, reportedUserId, r.id, "");
+      if(ok && reportedUserId){
+        // Offer to block as well
+        setTimeout(function(){ confirmBlockUser(reportedUserId); }, 600);
+      }
+    };
+    sheet.appendChild(btn);
+  });
+  
+  // Block user option (separately, prominent)
+  if(reportedUserId){
+    var blockBtn = document.createElement("button");
+    blockBtn.style.cssText = "width:100%;padding:14px;background:rgba(228,76,60,0.10);border:1px solid rgba(228,76,60,0.30);border-radius:14px;color:#E07172;font-weight:800;font-size:13px;cursor:pointer;font-family:Geist,sans-serif;display:flex;align-items:center;gap:12px;margin-top:10px;margin-bottom:8px;text-align:left";
+    blockBtn.innerHTML = '<span style="font-size:18px;flex-shrink:0">⛔</span><span style="flex:1">Blocca questo utente</span>';
+    blockBtn.onclick = function(){
+      overlay.remove();
+      try{history.back();}catch(e){}
+      confirmBlockUser(reportedUserId);
+    };
+    sheet.appendChild(blockBtn);
+  }
+  
+  var cancelBtn = document.createElement("button");
+  cancelBtn.style.cssText = "width:100%;padding:12px;background:transparent;border:none;color:#8a82a8;font-weight:700;font-size:14px;cursor:pointer;font-family:Geist,sans-serif;margin-top:10px";
+  cancelBtn.textContent = "Annulla";
+  cancelBtn.onclick = function(){ overlay.remove(); try{history.back();}catch(e){} };
+  sheet.appendChild(cancelBtn);
+  
+  overlay.appendChild(sheet);
+  document.body.appendChild(overlay);
+}
+
+function confirmBlockUser(targetUserId){
+  var overlay = document.createElement("div");
+  overlay.style.cssText = "position:fixed;inset:0;z-index:10006;background:rgba(21,16,42,0.92);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:20px";
+  
+  var card = document.createElement("div");
+  card.style.cssText = "background:#1c1738;border:1px solid rgba(228,76,60,0.30);border-radius:22px;padding:22px;max-width:420px;width:100%";
+  card.innerHTML = 
+    '<div style="text-align:center;margin-bottom:16px">' +
+      '<div style="width:56px;height:56px;border-radius:50%;background:rgba(228,76,60,0.15);display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 12px">\u26D4</div>' +
+      '<div style="font-family:Bricolage Grotesque,sans-serif;font-size:18px;font-weight:800;color:#E07172;margin-bottom:6px">Bloccare questo utente?</div>' +
+      '<div style="font-size:13px;color:#a8a2c8;line-height:1.5">Non vedrai piu i suoi post, commenti e messaggi. Non potra contattarti.</div>' +
+    '</div>';
+  
+  var btnRow = document.createElement("div");
+  btnRow.style.cssText = "display:flex;gap:10px;margin-top:18px";
+  var cancelBtn = document.createElement("button");
+  cancelBtn.style.cssText = "flex:1;height:44px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);border-radius:12px;color:#F5F1E8;font-weight:700;font-size:14px;cursor:pointer;font-family:Geist,sans-serif";
+  cancelBtn.textContent = "Annulla";
+  cancelBtn.onclick = function(){ overlay.remove(); };
+  var confirmBtn = document.createElement("button");
+  confirmBtn.style.cssText = "flex:1;height:44px;background:rgba(228,76,60,0.20);border:1px solid rgba(228,76,60,0.50);border-radius:12px;color:#E07172;font-weight:800;font-size:14px;cursor:pointer;font-family:Geist,sans-serif";
+  confirmBtn.textContent = "Blocca";
+  confirmBtn.onclick = async function(){
+    confirmBtn.disabled = true;
+    await blockUserById(targetUserId);
+    overlay.remove();
+    // Refresh whatever screen is currently shown
+    if(typeof renderFeed === "function") renderFeed();
+  };
+  btnRow.appendChild(cancelBtn);
+  btnRow.appendChild(confirmBtn);
+  card.appendChild(btnRow);
+  
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+}
+
+/* List of blocked users for the user to manage */
+function openBlockedUsersList(){
+  try{ history.pushState({dlApp:true, overlay:"blocked-list"}, "", ""); }catch(e){}
+  
+  var overlay = document.createElement("div");
+  overlay.id = "blocked-users-overlay";
+  overlay.style.cssText = "position:fixed;inset:0;z-index:10002;background:#15102a;overflow-y:auto";
+  
+  var header = document.createElement("div");
+  header.style.cssText = "padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:12px;background:#1c1738;position:sticky;top:0;z-index:2";
+  var backBtn = document.createElement("button");
+  backBtn.style.cssText = "width:36px;height:36px;border-radius:12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);color:#F5F1E8;font-size:18px;cursor:pointer";
+  backBtn.textContent = "\u2190";
+  backBtn.onclick = function(){ var ov = document.getElementById("blocked-users-overlay"); if(ov) ov.remove(); try{history.back();}catch(e){} };
+  header.appendChild(backBtn);
+  var titleEl = document.createElement("div");
+  titleEl.innerHTML = '<div style="font-family:JetBrains Mono,monospace;font-size:9px;letter-spacing:2px;color:#8a82a8;font-weight:700;text-transform:uppercase">PRIVACY</div><div style="font-family:Bricolage Grotesque,sans-serif;font-weight:800;font-size:16px;color:#F5F1E8">Utenti bloccati</div>';
+  titleEl.style.flex = "1";
+  header.appendChild(titleEl);
+  overlay.appendChild(header);
+  
+  var content = document.createElement("div");
+  content.style.cssText = "padding:16px";
+  content.innerHTML = '<div style="text-align:center;padding:30px;color:#9896B8">Caricamento...</div>';
+  overlay.appendChild(content);
+  
+  document.body.appendChild(overlay);
+  
+  loadBlockedUsers(true).then(async function(blockedIds){
+    content.innerHTML = "";
+    if(!blockedIds || !blockedIds.length){
+      content.innerHTML = '<div style="text-align:center;padding:40px 20px;color:#8a82a8;font-size:13px"><div style="font-size:42px;margin-bottom:12px;opacity:0.5">\u{1F6E1}\uFE0F</div>Non hai bloccato nessuno.</div>';
+      return;
+    }
+    // Fetch user details
+    for(var bi=0; bi<blockedIds.length; bi++){
+      var bid = blockedIds[bi];
+      var users = null;
+      try{ users = await sbFetch("GET","dl_users",{filters:"id=eq."+bid}); }catch(e){}
+      var u = (users && users[0]) ? users[0] : { id: bid, name: "Utente sconosciuto", picture: "" };
+      
+      var row = document.createElement("div");
+      row.style.cssText = "display:flex;align-items:center;gap:12px;padding:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;margin-bottom:8px";
+      
+      var av = document.createElement("div");
+      av.style.cssText = "width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#814393,#FBBA00);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:16px;flex-shrink:0";
+      av.textContent = (u.name || "?").charAt(0).toUpperCase();
+      row.appendChild(av);
+      
+      var info = document.createElement("div");
+      info.style.cssText = "flex:1;min-width:0";
+      info.innerHTML = '<div style="font-weight:700;font-size:14px;color:#F5F1E8">' + (u.name || "Utente") + '</div><div style="font-size:11px;color:#8a82a8">Bloccato</div>';
+      row.appendChild(info);
+      
+      var unbBtn = document.createElement("button");
+      unbBtn.style.cssText = "padding:6px 14px;border-radius:50px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);color:#F5F1E8;font-weight:700;font-size:12px;cursor:pointer;font-family:Geist,sans-serif;flex-shrink:0";
+      unbBtn.textContent = "Sblocca";
+      (function(uid, r){
+        unbBtn.onclick = async function(){
+          unbBtn.disabled = true;
+          unbBtn.textContent = "...";
+          await unblockUserById(uid);
+          r.style.opacity = "0.4";
+          r.style.pointerEvents = "none";
+          // Re-check
+          if(_blockedUsers && _blockedUsers.length === 0){
+            content.innerHTML = '<div style="text-align:center;padding:40px 20px;color:#8a82a8;font-size:13px"><div style="font-size:42px;margin-bottom:12px;opacity:0.5">\u{1F6E1}\uFE0F</div>Non hai bloccato nessuno.</div>';
+          }
+        };
+      })(bid, row);
+      row.appendChild(unbBtn);
+      
+      content.appendChild(row);
+    }
+  }).catch(function(e){
+    content.innerHTML = '<div style="color:#E07172;padding:20px;text-align:center">Errore: '+ e.message+'</div>';
+  });
+}
+
 function init(){
   _initBackHandler();
   applyTheme(); // Apply saved theme
@@ -9828,6 +10155,9 @@ function proceedInit(){
     
     // Sync tokens from server (anti-tamper)
     syncTokensFromServer().catch(function(){});
+    
+    // Load blocked users list (privacy/moderation)
+    if(typeof loadBlockedUsers === "function") loadBlockedUsers(true).catch(function(){});
     
     if(typeof loadTutorialsFromDB === "function") loadTutorialsFromDB().catch(function(){});
   }
