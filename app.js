@@ -1749,8 +1749,15 @@ function renderProfile(){
     sbFetch("GET","dl_users",{filters:"id=eq."+A.user.id,select:"followers_count,following_count"}).then(function(r){
       if(r&&r[0]){var fc=document.getElementById("prof-stat-followers");if(fc)fc.textContent=r[0].followers_count||0;var fg=document.getElementById("prof-stat-following");if(fg)fg.textContent=r[0].following_count||0;}
     });
-    sbFetch("GET","dl_posts",{filters:"user_id=eq."+A.user.id,select:"id"}).then(function(r){
-      var pp=document.getElementById("prof-stat-posts");if(pp)pp.textContent=(r&&r.length)||0;
+    // Count posts from BOTH tables
+    Promise.all([
+      sbFetch("GET","dl_posts",{filters:"user_id=eq."+A.user.id,select:"id"}).catch(function(){return [];}),
+      sbFetch("GET","dl_bottega_posts",{filters:"user_id=eq."+A.user.id,select:"id"}).catch(function(){return [];})
+    ]).then(function(both){
+      var n1 = (both[0] && both[0].length) || 0;
+      var n2 = (both[1] && both[1].length) || 0;
+      var pp = document.getElementById("prof-stat-posts");
+      if(pp) pp.textContent = n1 + n2;
     });
   }
 
@@ -1804,7 +1811,25 @@ function setProfileTab(tab){
 
 async function loadProfilePosts(cont){
   if(!A.user){cont.innerHTML='<p style="color:#9896B8;text-align:center;padding:24px">Accedi per vedere i post</p>';return;}
-  var posts = await sbFetch("GET","dl_posts",{filters:"user_id=eq."+A.user.id,order:"created_at.desc",limit:30});
+  
+  // Load BOTH tables in parallel: regular posts + bottega posts
+  var results = await Promise.allSettled([
+    sbFetch("GET","dl_posts",{filters:"user_id=eq."+A.user.id,order:"created_at.desc",limit:100}),
+    sbFetch("GET","dl_bottega_posts",{filters:"user_id=eq."+A.user.id,order:"created_at.desc",limit:100})
+  ]);
+  
+  var regular = (results[0].status === "fulfilled" && results[0].value) ? results[0].value : [];
+  var botPosts = (results[1].status === "fulfilled" && results[1].value) ? results[1].value : [];
+  
+  // Tag bottega posts so we can render them with a bottega badge
+  botPosts.forEach(function(p){ p._isBottegaPost = true; });
+  
+  // Merge and sort by created_at desc
+  var posts = regular.concat(botPosts).sort(function(a, b){
+    var ta = new Date(a.created_at || 0).getTime();
+    var tb = new Date(b.created_at || 0).getTime();
+    return tb - ta;
+  });
   if(!posts||!posts.length){
     cont.innerHTML='<div style="text-align:center;padding:48px 20px"><div style="font-size:48px;margin-bottom:12px">📸</div><div style="font-weight:800;color:#fff;margin-bottom:6px">Nessun post ancora</div><div style="color:#9896B8;font-size:13px">Pubblica il tuo primo disegno!</div></div>';
     return;
@@ -7575,6 +7600,11 @@ async function showBottegaPostPreview(bottegaId, file){
 }
 
 async function submitBottegaPost(bottegaId, file, caption){
+  // Rate limit check (client-side; server enforces server-side)
+  var rlPost = checkRateLimit("post");
+  if(rlPost){ return rlPost; }
+  var rlUpload = checkRateLimit("upload");
+  if(rlUpload){ return rlUpload; }
   if(!A.user) return "non sei loggato";
   if(!isMemberOf(bottegaId)) return "non sei membro";
   if(!sbReady()) return "Supabase non disponibile";
@@ -7810,6 +7840,8 @@ function renderBottegaComments(comments){
 }
 
 async function submitBottegaComment(postId, text, bottegaId){
+  var rl = checkRateLimit("comment");
+  if(rl){ showToast(rl,""); return; }
   if(!A.user){ showToast("Accedi prima",""); return; }
   if(!sbReady()){ showToast("Connessione assente",""); return; }
   if(!text || !text.trim()) return;
@@ -7833,6 +7865,7 @@ async function submitBottegaComment(postId, text, bottegaId){
       await sbFetch("PATCH","dl_bottega_posts?id=eq."+postId,{body:{comments_count: curCount+1}});
     }catch(e){console.warn("counter inc failed:",e);}
     
+    recordRateAction("comment");
     try{ if(typeof track==="function") track("bottega_comment_created", {bottega_id: bottegaId}); }catch(e){}
     
     var fresh = await loadBottegaComments(postId);
@@ -8200,6 +8233,10 @@ async function showChallengePreview(challenge, bottegaId, file){
 }
 
 async function submitChallengeEntry(challenge, bottegaId, file, caption){
+  var rl = checkRateLimit("challenge");
+  if(rl) return rl;
+  var rlU = checkRateLimit("upload");
+  if(rlU) return rlU;
   if(!A.user) return "non sei loggato";
   if(!isMemberOf(bottegaId)) return "non sei membro";
   if(!sbReady()) return "Supabase non disponibile";
@@ -8228,7 +8265,9 @@ async function submitChallengeEntry(challenge, bottegaId, file, caption){
     markChallengeDone(challenge.id, challenge.week);
     A.tokens = (A.tokens || 0) + challenge.reward;
     try{ localStorage.setItem("dl:tokens", String(A.tokens)); }catch(e){}
+    earnTokens(challenge.reward, "challenge_" + challenge.id).catch(function(){});
     
+    recordRateAction("challenge"); recordRateAction("upload");
     try{ if(typeof track==="function") track("challenge_submitted", {challenge_id: challenge.id, bottega_id: bottegaId, reward: challenge.reward}); }catch(e){}
     
     showToast("+" + challenge.reward + " DrawPass! Sfida completata!", "⭐");
@@ -8449,6 +8488,8 @@ function appendBottegaChatMsg(m, bottega){
 }
 
 async function submitBottegaChat(bottegaId, text){
+  var rl = checkRateLimit("chat");
+  if(rl){ showToast(rl,""); return; }
   if(!A.user) return;
   if(!sbReady()){ showToast("Connessione assente",""); return; }
   text = (text || "").trim();
@@ -8475,6 +8516,7 @@ async function submitBottegaChat(bottegaId, text){
     var area = document.getElementById("bottega-chat-messages");
     if(area) area.scrollTop = area.scrollHeight;
     
+    recordRateAction("chat");
     try{ if(typeof track==="function") track("bottega_chat_sent", {bottega_id: bottegaId}); }catch(e){}
   }catch(e){
     console.error("[bchat] submit error:", e);
@@ -8931,6 +8973,163 @@ function showLegalModal(type){
   document.body.appendChild(overlay);
 }
 
+/* ─── RATE LIMITING (anti-spam) ─── */
+/* Tracks recent actions per session and warns/blocks before hitting server.
+   Server-side limits enforced via Postgres triggers (see SQL migrations). */
+var _rateState = {
+  post: [],            // timestamps of recent posts
+  comment: [],         // timestamps of recent comments
+  chat: [],            // timestamps of recent chat messages
+  upload: [],          // timestamps of recent image uploads
+  challenge: []        // timestamps of recent challenge submissions
+};
+
+/* Limits (must match server-side triggers exactly) */
+var RATE_LIMITS = {
+  post:      { count: 10,  windowMs: 86400000, name: "post" },         // 10/day
+  comment:   { count: 50,  windowMs: 86400000, name: "commenti" },     // 50/day
+  chat:      { count: 30,  windowMs: 3600000,  name: "messaggi chat" }, // 30/hour
+  upload:    { count: 30,  windowMs: 86400000, name: "upload" },       // 30/day (storage quota)
+  challenge: { count: 5,   windowMs: 604800000,name: "sfide" }         // 5/week
+};
+
+function _pruneRateState(action){
+  var lim = RATE_LIMITS[action];
+  if(!lim) return;
+  var cutoff = Date.now() - lim.windowMs;
+  _rateState[action] = (_rateState[action] || []).filter(function(t){ return t > cutoff; });
+}
+
+function checkRateLimit(action){
+  /* Returns null if OK, or a user-friendly error string if blocked */
+  if(typeof isAdmin === "function" && isAdmin()) return null; // admins bypass
+  _pruneRateState(action);
+  var lim = RATE_LIMITS[action];
+  if(!lim) return null;
+  var recent = (_rateState[action] || []).length;
+  if(recent >= lim.count){
+    var resetIn = Math.ceil((lim.windowMs - (Date.now() - _rateState[action][0])) / 60000);
+    var when = resetIn > 60 ? Math.ceil(resetIn/60) + " ore" : resetIn + " min";
+    return "Hai raggiunto il limite di " + lim.count + " " + lim.name + ". Riprova fra " + when + ".";
+  }
+  return null;
+}
+
+function recordRateAction(action){
+  if(!_rateState[action]) _rateState[action] = [];
+  _rateState[action].push(Date.now());
+  /* Persist to localStorage so refresh doesn't reset the counter */
+  try{ localStorage.setItem("dl:rate_" + action, JSON.stringify(_rateState[action])); }catch(e){}
+}
+
+function _loadRateStateFromStorage(){
+  ["post","comment","chat","upload","challenge"].forEach(function(action){
+    try{
+      var s = localStorage.getItem("dl:rate_" + action);
+      if(s) _rateState[action] = JSON.parse(s);
+    }catch(e){}
+  });
+  ["post","comment","chat","upload","challenge"].forEach(_pruneRateState);
+}
+// Load at init
+try{ _loadRateStateFromStorage(); }catch(e){}
+
+/* ─── TOKEN ECONOMY (server-side anti-tamper) ─── */
+async function syncTokensFromServer(){
+  if(!A.user || !A.user.id) return;
+  if(!sbReady()) return;
+  try{
+    var rows = await sbFetch("GET","dl_tokens",{filters:"user_id=eq."+A.user.id, select:"balance"});
+    if(rows && rows[0]){
+      A.tokens = parseInt(rows[0].balance) || 0;
+      try{ localStorage.setItem("dl:tokens", String(A.tokens)); }catch(e){}
+    }
+  }catch(e){ console.warn("syncTokensFromServer failed:", e); }
+}
+
+/* Earn tokens — writes to server then updates local */
+async function earnTokens(amount, reason){
+  amount = parseInt(amount) || 0;
+  if(amount <= 0 || !A.user || !A.user.id) return false;
+  
+  // Sanity: cap any single grant at 50 to prevent silly bugs
+  if(amount > 50){
+    console.warn("earnTokens: capped at 50, requested", amount);
+    amount = 50;
+  }
+  
+  // Optimistic local update
+  A.tokens = (A.tokens || 0) + amount;
+  try{ localStorage.setItem("dl:tokens", String(A.tokens)); }catch(e){}
+  
+  // Server update (use Postgres RPC if available, else upsert)
+  if(sbReady()){
+    try{
+      await sbFetch("POST","rpc/add_tokens",{body:{
+        p_user_id: A.user.id,
+        p_amount: amount,
+        p_reason: reason || ""
+      }});
+    }catch(e){
+      // Fallback: read-modify-write (not atomic but works)
+      console.warn("rpc/add_tokens failed, fallback to manual:", e.message);
+      try{
+        var rows = await sbFetch("GET","dl_tokens",{filters:"user_id=eq."+A.user.id});
+        var cur = (rows && rows[0]) ? parseInt(rows[0].balance)||0 : 0;
+        var newBal = cur + amount;
+        if(rows && rows[0]){
+          await sbFetch("PATCH","dl_tokens?user_id=eq."+A.user.id, {body:{balance:newBal}});
+        } else {
+          await sbFetch("POST","dl_tokens", {body:{user_id:A.user.id, balance:newBal}});
+        }
+      }catch(e2){ console.error("token fallback also failed:", e2); }
+    }
+  }
+  return true;
+}
+
+/* Spend tokens — verify server has enough then deduct */
+async function spendTokens(amount, reason){
+  amount = parseInt(amount) || 0;
+  if(amount <= 0 || !A.user || !A.user.id) return false;
+  
+  // Quick local check
+  if((A.tokens || 0) < amount){
+    if(typeof showToast === "function") showToast("Saldo insufficiente","");
+    return false;
+  }
+  
+  if(sbReady()){
+    try{
+      // RPC handles atomic check + deduct + returns ok/insufficient
+      var res = await sbFetch("POST","rpc/spend_tokens",{body:{
+        p_user_id: A.user.id,
+        p_amount: amount,
+        p_reason: reason || ""
+      }});
+      if(res && res === false){
+        if(typeof showToast === "function") showToast("Saldo insufficiente sul server","");
+        // Sync to refresh local state
+        await syncTokensFromServer();
+        return false;
+      }
+      // Update local
+      A.tokens = Math.max(0, (A.tokens||0) - amount);
+      try{ localStorage.setItem("dl:tokens", String(A.tokens)); }catch(e){}
+      return true;
+    }catch(e){
+      console.warn("rpc/spend_tokens failed:", e.message);
+      // Don't allow client-only spend - too risky
+      if(typeof showToast === "function") showToast("Connessione assente, riprova","");
+      return false;
+    }
+  }
+  
+  // Offline: refuse to spend (prevents desync)
+  if(typeof showToast === "function") showToast("Offline: impossibile spendere ora","");
+  return false;
+}
+
 function init(){
   _initBackHandler();
   applyTheme(); // Apply saved theme
@@ -9057,6 +9256,9 @@ function proceedInit(){
         A.profile = { avatar: rows[0].avatar_id || "def", border: rows[0].border_id || "none" };
       }
     }).catch(function(){});
+    
+    // Sync tokens from server (anti-tamper)
+    syncTokensFromServer().catch(function(){});
     
     if(typeof loadTutorialsFromDB === "function") loadTutorialsFromDB().catch(function(){});
   }
