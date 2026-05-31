@@ -1,0 +1,25 @@
+{
+  "name": "DrawBound — Impara a disegnare",
+  "short_name": "DrawBound",
+  "description": "L'app italiana per imparare il disegno con micro-lezioni, sfide e mentor",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#15102a",
+  "theme_color": "#B872E0",
+  "lang": "it",
+  "categories": [
+    "education",
+    "art",
+    "social"
+  ],
+  "icons": [
+    {
+      "src": "logo_DrawBound.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

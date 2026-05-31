@@ -2210,6 +2210,13 @@ function renderProfileSettings(cont){
   resetRow.appendChild(resetBtn);
   devSec.appendChild(resetRow);
   
+    // Moderation button
+  var modBtn = document.createElement("button");
+  modBtn.style.cssText = "width:100%;padding:12px;background:rgba(228,76,60,0.15);border:1px solid rgba(228,76,60,0.40);border-radius:12px;color:#E07172;font-weight:800;font-size:13px;cursor:pointer;font-family:Geist,sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px";
+  modBtn.innerHTML = '<span style="font-size:16px">🛡️</span><span>Pannello Moderazione</span>';
+  modBtn.onclick = function(){ openAdminModeration(); };
+  devSec.appendChild(modBtn);
+  
   cont.appendChild(devSec);
   } // end isAdmin() guard
 }
@@ -4304,11 +4311,15 @@ function initPayPal(){
       var desc = A.payPlan === "yearly"
         ? "DrawBound PRO - Abbonamento Annuale"
         : "DrawBound PRO - Abbonamento Mensile";
+      // custom_id: pass user_id so the PayPal webhook can link the payment to the user
+      var userId = (A.user && A.user.id) ? String(A.user.id) : "";
+      var puUnit = {
+        description: desc,
+        amount: { value: amount, currency_code: "EUR" }
+      };
+      if(userId) puUnit.custom_id = userId.slice(0, 127); // PayPal max 127 chars
       return actions.order.create({
-        purchase_units: [{
-          description: desc,
-          amount: { value: amount, currency_code: "EUR" }
-        }],
+        purchase_units: [puUnit],
         application_context: {
           shipping_preference: "NO_SHIPPING",
           brand_name: "DrawBound"
@@ -4320,12 +4331,15 @@ function initPayPal(){
         // Payment successful!
         var payer = details.payer;
         var name = payer && payer.name ? payer.name.given_name : (A.user ? A.user.name.split(" ")[0] : "");
+        // Write with snake_case keys matching DB columns
         await db.set("dl:pr", {
           active: true,
           plan: A.payPlan,
-          orderId: details.id,
-          paidAt: new Date().toISOString(),
-          payer: payer ? payer.email_address : ""
+          order_id: details.id,
+          paypal_subscription_id: details.id,   // reuse order id for webhook cross-ref
+          activated_at: new Date().toISOString(),
+          paid_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         });
         A.pro = true;
         // Show success
@@ -6942,7 +6956,12 @@ async function openBottega(bottegaId){
   // Load members count
   var members = await loadBottegaMembers(bottegaId);
   var countEl = document.getElementById("bottega-members-count");
-  if(countEl) countEl.innerHTML = '👥 ' + members.length + ' / ' + bottega.maxMembers;
+  if(countEl){
+    countEl.innerHTML = '👥 ' + members.length + ' / ' + bottega.maxMembers;
+    countEl.style.cursor = "pointer";
+    countEl.title = "Vedi membri";
+    countEl.onclick = function(){ if(typeof openBottegaMembersList === "function") openBottegaMembersList(bottegaId); };
+  }
   
   // Load posts
   var posts = await loadBottegaPosts(bottegaId);
@@ -7453,6 +7472,7 @@ function openHamburger(){
   
   var accountSection = document.createElement("div");
   accountSection.style.cssText = "padding:8px 0 24px";
+  accountSection.appendChild(makeItem("🔔","Notifiche push","Gestisci le notifiche", function(){ openNotificationsSettings(); }));
   accountSection.appendChild(makeItem("🎓","Rivedi tutorial","Mostra di nuovo l'introduzione", function(){ startOnboarding(true); }));
   accountSection.appendChild(makeItem("🚫","Utenti bloccati","Gestisci la tua lista", function(){ openBlockedUsersList(); }));
   accountSection.appendChild(makeItem("📚","Tutorial introduttivo","Rivedi la guida iniziale", function(){ openTutorial(true); }));
@@ -8855,7 +8875,7 @@ function openFounderProfile(masterId){
       var lessonsRow = document.createElement("div");
       lessonsRow.style.cssText = "background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;cursor:pointer";
       lessonsRow.innerHTML = '<div style="font-size:20px">📚</div><div style="flex:1"><div style="font-weight:700;font-size:13px;color:#F5F1E8">Gestisci lezioni</div><div style="font-size:11px;color:#8a82a8;margin-top:2px">' + master.lessons.length + ' lezioni attive</div></div><div style="color:#8a82a8">›</div>';
-      lessonsRow.onclick = function(){ showToast("Editor lezioni in arrivo","✏️"); };
+      lessonsRow.onclick = function(){ var ov = document.getElementById("founder-profile-overlay"); if(ov) ov.remove(); try{history.back();}catch(e){} openFounderLessonsEditor(masterId); };
       contentArea.appendChild(lessonsRow);
       
       myBotteghe.forEach(function(b){
@@ -8872,11 +8892,21 @@ function openFounderProfile(masterId){
         contentArea.appendChild(chatRow);
       });
       
-      var commRow = document.createElement("div");
-      commRow.style.cssText = "background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;cursor:pointer";
-      commRow.innerHTML = '<div style="font-size:20px">👥</div><div style="flex:1"><div style="font-weight:700;font-size:13px;color:#F5F1E8">Membri delle botteghe</div><div style="font-size:11px;color:#8a82a8;margin-top:2px">Visualizza chi e iscritto</div></div><div style="color:#8a82a8">›</div>';
-      commRow.onclick = function(){ showToast("Lista membri in arrivo",""); };
-      contentArea.appendChild(commRow);
+      // Members list - one row per bottega
+      myBotteghe.forEach(function(b){
+        var membersRow = document.createElement("div");
+        membersRow.style.cssText = "background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;cursor:pointer";
+        membersRow.innerHTML = '<div style="font-size:20px">👥</div><div style="flex:1"><div style="font-weight:700;font-size:13px;color:#F5F1E8">Membri di ' + b.name + '</div><div style="font-size:11px;color:#8a82a8;margin-top:2px">Visualizza la lista iscritti</div></div><div style="color:#8a82a8">›</div>';
+        (function(bid){
+          membersRow.onclick = function(){
+            var ov = document.getElementById("founder-profile-overlay");
+            if(ov) ov.remove();
+            try{history.back();}catch(e){}
+            if(typeof openBottegaMembersList === "function") openBottegaMembersList(bid);
+          };
+        })(b.id);
+        contentArea.appendChild(membersRow);
+      });
     }
   }
   renderTabContent();
@@ -10525,6 +10555,325 @@ function startOnboarding(force){
   renderStep();
   document.body.appendChild(overlay);
   return true;
+}
+
+/* BOTTEGA MEMBERS LIST */
+async function openBottegaMembersList(bottegaId){
+  var bottega = getBottega(bottegaId);
+  if(!bottega) return;
+  
+  try{ history.pushState({dlApp:true, overlay:"bot-members"}, "", ""); }catch(e){}
+  
+  var overlay = document.createElement("div");
+  overlay.id = "bot-members-overlay";
+  overlay.style.cssText = "position:fixed;inset:0;z-index:10002;background:#15102a;overflow-y:auto";
+  
+  var header = document.createElement("div");
+  header.style.cssText = "padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:12px;background:#1c1738;position:sticky;top:0;z-index:2";
+  var backBtn = document.createElement("button");
+  backBtn.style.cssText = "width:36px;height:36px;border-radius:12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);color:#F5F1E8;font-size:18px;cursor:pointer";
+  backBtn.textContent = "←";
+  backBtn.onclick = function(){ var ov = document.getElementById("bot-members-overlay"); if(ov) ov.remove(); try{history.back();}catch(e){} };
+  header.appendChild(backBtn);
+  var titleEl = document.createElement("div");
+  titleEl.style.flex = "1";
+  titleEl.innerHTML = '<div style="font-family:JetBrains Mono,monospace;font-size:9px;letter-spacing:2px;color:#8a82a8;font-weight:700;text-transform:uppercase">MEMBRI</div><div style="font-family:Bricolage Grotesque,sans-serif;font-weight:800;font-size:16px;color:#F5F1E8">' + bottega.name + '</div>';
+  header.appendChild(titleEl);
+  overlay.appendChild(header);
+  
+  var content = document.createElement("div");
+  content.style.cssText = "padding:16px";
+  content.innerHTML = '<div style="text-align:center;padding:40px;color:#9896B8"><div style="width:24px;height:24px;border:3px solid rgba(255,255,255,.1);border-top:3px solid #B872E0;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px"></div>Caricamento membri...</div>';
+  overlay.appendChild(content);
+  
+  document.body.appendChild(overlay);
+  
+  try{
+    var members = await sbFetch("GET","dl_bottega_members",{filters:"bottega_id=eq."+bottegaId, order:"joined_at.asc"});
+    members = members || [];
+    if(typeof isUserBlocked === "function"){
+      members = members.filter(function(m){ return !isUserBlocked(m.user_id); });
+    }
+    
+    content.innerHTML = "";
+    
+    if(bottega.mentor){
+      var mentorRow = document.createElement("div");
+      mentorRow.style.cssText = "background:linear-gradient(135deg,rgba(251,186,0,0.10),rgba(184,114,224,0.06));border:1px solid rgba(251,186,0,0.30);border-radius:14px;padding:14px;margin-bottom:14px;display:flex;align-items:center;gap:12px;cursor:pointer";
+      mentorRow.innerHTML = 
+        '<div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#FBBA00,#FF9500);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">' + (bottega.mentor.avatar||"👨‍🎨") + '</div>' +
+        '<div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:6px"><span style="font-weight:800;font-size:14px;color:#F5F1E8">' + bottega.mentor.name + '</span><span style="background:linear-gradient(135deg,#FBBA00,#FF9500);color:#15102a;font-size:9px;font-weight:800;padding:2px 7px;border-radius:50px;font-family:JetBrains Mono,monospace;letter-spacing:0.5px">MENTOR</span></div><div style="font-size:11px;color:#a8a2c8;margin-top:2px">' + bottega.mentor.title + '</div></div>' +
+        '<div style="color:#FBBA00">›</div>';
+      mentorRow.onclick = function(){
+        var ov = document.getElementById("bot-members-overlay");
+        if(ov) ov.remove();
+        try{history.back();}catch(e){}
+        if(typeof openFounderProfile === "function") openFounderProfile(bottega.mentor.id);
+      };
+      content.appendChild(mentorRow);
+    }
+    
+    var countChip = document.createElement("div");
+    countChip.style.cssText = "font-family:JetBrains Mono,monospace;font-size:10px;letter-spacing:2px;color:#8a82a8;font-weight:700;text-transform:uppercase;margin-bottom:10px";
+    countChip.textContent = members.length + " / " + (bottega.maxMembers || "∞") + " MEMBRI";
+    content.appendChild(countChip);
+    
+    if(!members.length){
+      var emptyDiv = document.createElement("div");
+      emptyDiv.style.cssText = "text-align:center;padding:40px 20px;color:#8a82a8;font-size:13px";
+      emptyDiv.innerHTML = '<div style="font-size:42px;margin-bottom:12px;opacity:0.5">👥</div>Sii il primo membro!';
+      content.appendChild(emptyDiv);
+      return;
+    }
+    
+    var userIds = members.map(function(m){return "\"" + m.user_id + "\"";}).join(",");
+    var users = [];
+    try{
+      users = await sbFetch("GET","dl_users",{filters:"id=in.(" + userIds + ")"});
+    }catch(e){}
+    var userMap = {};
+    (users || []).forEach(function(u){ userMap[u.id] = u; });
+    
+    members.forEach(function(m){
+      var u = userMap[m.user_id] || { id: m.user_id, name: "Membro", picture: "" };
+      var isMe = (A.user && A.user.id === u.id);
+      
+      var row = document.createElement("div");
+      row.style.cssText = "background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer";
+      
+      var avEl;
+      if(u.picture && u.picture.indexOf("http") === 0){
+        avEl = document.createElement("img");
+        avEl.src = u.picture;
+        avEl.style.cssText = "width:42px;height:42px;border-radius:50%;object-fit:cover;flex-shrink:0";
+      } else {
+        avEl = document.createElement("div");
+        avEl.style.cssText = "width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#814393,#FBBA00);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:16px;flex-shrink:0";
+        avEl.textContent = (u.name || "?").charAt(0).toUpperCase();
+      }
+      row.appendChild(avEl);
+      
+      var info = document.createElement("div");
+      info.style.cssText = "flex:1;min-width:0";
+      var joinedAgo = (typeof formatTimeAgo === "function") ? formatTimeAgo(m.joined_at) : "";
+      info.innerHTML = '<div style="font-weight:700;font-size:14px;color:#F5F1E8">' + (u.name || "Membro") + (isMe ? ' (tu)' : '') + '</div><div style="font-size:11px;color:#8a82a8;margin-top:2px">Iscritto ' + joinedAgo + '</div>';
+      row.appendChild(info);
+      
+      var chev = document.createElement("div");
+      chev.style.color = "#8a82a8";
+      chev.textContent = "›";
+      row.appendChild(chev);
+      
+      row.onclick = function(){
+        var ov = document.getElementById("bot-members-overlay");
+        if(ov) ov.remove();
+        try{history.back();}catch(e){}
+        if(typeof openPubProfile === "function") openPubProfile(u.id);
+      };
+      
+      content.appendChild(row);
+    });
+  }catch(e){
+    console.error("openBottegaMembersList:", e);
+    content.innerHTML = '<div style="color:#E07172;padding:20px;text-align:center;font-size:13px">Errore: ' + (e.message||"sconosciuto") + '</div>';
+  }
+}
+
+/* ─── PUSH NOTIFICATIONS (client side) ─── */
+// Note: SENDING pushes requires backend with VAPID keys
+// Public VAPID key (replace with your own when deploying)
+var VAPID_PUBLIC_KEY = ""; // TODO: insert your public key when ready
+
+function isPushSupported(){
+  return ("serviceWorker" in navigator) && ("PushManager" in window) && ("Notification" in window);
+}
+
+function isPushEnabled(){
+  if(!isPushSupported()) return false;
+  return Notification.permission === "granted";
+}
+
+function urlBase64ToUint8Array(base64String){
+  var padding = "=".repeat((4 - base64String.length % 4) % 4);
+  var base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  var rawData = atob(base64);
+  var outputArray = new Uint8Array(rawData.length);
+  for(var i=0; i<rawData.length; ++i){ outputArray[i] = rawData.charCodeAt(i); }
+  return outputArray;
+}
+
+async function requestPushPermission(){
+  if(!isPushSupported()){
+    if(typeof showToast === "function") showToast("Notifiche non supportate","");
+    return false;
+  }
+  if(!VAPID_PUBLIC_KEY){
+    if(typeof showToast === "function") showToast("Server VAPID non configurato","");
+    console.warn("[push] VAPID_PUBLIC_KEY is empty - cannot subscribe");
+    return false;
+  }
+  
+  try{
+    var perm = await Notification.requestPermission();
+    if(perm !== "granted"){
+      if(typeof showToast === "function") showToast("Permesso negato","");
+      return false;
+    }
+    
+    var reg = await navigator.serviceWorker.ready;
+    var sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+    });
+    
+    // Save subscription to Supabase
+    if(sbReady() && A.user){
+      try{
+        await sbFetch("POST","dl_push_subscriptions",{body:{
+          user_id: A.user.id,
+          endpoint: sub.endpoint,
+          keys: JSON.stringify(sub.toJSON().keys || {}),
+          created_at: new Date().toISOString()
+        }});
+        if(typeof showToast === "function") showToast("Notifiche attive!","\U0001F514");
+      }catch(e){
+        console.error("save subscription:", e);
+        if(typeof showToast === "function") showToast("Errore salvataggio: " + (e.message||"").slice(0,50),"");
+      }
+    }
+    return true;
+  }catch(e){
+    console.error("requestPushPermission:", e);
+    if(typeof showToast === "function") showToast("Errore: " + (e.message||"").slice(0,80),"");
+    return false;
+  }
+}
+
+async function disablePush(){
+  if(!isPushSupported()) return false;
+  try{
+    var reg = await navigator.serviceWorker.ready;
+    var sub = await reg.pushManager.getSubscription();
+    if(sub){
+      await sub.unsubscribe();
+      // Remove from Supabase
+      if(sbReady() && A.user){
+        try{
+          await sbFetch("DELETE","dl_push_subscriptions?user_id=eq."+A.user.id+"&endpoint=eq."+encodeURIComponent(sub.endpoint), {});
+        }catch(e){}
+      }
+    }
+    if(typeof showToast === "function") showToast("Notifiche disattivate","");
+    return true;
+  }catch(e){
+    console.error("disablePush:", e);
+    return false;
+  }
+}
+
+function openNotificationsSettings(){
+  try{ history.pushState({dlApp:true, overlay:"notif-settings"}, "", ""); }catch(e){}
+  
+  var overlay = document.createElement("div");
+  overlay.id = "notif-settings-overlay";
+  overlay.style.cssText = "position:fixed;inset:0;z-index:10003;background:#15102a;overflow-y:auto";
+  
+  var header = document.createElement("div");
+  header.style.cssText = "padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:12px;background:#1c1738;position:sticky;top:0;z-index:2";
+  var backBtn = document.createElement("button");
+  backBtn.style.cssText = "width:36px;height:36px;border-radius:12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);color:#F5F1E8;font-size:18px;cursor:pointer;flex-shrink:0";
+  backBtn.textContent = "\u2190";
+  backBtn.onclick = function(){ var ov = document.getElementById("notif-settings-overlay"); if(ov) ov.remove(); try{history.back();}catch(e){} };
+  header.appendChild(backBtn);
+  var titleEl = document.createElement("div");
+  titleEl.style.flex = "1";
+  titleEl.innerHTML = '<div style="font-family:JetBrains Mono,monospace;font-size:9px;letter-spacing:2px;color:#8a82a8;font-weight:700;text-transform:uppercase">PREFERENZE</div><div style="font-family:Bricolage Grotesque,sans-serif;font-weight:800;font-size:16px;color:#F5F1E8">Notifiche push</div>';
+  header.appendChild(titleEl);
+  overlay.appendChild(header);
+  
+  var content = document.createElement("div");
+  content.style.cssText = "padding:20px";
+  
+  var icon = document.createElement("div");
+  icon.style.cssText = "width:80px;height:80px;border-radius:50%;background:rgba(184,114,224,0.15);border:2px solid rgba(184,114,224,0.40);display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 16px";
+  icon.textContent = "\U0001F514";
+  content.appendChild(icon);
+  
+  var title = document.createElement("div");
+  title.style.cssText = "font-family:Bricolage Grotesque,sans-serif;font-weight:800;font-size:20px;color:#F5F1E8;text-align:center;margin-bottom:8px";
+  title.textContent = "Ricevi notifiche";
+  content.appendChild(title);
+  
+  var body = document.createElement("div");
+  body.style.cssText = "font-size:13px;color:#a8a2c8;line-height:1.6;text-align:center;margin-bottom:20px;max-width:340px;margin-left:auto;margin-right:auto";
+  body.textContent = "Ti avviseremo per: nuove sfide settimanali, lezione del giorno disponibile, like sui tuoi post, commenti, e nuovi messaggi nella tua bottega.";
+  content.appendChild(body);
+  
+  var statusBox = document.createElement("div");
+  statusBox.style.cssText = "background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:14px;margin-bottom:14px;text-align:center";
+  var statusText = "";
+  if(!isPushSupported()){
+    statusText = "Il tuo browser non supporta le notifiche push.";
+    statusBox.style.borderColor = "rgba(228,76,60,0.30)";
+    statusBox.style.background = "rgba(228,76,60,0.10)";
+  } else if(Notification.permission === "granted"){
+    statusText = "\u2713 Le notifiche sono attive";
+    statusBox.style.borderColor = "rgba(102,224,181,0.30)";
+    statusBox.style.background = "rgba(102,224,181,0.10)";
+    statusBox.style.color = "#66E0B5";
+  } else if(Notification.permission === "denied"){
+    statusText = "\u2716 Hai bloccato le notifiche. Riabilitale dalle impostazioni del browser.";
+    statusBox.style.borderColor = "rgba(228,76,60,0.30)";
+  } else {
+    statusText = "Notifiche disattivate";
+  }
+  statusBox.innerHTML = '<div style="font-size:12px;font-weight:700">' + statusText + '</div>';
+  content.appendChild(statusBox);
+  
+  if(isPushSupported() && Notification.permission !== "denied"){
+    var actionBtn = document.createElement("button");
+    if(Notification.permission === "granted"){
+      actionBtn.style.cssText = "width:100%;height:48px;background:rgba(228,76,60,0.15);border:1px solid rgba(228,76,60,0.40);border-radius:14px;color:#E07172;font-weight:800;font-size:14px;cursor:pointer;font-family:Geist,sans-serif";
+      actionBtn.textContent = "Disattiva notifiche";
+      actionBtn.onclick = async function(){ actionBtn.disabled=true; actionBtn.textContent="..."; await disablePush(); overlay.remove(); try{history.back();}catch(e){} };
+    } else {
+      actionBtn.style.cssText = "width:100%;height:48px;background:linear-gradient(135deg,#B872E0,#FBBA00);border:none;border-radius:14px;color:#15102a;font-weight:800;font-size:14px;cursor:pointer;font-family:Geist,sans-serif;box-shadow:0 8px 24px rgba(184,114,224,0.30)";
+      actionBtn.textContent = "Attiva notifiche";
+      actionBtn.onclick = async function(){ actionBtn.disabled=true; actionBtn.textContent="..."; var ok = await requestPushPermission(); overlay.remove(); try{history.back();}catch(e){} };
+    }
+    content.appendChild(actionBtn);
+  }
+  
+  overlay.appendChild(content);
+  document.body.appendChild(overlay);
+}
+
+/* ─── SIGN IN WITH APPLE ─── */
+async function signInWithApple(){
+  if(typeof showToast === "function") showToast("Apertura Apple Sign-In...","");
+  
+  if(!window.supabaseClient){
+    if(typeof showToast === "function") showToast("Auth non disponibile","");
+    return;
+  }
+  
+  try{
+    var result = await window.supabaseClient.auth.signInWithOAuth({
+      provider: "apple",
+      options: {
+        redirectTo: window.location.origin + window.location.pathname,
+        scopes: "name email"
+      }
+    });
+    if(result.error){
+      console.error("Apple sign-in:", result.error);
+      if(typeof showToast === "function") showToast("Errore Apple: " + (result.error.message||"").slice(0,80),"");
+    }
+    // On success, Supabase redirects -> the callback hander on page load will handle session
+  }catch(e){
+    console.error("signInWithApple:", e);
+    if(typeof showToast === "function") showToast("Errore: " + (e.message||"sconosciuto"),"");
+  }
 }
 
 function init(){

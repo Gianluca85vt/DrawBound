@@ -5,7 +5,7 @@
 <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>DrawBound</title>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Geist:wght@300;400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=v94-1780247458"/>
+<link rel="stylesheet" href="style.css?v=v96-1780269754"/>
   <!-- PayPal SDK: sostituisci YOUR_PAYPAL_CLIENT_ID con il tuo Client ID da developer.paypal.com -->
   <!-- PayPal SDK loaded dynamically when needed -->
   <!-- PWA -->
@@ -131,7 +131,7 @@
 
     <!-- Social login buttons -->
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
-      <button onclick="showToast('Apple login in arrivo','')" style="height:50px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);border-radius:14px;color:#F5F1E8;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center">🍎</button>
+      <button onclick="signInWithApple()" style="height:50px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);border-radius:14px;color:#F5F1E8;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center">🍎</button>
       <button onclick="loginGoogle()" style="height:50px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);border-radius:14px;color:#F5F1E8;font-weight:800;font-size:18px;cursor:pointer;font-family:'Geist',sans-serif">G</button>
       <button onclick="showToast('Facebook login in arrivo','')" style="height:50px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);border-radius:14px;color:#F5F1E8;font-weight:800;font-size:18px;cursor:pointer;font-family:'Geist',sans-serif">f</button>
     </div><!-- Sign up link -->
@@ -811,7 +811,7 @@
   </div>
   <div id="challenges-content" style="max-width:640px;margin:0 auto;padding:16px"></div>
 </div>
-<script src="app.js?v=v94-1780247458" defer></script>
+<script src="app.js?v=v96-1780269754" defer></script>
 
 <!-- BOTTOM NAV (Facebook style) -->
 <!-- BADGES -->
@@ -928,6 +928,19 @@ window.addEventListener("load", function(){
     sel.value = saved;
   }
 });
+</script>
+
+<script>
+  // Service Worker registration
+  if("serviceWorker" in navigator){
+    window.addEventListener("load", function(){
+      navigator.serviceWorker.register("sw.js").then(function(reg){
+        console.log("[SW] Registered:", reg.scope);
+      }).catch(function(err){
+        console.warn("[SW] Registration failed:", err);
+      });
+    });
+  }
 </script>
 </body>
 </html>
