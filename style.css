@@ -1269,3 +1269,39 @@ div[style*="color:#FFD60A"] {
   pointer-events: none; z-index: 99999;
   animation: confettiFall 2.5s ease-in forwards;
 }
+
+
+/* ═════ TAP TARGETS ═════ */
+/* Force minimum 44px hit area on mobile for accessibility */
+@media (hover: none) and (pointer: coarse) {
+  button[onclick], 
+  button.btn,
+  a.btn,
+  .clickable {
+    min-height: 36px;
+    min-width: 36px;
+    position: relative;
+  }
+  /* Add invisible padding via pseudo-element to extend tap zone */
+  button[style*="width:28px"],
+  button[style*="width:30px"],
+  button[style*="width:32px"] {
+    position: relative;
+  }
+  button[style*="width:28px"]::after,
+  button[style*="width:30px"]::after,
+  button[style*="width:32px"]::after {
+    content: "";
+    position: absolute;
+    top: -8px; left: -8px; right: -8px; bottom: -8px;
+    z-index: -1;
+  }
+}
+
+/* Press feedback (subtle scale-down on active) */
+@media (hover: none) and (pointer: coarse) {
+  button:active, a[onclick]:active, [onclick]:active {
+    transform: scale(0.96);
+    transition: transform 0.08s ease;
+  }
+}

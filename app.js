@@ -1863,7 +1863,7 @@ function setProfileTab(tab){
   });
   var cont = document.getElementById("prof-tab-content");
   if(!cont)return;
-  cont.innerHTML='<div style="text-align:center;padding:24px;color:#9896B8">Caricamento...</div>';
+  cont.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px">' + '<div class="dl-skeleton" style="aspect-ratio:1"></div>'.repeat(9) + '</div>';
   if(tab==="posts") loadProfilePosts(cont);
   else if(tab==="lessons") loadProfileLessons(cont);
   else renderProfileSettings(cont);
@@ -2326,7 +2326,11 @@ function checkNewUnlocks(prevDone){
     var wasUnlocked=false;
     // Check based on previous state - simplified: just show notification if newly at threshold
     if(item.req.t==="count"&&item.req.n===now&&prevDone<now){
-      showToast("Sbloccato: "+item.icon+" "+item.name+"!","🎉");
+      (function(){
+            if(typeof showConfetti === "function") showConfetti(35);
+            try{ if(navigator.vibrate) navigator.vibrate([40, 60, 40]); }catch(e){}
+            showToast("Sbloccato: "+item.icon+" "+item.name+"!","🎉");
+          })();
     }
   });
   // Check category completion
@@ -2356,6 +2360,7 @@ var _currentPostId = null;
 
     /* Navigation */
 function navTo(screen){
+  try{ if(navigator.vibrate) navigator.vibrate(5); }catch(e){}
   _trackNav(screen);
   // Clear last_bottega if navigating away from bottega
   try{
@@ -2442,7 +2447,20 @@ async function renderFeed(){
   var container = document.getElementById("feed-posts");
   if(!container) return;
   loadChallengeBanner(); // Load challenge banner async
-  container.innerHTML = '<div id="feed-loading" style="text-align:center;padding:40px;color:#9896B8"><div style="width:28px;height:28px;border:3px solid rgba(255,255,255,.1);border-top:3px solid #8B5CF6;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px"></div>Caricamento...</div>';
+  container.innerHTML = '<div id="feed-loading">' + (function(){
+    var html = "";
+    for(var sk=0; sk<3; sk++){
+      html += '<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);border-radius:18px;margin-bottom:14px;overflow:hidden">' +
+        '<div style="padding:12px;display:flex;align-items:center;gap:10px">' +
+          '<div class="dl-skeleton" style="width:36px;height:36px;border-radius:50%"></div>' +
+          '<div style="flex:1"><div class="dl-skeleton" style="width:120px;height:12px;margin-bottom:6px"></div><div class="dl-skeleton" style="width:80px;height:10px"></div></div>' +
+        '</div>' +
+        '<div class="dl-skeleton" style="width:100%;aspect-ratio:1;border-radius:0"></div>' +
+        '<div style="padding:12px"><div class="dl-skeleton" style="width:60%;height:10px"></div></div>' +
+      '</div>';
+    }
+    return html;
+  })() + '</div>';
 
   if(!sbReady()){ container.innerHTML='<div style="text-align:center;padding:40px;color:#9896B8">Configura Supabase per vedere i post</div>'; return; }
 
@@ -2478,6 +2496,14 @@ async function renderFeed(){
     console.error("Feed error:", e);
     container.innerHTML='<div style="text-align:center;padding:40px;color:#9896B8">Errore: '+e.message+'</div>';
   }
+
+  // Install pull-to-refresh
+  try{
+    var ptrTarget = document.getElementById("scr-feed");
+    if(ptrTarget && typeof installPullToRefresh === "function"){
+      installPullToRefresh(ptrTarget, function(){ return renderFeed(); });
+    }
+  }catch(e){}
 }
 
 function buildPostCard(post, liked){
@@ -2626,7 +2652,16 @@ async function toggleLike(postId){
   if(btn){ btn.setAttribute("data-liked", isLiked?"0":"1"); }
   if(btn){
     btn.style.color = isLiked?"#9896B8":"#e74c3c";
-    btn.querySelector("span").textContent = isLiked?"🤍":"❤️";
+    var iconSpan = btn.querySelector("span");
+    if(iconSpan){
+      iconSpan.textContent = isLiked?"🤍":"❤️";
+      // Heart pop + burst on like (not unlike)
+      if(!isLiked && typeof animateHeartLike === "function"){
+        animateHeartLike(btn);
+        // Subtle haptic on mobile
+        try{ if(navigator.vibrate) navigator.vibrate(15); }catch(e){}
+      }
+    }
     if(countEl) countEl.textContent = parseInt(countEl.textContent)+(isLiked?-1:1);
   }
   try {
@@ -4408,6 +4443,8 @@ function initPayPal(){
         setTimeout(function(){
           renderHome();
           showScreen("home");
+          if(typeof showConfetti === "function") showConfetti(80);
+          try{ if(navigator.vibrate) navigator.vibrate([60, 80, 60, 80, 60]); }catch(e){}
           showToast("Sei ora PRO! 🚀", "👑");
           document.getElementById("checkout-form").style.display = "block";
           document.getElementById("checkout-success").style.display = "none";
@@ -5631,6 +5668,8 @@ function renderDashboard(){
   }
   // Apply fire pulse animation to streak (if active)
   setTimeout(function(){ if(typeof refreshStreakAnim === "function") refreshStreakAnim(); }, 100);
+  // Weekly challenge hero (only once per ISO week)
+  setTimeout(function(){ if(typeof maybeShowWeeklyChallengeHero === "function") maybeShowWeeklyChallengeHero(); }, 1200);
   // Validate progress
   try{
     var _p=localStorage.getItem("dl:progress_all");
@@ -7267,6 +7306,9 @@ function completeDailyLesson(lesson, overlay){
   var today = getTodayKey();
   // Mark done
   try{ localStorage.setItem("dl:daily_done_"+today, "1"); }catch(e){}
+  // CELEBRATION: confetti + haptic
+  if(typeof showConfetti === "function") showConfetti(40);
+  try{ if(navigator.vibrate) navigator.vibrate([30, 50, 30]); }catch(e){}
   // Add tokens
   A.tokens = (A.tokens||0) + lesson.reward;
   try{ localStorage.setItem("dl:tokens", String(A.tokens)); }catch(e){}
@@ -7538,6 +7580,7 @@ function openHamburger(){
   var accountSection = document.createElement("div");
   accountSection.style.cssText = "padding:8px 0 24px";
   accountSection.appendChild(makeItem("🔔","Notifiche push","Gestisci le notifiche", function(){ openNotificationsSettings(); }));
+  accountSection.appendChild(makeItem("✏️","Modifica profilo","Nome, bio, avatar", function(){ openEditProfile(); }));
   accountSection.appendChild(makeItem("🎓","Rivedi tutorial","Mostra di nuovo l'introduzione", function(){ startOnboarding(true); }));
   accountSection.appendChild(makeItem("🚫","Utenti bloccati","Gestisci la tua lista", function(){ openBlockedUsersList(); }));
   accountSection.appendChild(makeItem("📚","Tutorial introduttivo","Rivedi la guida iniziale", function(){ openTutorial(true); }));
@@ -8538,6 +8581,8 @@ async function submitChallengeEntry(challenge, bottegaId, file, caption){
     
     // Mark done and reward
     markChallengeDone(challenge.id, challenge.week);
+    if(typeof showConfetti === "function") showConfetti(50);
+    try{ if(navigator.vibrate) navigator.vibrate([40, 60, 40]); }catch(e){}
     A.tokens = (A.tokens || 0) + challenge.reward;
     try{ localStorage.setItem("dl:tokens", String(A.tokens)); }catch(e){}
     earnTokens(challenge.reward, "challenge_" + challenge.id).catch(function(){});
@@ -10551,10 +10596,17 @@ function startOnboarding(force){
     var step = ONBOARDING_STEPS[currentStep];
     content.innerHTML = "";
     
-    // Icon (large, in colored circle)
+    // Icon (large, in colored circle) - INTERACTIVE: tap pulses
     var iconWrap = document.createElement("div");
-    iconWrap.style.cssText = "width:96px;height:96px;border-radius:50%;background:" + step.accent + "33;border:2px solid " + step.accent + "60;display:flex;align-items:center;justify-content:center;font-size:48px;margin-bottom:24px;box-shadow:0 12px 40px " + step.accent + "30";
+    iconWrap.style.cssText = "width:96px;height:96px;border-radius:50%;background:" + step.accent + "33;border:2px solid " + step.accent + "60;display:flex;align-items:center;justify-content:center;font-size:48px;margin-bottom:24px;box-shadow:0 12px 40px " + step.accent + "30;cursor:pointer;transition:transform 0.2s";
     iconWrap.textContent = step.icon;
+    iconWrap.className = "dl-bounce-in";
+    iconWrap.onclick = function(){
+      iconWrap.classList.remove("dl-bounce-in");
+      void iconWrap.offsetWidth;
+      iconWrap.classList.add("dl-bounce-in");
+      try{ if(navigator.vibrate) navigator.vibrate(10); }catch(e){}
+    };
     content.appendChild(iconWrap);
     
     // Kicker
@@ -10565,7 +10617,8 @@ function startOnboarding(force){
     
     // Title
     var titleEl = document.createElement("div");
-    titleEl.style.cssText = "font-family:Bricolage Grotesque,sans-serif;font-weight:800;font-size:28px;color:#F5F1E8;letter-spacing:-0.02em;text-align:center;margin-bottom:14px;max-width:340px";
+    titleEl.className = "dl-fade-in";
+    titleEl.style.cssText = "font-family:Bricolage Grotesque,sans-serif;font-weight:800;font-size:28px;color:#F5F1E8;letter-spacing:-0.02em;text-align:center;margin-bottom:14px;max-width:340px;animation-delay:0.1s";
     titleEl.textContent = step.title;
     content.appendChild(titleEl);
     
@@ -10579,9 +10632,10 @@ function startOnboarding(force){
     if(step.bullets && step.bullets.length){
       var bulletsBox = document.createElement("div");
       bulletsBox.style.cssText = "background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:14px 16px;max-width:380px;width:100%";
-      step.bullets.forEach(function(b){
+      step.bullets.forEach(function(b, idx){
         var row = document.createElement("div");
-        row.style.cssText = "display:flex;align-items:flex-start;gap:10px;font-size:13px;color:#a8a2c8;line-height:1.5;margin-bottom:10px";
+        row.className = "dl-fade-in";
+        row.style.cssText = "display:flex;align-items:flex-start;gap:10px;font-size:13px;color:#a8a2c8;line-height:1.5;margin-bottom:10px;animation-delay:" + (idx * 0.08) + "s";
         row.innerHTML = '<span style="color:' + step.accent + ';font-weight:800;flex-shrink:0;margin-top:1px">\u2022</span><span>' + b + '</span>';
         bulletsBox.appendChild(row);
       });
@@ -10616,8 +10670,10 @@ function startOnboarding(force){
     if(ov) ov.remove();
     markOnboardingDone();
     try{ history.back(); }catch(e){}
-    if(!skipped && typeof showToast === "function"){
-      showToast("Benvenuto in DrawBound!","\u270F\uFE0F");
+    if(!skipped){
+      if(typeof showConfetti === "function") showConfetti(60);
+      try{ if(navigator.vibrate) navigator.vibrate([40, 60, 40, 60, 80]); }catch(e){}
+      if(typeof showToast === "function") showToast("Benvenuto in DrawBound!","\u270F\uFE0F");
     }
   }
   
@@ -11574,6 +11630,152 @@ function animateListFadeIn(container, selector){
     el.style.animationDelay = (idx * 0.04) + "s";
     el.classList.add("dl-fade-in");
   });
+}
+
+/* ─── PULL TO REFRESH ─── */
+function installPullToRefresh(scrollableEl, onRefresh){
+  if(!scrollableEl) return;
+  if(scrollableEl.dataset.ptrInstalled) return;
+  scrollableEl.dataset.ptrInstalled = "1";
+  
+  var startY = 0;
+  var pulling = false;
+  var pullDistance = 0;
+  var threshold = 80;
+  
+  var indicator = document.createElement("div");
+  indicator.style.cssText = "position:absolute;top:-50px;left:50%;transform:translateX(-50%);width:36px;height:36px;border-radius:50%;background:rgba(184,114,224,0.15);border:2px solid rgba(184,114,224,0.40);display:flex;align-items:center;justify-content:center;font-size:18px;color:#B872E0;transition:top 0.2s ease;z-index:100;pointer-events:none";
+  indicator.textContent = "\u2193";
+  
+  // Ensure scrollable container has position:relative
+  if(getComputedStyle(scrollableEl).position === "static"){
+    scrollableEl.style.position = "relative";
+  }
+  scrollableEl.appendChild(indicator);
+  
+  scrollableEl.addEventListener("touchstart", function(e){
+    // Only allow pull when scrolled to top
+    if(scrollableEl.scrollTop > 0) return;
+    startY = e.touches[0].clientY;
+    pulling = true;
+  }, { passive: true });
+  
+  scrollableEl.addEventListener("touchmove", function(e){
+    if(!pulling) return;
+    var currentY = e.touches[0].clientY;
+    pullDistance = Math.max(0, currentY - startY);
+    if(pullDistance > 0 && scrollableEl.scrollTop === 0){
+      var progress = Math.min(pullDistance / threshold, 1.5);
+      indicator.style.top = Math.min(pullDistance - 50, 20) + "px";
+      indicator.style.transform = "translateX(-50%) rotate(" + (progress * 180) + "deg)";
+      if(pullDistance >= threshold){
+        indicator.style.background = "linear-gradient(135deg,#B872E0,#FBBA00)";
+        indicator.style.color = "#15102a";
+      } else {
+        indicator.style.background = "rgba(184,114,224,0.15)";
+        indicator.style.color = "#B872E0";
+      }
+    }
+  }, { passive: true });
+  
+  scrollableEl.addEventListener("touchend", async function(){
+    if(!pulling) return;
+    pulling = false;
+    if(pullDistance >= threshold && scrollableEl.scrollTop === 0){
+      // Trigger refresh
+      indicator.style.top = "20px";
+      indicator.textContent = "\u21BB"; // refresh arrow
+      indicator.style.animation = "spin 1s linear infinite";
+      try{ if(navigator.vibrate) navigator.vibrate(20); }catch(e){}
+      try{ await onRefresh(); }catch(e){ console.warn("PTR refresh:", e); }
+      setTimeout(function(){
+        indicator.style.animation = "";
+        indicator.style.top = "-50px";
+        indicator.textContent = "\u2193";
+        indicator.style.transform = "translateX(-50%) rotate(0)";
+      }, 400);
+    } else {
+      indicator.style.top = "-50px";
+      indicator.style.transform = "translateX(-50%) rotate(0)";
+    }
+    pullDistance = 0;
+  }, { passive: true });
+}
+
+/* ─── WEEKLY CHALLENGE HERO ANNOUNCEMENT ─── */
+function maybeShowWeeklyChallengeHero(){
+  try{
+    var nowD = new Date();
+    var year = nowD.getFullYear();
+    // ISO week number
+    var d = new Date(Date.UTC(nowD.getFullYear(), nowD.getMonth(), nowD.getDate()));
+    var dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    var weekNum = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    var weekKey = year + "-W" + weekNum;
+    
+    var lastShown = localStorage.getItem("dl:hero_week_shown");
+    if(lastShown === weekKey) return; // already shown this week
+    
+    // Only show on the dashboard, not other screens
+    if(!A.user || A.screen !== "dashboard") return;
+    
+    var overlay = document.createElement("div");
+    overlay.id = "challenge-hero-overlay";
+    overlay.style.cssText = "position:fixed;inset:0;z-index:10006;background:radial-gradient(120% 60% at 50% 0%,#2a1d52 0%,#15102a 60%);display:flex;align-items:center;justify-content:center;flex-direction:column;padding:30px;animation:fadeIn 0.4s ease-out;cursor:pointer";
+    overlay.onclick = function(e){
+      if(e.target === overlay){ overlay.remove(); }
+    };
+    
+    var icon = document.createElement("div");
+    icon.className = "dl-logo-entrance";
+    icon.style.cssText = "width:120px;height:120px;border-radius:30px;background:linear-gradient(135deg,#FF3DA5,#B872E0,#FBBA00);display:flex;align-items:center;justify-content:center;font-size:64px;margin-bottom:24px;box-shadow:0 24px 60px rgba(255,61,165,0.40)";
+    icon.textContent = "\u{1F3A8}";
+    overlay.appendChild(icon);
+    
+    var kicker = document.createElement("div");
+    kicker.style.cssText = "font-family:JetBrains Mono,monospace;font-size:11px;letter-spacing:3px;color:#FF3DA5;font-weight:800;text-transform:uppercase;margin-bottom:10px";
+    kicker.textContent = "SETTIMANA " + weekNum;
+    overlay.appendChild(kicker);
+    
+    var title = document.createElement("h1");
+    title.style.cssText = "font-family:Bricolage Grotesque,sans-serif;font-size:32px;font-weight:800;color:#F5F1E8;margin:0 0 12px;letter-spacing:-0.02em;text-align:center;line-height:1.1";
+    title.textContent = "Nuova sfida disponibile!";
+    overlay.appendChild(title);
+    
+    var sub = document.createElement("p");
+    sub.style.cssText = "font-size:14px;color:#a8a2c8;margin:0 0 28px;line-height:1.6;text-align:center;max-width:340px";
+    sub.textContent = "Una settimana per partecipare e raddoppiare i tuoi DrawPass token. Sei pronto?";
+    overlay.appendChild(sub);
+    
+    var btnRow = document.createElement("div");
+    btnRow.style.cssText = "display:flex;flex-direction:column;gap:10px;width:100%;max-width:300px";
+    
+    var primary = document.createElement("button");
+    primary.style.cssText = "width:100%;height:52px;background:linear-gradient(135deg,#FF3DA5,#B872E0);border:none;border-radius:16px;color:#fff;font-weight:800;font-size:15px;cursor:pointer;font-family:Geist,sans-serif;box-shadow:0 12px 32px rgba(255,61,165,0.35)";
+    primary.textContent = "Vai alla sfida \u2192";
+    primary.onclick = function(){ overlay.remove(); localStorage.setItem("dl:hero_week_shown", weekKey); navTo("feed"); };
+    btnRow.appendChild(primary);
+    
+    var secondary = document.createElement("button");
+    secondary.style.cssText = "width:100%;height:44px;background:transparent;border:none;color:#a8a2c8;font-weight:700;font-size:13px;cursor:pointer;font-family:Geist,sans-serif";
+    secondary.textContent = "Pi\u00F9 tardi";
+    secondary.onclick = function(){ overlay.remove(); localStorage.setItem("dl:hero_week_shown", weekKey); };
+    btnRow.appendChild(secondary);
+    
+    overlay.appendChild(btnRow);
+    document.body.appendChild(overlay);
+    
+    // Confetti to celebrate
+    setTimeout(function(){
+      if(typeof showConfetti === "function") showConfetti(50);
+    }, 300);
+    
+    try{ if(navigator.vibrate) navigator.vibrate([60, 80, 60]); }catch(e){}
+  }catch(e){
+    console.warn("maybeShowWeeklyChallengeHero:", e);
+  }
 }
 
 function init(){
