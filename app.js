@@ -10682,7 +10682,7 @@ async function openBottegaMembersList(bottegaId){
 /* ─── PUSH NOTIFICATIONS (client side) ─── */
 // Note: SENDING pushes requires backend with VAPID keys
 // Public VAPID key (replace with your own when deploying)
-var VAPID_PUBLIC_KEY = ""; // TODO: insert your public key when ready
+var VAPID_PUBLIC_KEY = "BKxWH9PYNT0gwTNAHrPCboWMBWpx0_qD4m1y9bRWMwSqOHfOLe1KkwsWyvUghIDSi87cZ7X_WNQX0FXrzlqUHpc";
 
 function isPushSupported(){
   return ("serviceWorker" in navigator) && ("PushManager" in window) && ("Notification" in window);
