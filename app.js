@@ -856,37 +856,97 @@ async function doSocial(pv){
   showToast("Login social in arrivo presto!","🔜");
 }
 async function doLogin(){
-  var err=document.getElementById("l-err");err.style.display="none";
-  var em=document.getElementById("l-email").value.trim().toLowerCase();
-  var pw=document.getElementById("l-pwd").value;
-  if(!em||!pw){err.textContent="Compila tutti i campi.";err.style.display="block";return;}
-  var btn=document.querySelector("#panel-login .btn");
-  if(btn){btn.textContent="Accesso...";btn.disabled=true;}
+  var emailEl = document.getElementById("auth-email") || document.getElementById("l-email");
+  var pwdEl = document.getElementById("auth-password") || document.getElementById("l-pwd");
+  if(!emailEl || !pwdEl){ showToast("Form non disponibile",""); return; }
+  
+  var em = emailEl.value.trim().toLowerCase();
+  var pw = pwdEl.value;
+  
+  if(!em || !pw){
+    showToast("Compila email e password","");
+    return;
+  }
+  
+  var titleEl = document.getElementById("auth-title");
+  var isSignup = titleEl && titleEl.textContent === "Crea account";
+  if(isSignup) return await doSignup(em, pw);
+  
+  var btn = document.querySelector("#scr-auth button[onclick=\"doLogin()\"]") || document.querySelector("#panel-login .btn");
+  var origText = btn ? btn.textContent : "Accedi";
+  if(btn){ btn.textContent = "Accesso..."; btn.disabled = true; }
+  
   try{
-    var h=await hashPwd(pw);
-    // Query Supabase directly for this email + hash
-    var rows=await sbFetch("GET","dl_users",{filters:"email=eq."+encodeURIComponent(em)+"&pwd_hash=eq."+h});
-    if(!rows||!rows.length){
-      // Try without hash (old registrations might have different format)
-      var rows2=await sbFetch("GET","dl_users",{filters:"email=eq."+encodeURIComponent(em)});
-      if(rows2&&rows2[0]&&rows2[0].pwd_hash===h){
-        rows=[rows2[0]];
+    var h = await hashPwd(pw);
+    var rows = await sbFetch("GET","dl_users",{filters:"email=eq."+encodeURIComponent(em)+"&pwd_hash=eq."+h});
+    if(!rows || !rows.length){
+      var rows2 = await sbFetch("GET","dl_users",{filters:"email=eq."+encodeURIComponent(em)});
+      if(rows2 && rows2[0] && rows2[0].pwd_hash === h){
+        rows = [rows2[0]];
       } else {
-        err.textContent="Email o password non corretti.";err.style.display="block";
-        if(btn){btn.textContent="Accedi";btn.disabled=false;}
+        showToast("Email o password errati","");
+        if(btn){ btn.textContent = origText; btn.disabled = false; }
         return;
       }
     }
-    var user=rows[0];
-    localSet("dl:uid",user.id);
-    A.user={id:user.id,name:user.name,email:user.email,avatar:user.avatar||"👤",provider:user.provider||"email",r:user.created_at};
-    if(btn){btn.textContent="Accedi";btn.disabled=false;}
+    var user = rows[0];
+    localSet("dl:uid", user.id);
+    A.user = {id:user.id, name:user.name, email:user.email, avatar:user.avatar||"\u{1F464}", provider:user.provider||"email", r:user.created_at};
+    if(btn){ btn.textContent = origText; btn.disabled = false; }
     await onLogin();
   }catch(e){
-    err.textContent="Errore di connessione. Riprova.";err.style.display="block";
-    if(btn){btn.textContent="Accedi";btn.disabled=false;}
+    showToast("Errore di connessione. Riprova.","");
+    if(btn){ btn.textContent = origText; btn.disabled = false; }
   }
 }
+async function doSignup(email, password){
+  if(!email || !password){ showToast("Compila tutti i campi",""); return; }
+  if(password.length < 6){ showToast("Password troppo corta (min 6 caratteri)",""); return; }
+  
+  var btn = document.querySelector("#scr-auth button[onclick='doLogin()']") || document.querySelector("#panel-login .btn");
+  var origText = btn ? btn.textContent : "Crea account";
+  if(btn){ btn.textContent = "Creazione..."; btn.disabled = true; }
+  
+  try{
+    // Check email already in use
+    var existing = await sbFetch("GET","dl_users",{filters:"email=eq."+encodeURIComponent(email)});
+    if(existing && existing.length){
+      showToast("Email gia registrata","");
+      if(btn){ btn.textContent = origText; btn.disabled = false; }
+      return;
+    }
+    
+    var h = await hashPwd(password);
+    var newId = "u_" + Date.now().toString(36) + Math.random().toString(36).substr(2,8);
+    var defaultName = email.split("@")[0].replace(/[^a-zA-Z0-9]/g, "").slice(0,20) || "user";
+    
+    var newUser = {
+      id: newId,
+      email: email,
+      name: defaultName,
+      pwd_hash: h,
+      avatar: "\ud83d\udc64",
+      provider: "email",
+      created_at: new Date().toISOString(),
+      followers_count: 0,
+      following_count: 0
+    };
+    
+    await sbFetchStrict("POST","dl_users",{body: newUser});
+    
+    localSet("dl:uid", newId);
+    A.user = {id:newId, name:defaultName, email:email, avatar:"\ud83d\udc64", provider:"email", r:newUser.created_at};
+    
+    if(btn){ btn.textContent = origText; btn.disabled = false; }
+    showToast("Benvenuto in DrawBound!", "\u2728");
+    await onLogin();
+  }catch(e){
+    console.error("doSignup:", e);
+    showToast("Errore: " + (e.message||"").slice(0,80), "");
+    if(btn){ btn.textContent = origText; btn.disabled = false; }
+  }
+}
+
 async function doReg(){
   var err=document.getElementById("r-err");err.style.display="none";
   var n=document.getElementById("r-name").value,em=document.getElementById("r-email").value;
@@ -5550,12 +5610,15 @@ function proceedToCheckout(){
 function toggleAuthMode(){
   var t=document.getElementById("auth-title"),s=document.getElementById("auth-subtitle");
   if(!t)return;
+  var loginBtn = document.querySelector("#scr-auth button[onclick='doLogin()']");
   if(t.textContent==="Bentornato"){
     t.textContent="Crea account";
     s.textContent="Inizia il tuo percorso oggi.";
+    if(loginBtn) loginBtn.innerHTML = 'Crea account →';
   } else {
     t.textContent="Bentornato";
     s.textContent="Continua dove avevi lasciato.";
+    if(loginBtn) loginBtn.innerHTML = 'Accedi →';
   }
 }
 function showSplash(){showScreen("splash");}
@@ -5566,6 +5629,8 @@ function renderDashboard(){
   if(A.user && typeof startOnboarding === "function" && !isOnboardingDone()){
     setTimeout(function(){ startOnboarding(false); }, 600);
   }
+  // Apply fire pulse animation to streak (if active)
+  setTimeout(function(){ if(typeof refreshStreakAnim === "function") refreshStreakAnim(); }, 100);
   // Validate progress
   try{
     var _p=localStorage.getItem("dl:progress_all");
@@ -9270,6 +9335,10 @@ async function syncTokensFromServer(){
 /* Earn tokens — writes to server then updates local */
 async function earnTokens(amount, reason){
   amount = parseInt(amount) || 0;
+  // Trigger token animation
+  if(amount > 0 && typeof animateTokenGain === "function"){
+    setTimeout(function(){ animateTokenGain(amount); }, 50);
+  }
   if(amount <= 0 || !A.user || !A.user.id) return false;
   
   // Sanity: cap any single grant at 50 to prevent silly bugs
@@ -10874,6 +10943,637 @@ async function signInWithApple(){
     console.error("signInWithApple:", e);
     if(typeof showToast === "function") showToast("Errore: " + (e.message||"sconosciuto"),"");
   }
+}
+
+/* ─── ADMIN MODERATION PANEL ─── */
+async function openAdminModeration(){
+  if(typeof isAdmin === "function" && !isAdmin()){
+    if(typeof showToast === "function") showToast("Solo admin","");
+    return;
+  }
+  try{ history.pushState({dlApp:true, overlay:"admin-mod"}, "", ""); }catch(e){}
+  
+  var overlay = document.createElement("div");
+  overlay.id = "admin-mod-overlay";
+  overlay.style.cssText = "position:fixed;inset:0;z-index:10004;background:#15102a;overflow-y:auto";
+  
+  var header = document.createElement("div");
+  header.style.cssText = "padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:12px;background:#1c1738;position:sticky;top:0;z-index:2";
+  var backBtn = document.createElement("button");
+  backBtn.style.cssText = "width:36px;height:36px;border-radius:12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);color:#F5F1E8;font-size:18px;cursor:pointer;flex-shrink:0";
+  backBtn.textContent = "←";
+  backBtn.onclick = function(){ var ov = document.getElementById("admin-mod-overlay"); if(ov) ov.remove(); try{history.back();}catch(e){} };
+  header.appendChild(backBtn);
+  var titleEl = document.createElement("div");
+  titleEl.style.flex = "1";
+  titleEl.innerHTML = '<div style="font-family:JetBrains Mono,monospace;font-size:9px;letter-spacing:2px;color:#E07172;font-weight:700;text-transform:uppercase">ADMIN</div><div style="font-family:Bricolage Grotesque,sans-serif;font-weight:800;font-size:16px;color:#F5F1E8">Moderazione</div>';
+  header.appendChild(titleEl);
+  overlay.appendChild(header);
+  
+  var tabsRow = document.createElement("div");
+  tabsRow.style.cssText = "display:flex;gap:6px;padding:12px 16px;background:#1c1738;border-bottom:1px solid rgba(255,255,255,0.06);position:sticky;top:65px;z-index:2";
+  
+  var currentTab = "pending";
+  
+  function makeTab(label, id){
+    var b = document.createElement("button");
+    b.dataset.tab = id;
+    b.textContent = label;
+    b.style.cssText = "flex:1;padding:8px 10px;border-radius:10px;font-family:Geist,sans-serif;font-weight:700;font-size:12px;cursor:pointer;transition:all .15s;border:1px solid transparent";
+    b.onclick = function(){ currentTab = id; refreshTabStyles(); renderReports(); };
+    return b;
+  }
+  function refreshTabStyles(){
+    tabsRow.querySelectorAll("button").forEach(function(b){
+      if(b.dataset.tab === currentTab){
+        b.style.background = "linear-gradient(135deg,#B872E0,#FBBA00)";
+        b.style.color = "#15102a"; b.style.border = "1px solid transparent";
+      } else {
+        b.style.background = "rgba(255,255,255,0.04)"; b.style.color = "#a8a2c8";
+        b.style.border = "1px solid rgba(255,255,255,0.08)";
+      }
+    });
+  }
+  tabsRow.appendChild(makeTab("In sospeso", "pending"));
+  tabsRow.appendChild(makeTab("Revisionate", "reviewed"));
+  tabsRow.appendChild(makeTab("Ignorate", "dismissed"));
+  refreshTabStyles();
+  overlay.appendChild(tabsRow);
+  
+  var contentArea = document.createElement("div");
+  contentArea.id = "admin-mod-content";
+  contentArea.style.cssText = "padding:14px";
+  overlay.appendChild(contentArea);
+  
+  var REASON_LABEL = {
+    spam:"Spam", harassment:"Molestie", hate:"Discorsi d'odio", sexual:"Sessuale",
+    violence:"Violenza", minor:"Minore", copyright:"Copyright", impersonation:"Impersonificazione", other:"Altro"
+  };
+  
+  async function renderReports(){
+    contentArea.innerHTML = '<div style="text-align:center;padding:30px;color:#9896B8">Caricamento...</div>';
+    try{
+      var reports = await sbFetch("GET","dl_reports",{filters:"status=eq."+currentTab,order:"created_at.desc",limit:50});
+      reports = reports || [];
+      
+      if(!reports.length){
+        contentArea.innerHTML = '<div style="text-align:center;padding:40px 20px;color:#8a82a8;font-size:13px"><div style="font-size:42px;margin-bottom:12px;opacity:0.4">🛡️</div>Nessuna segnalazione ' + (currentTab==="pending"?"in sospeso":(currentTab==="reviewed"?"revisionata":"ignorata")) + '.</div>';
+        return;
+      }
+      
+      contentArea.innerHTML = "";
+      reports.forEach(function(r){
+        var card = document.createElement("div");
+        card.style.cssText = "background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:14px;margin-bottom:10px";
+        
+        var topRow = document.createElement("div");
+        topRow.style.cssText = "display:flex;align-items:center;gap:10px;margin-bottom:8px";
+        var icon = document.createElement("div");
+        icon.style.cssText = "width:36px;height:36px;border-radius:10px;background:rgba(228,76,60,0.15);border:1px solid rgba(228,76,60,0.30);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0";
+        icon.textContent = "⚠️";
+        topRow.appendChild(icon);
+        
+        var info = document.createElement("div");
+        info.style.flex = "1"; info.style.minWidth = "0";
+        var when = "";
+        try{ when = new Date(r.created_at).toLocaleString("it-IT"); }catch(e){}
+        info.innerHTML = '<div style="font-weight:800;font-size:13px;color:#E07172">' + (REASON_LABEL[r.reason] || r.reason) + '</div><div style="font-size:11px;color:#8a82a8;font-family:JetBrains Mono,monospace">' + r.content_type + ' #' + r.content_id + ' • ' + when + '</div>';
+        topRow.appendChild(info);
+        card.appendChild(topRow);
+        
+        if(r.details){
+          var details = document.createElement("div");
+          details.style.cssText = "background:rgba(0,0,0,0.20);padding:8px 10px;border-radius:8px;font-size:12px;color:#a8a2c8;line-height:1.5;margin-bottom:10px";
+          details.textContent = r.details;
+          card.appendChild(details);
+        }
+        
+        var meta = document.createElement("div");
+        meta.style.cssText = "display:flex;flex-direction:column;gap:3px;font-size:10px;color:#8a82a8;font-family:JetBrains Mono,monospace;margin-bottom:10px;padding:8px;background:rgba(0,0,0,0.15);border-radius:8px";
+        meta.innerHTML = 
+          '<div>Reporter: ' + (r.reporter_id || "?").slice(0,20) + '...</div>' +
+          (r.reported_user_id ? '<div>Reported: ' + r.reported_user_id.slice(0,20) + '...</div>' : '') +
+          '<div>Content: ' + r.content_id + '</div>';
+        card.appendChild(meta);
+        
+        var btnRow = document.createElement("div");
+        btnRow.style.cssText = "display:flex;gap:8px";
+        
+        if(currentTab === "pending"){
+          var viewBtn = document.createElement("button");
+          viewBtn.style.cssText = "flex:1;padding:8px;background:rgba(184,114,224,0.15);border:1px solid rgba(184,114,224,0.40);border-radius:10px;color:#B872E0;font-weight:700;font-size:11px;cursor:pointer;font-family:Geist,sans-serif";
+          viewBtn.textContent = "Vedi contenuto";
+          viewBtn.onclick = function(){
+            var ov = document.getElementById("admin-mod-overlay"); if(ov) ov.remove();
+            try{history.back();}catch(e){}
+            if(r.content_type === "post" && typeof openPostDetail === "function") openPostDetail(r.content_id);
+            else if(typeof showToast === "function") showToast("Tipo: " + r.content_type + " id: " + r.content_id, "");
+          };
+          btnRow.appendChild(viewBtn);
+          
+          var dismissBtn = document.createElement("button");
+          dismissBtn.style.cssText = "flex:1;padding:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);border-radius:10px;color:#a8a2c8;font-weight:700;font-size:11px;cursor:pointer;font-family:Geist,sans-serif";
+          dismissBtn.textContent = "Ignora";
+          dismissBtn.onclick = async function(){
+            dismissBtn.disabled = true; dismissBtn.textContent = "...";
+            try{
+              await sbFetch("PATCH","dl_reports?id=eq."+r.id, {body:{status:"dismissed",reviewed_by:A.user.id,reviewed_at:new Date().toISOString()}});
+              card.style.opacity = "0.4"; card.style.pointerEvents = "none";
+              if(typeof showToast === "function") showToast("Segnalazione ignorata","");
+            }catch(e){
+              dismissBtn.disabled = false; dismissBtn.textContent = "Ignora";
+              if(typeof showToast === "function") showToast("Errore: "+(e.message||""),"");
+            }
+          };
+          btnRow.appendChild(dismissBtn);
+          
+          var removeBtn = document.createElement("button");
+          removeBtn.style.cssText = "flex:1;padding:8px;background:rgba(228,76,60,0.15);border:1px solid rgba(228,76,60,0.40);border-radius:10px;color:#E07172;font-weight:800;font-size:11px;cursor:pointer;font-family:Geist,sans-serif";
+          removeBtn.textContent = "Elimina";
+          removeBtn.onclick = async function(){
+            if(!confirm("Eliminare il contenuto?")) return;
+            removeBtn.disabled = true; removeBtn.textContent = "...";
+            try{
+              var table = "dl_posts";
+              if(r.content_type === "bottega_post") table = "dl_bottega_posts";
+              else if(r.content_type === "comment") table = "dl_comments";
+              else if(r.content_type === "chat") table = "dl_bottega_chat";
+              await sbFetch("DELETE", table + "?id=eq." + r.content_id, {});
+              await sbFetch("PATCH","dl_reports?id=eq."+r.id, {body:{status:"reviewed",reviewed_by:A.user.id,reviewed_at:new Date().toISOString()}});
+              card.style.opacity = "0.4"; card.style.pointerEvents = "none";
+              if(typeof showToast === "function") showToast("Contenuto eliminato","");
+            }catch(e){
+              removeBtn.disabled = false; removeBtn.textContent = "Elimina";
+              if(typeof showToast === "function") showToast("Errore: "+(e.message||""),"");
+            }
+          };
+          btnRow.appendChild(removeBtn);
+        } else {
+          var statusEl = document.createElement("div");
+          statusEl.style.cssText = "padding:8px;background:rgba(255,255,255,0.04);border-radius:10px;color:#a8a2c8;font-size:11px;text-align:center;flex:1";
+          statusEl.textContent = currentTab === "reviewed" ? "✓ Gestita" : "X Ignorata";
+          btnRow.appendChild(statusEl);
+        }
+        card.appendChild(btnRow);
+        contentArea.appendChild(card);
+      });
+    }catch(e){
+      contentArea.innerHTML = '<div style="color:#E07172;padding:20px;text-align:center">Errore: ' + (e.message||"") + '</div>';
+    }
+  }
+  renderReports();
+  document.body.appendChild(overlay);
+}
+
+/* ─── FOUNDER LESSON EDITOR ─── */
+function isFounderOf(masterId){
+  if(typeof isAdmin === "function" && isAdmin()) return true;
+  if(!A.user) return false;
+  return false;
+}
+
+async function loadCustomMasterLessons(masterId){
+  if(!sbReady()) return [];
+  try{
+    var rows = await sbFetch("GET","dl_master_lessons",{filters:"master_id=eq."+masterId,order:"sort_order.asc",limit:100});
+    return rows || [];
+  }catch(e){ console.warn("loadCustomMasterLessons:", e); return []; }
+}
+
+function openFounderLessonsEditor(masterId){
+  if(!isFounderOf(masterId)){
+    if(typeof showToast === "function") showToast("Solo il founder o admin","");
+    return;
+  }
+  try{ history.pushState({dlApp:true, overlay:"lesson-editor"}, "", ""); }catch(e){}
+  
+  var overlay = document.createElement("div");
+  overlay.id = "lesson-editor-overlay";
+  overlay.style.cssText = "position:fixed;inset:0;z-index:10003;background:#15102a;overflow-y:auto";
+  
+  var header = document.createElement("div");
+  header.style.cssText = "padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:12px;background:#1c1738;position:sticky;top:0;z-index:2";
+  var backBtn = document.createElement("button");
+  backBtn.style.cssText = "width:36px;height:36px;border-radius:12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);color:#F5F1E8;font-size:18px;cursor:pointer;flex-shrink:0";
+  backBtn.textContent = "←";
+  backBtn.onclick = function(){ var ov = document.getElementById("lesson-editor-overlay"); if(ov) ov.remove(); try{history.back();}catch(e){} };
+  header.appendChild(backBtn);
+  
+  var master = (typeof MASTERS !== "undefined") ? MASTERS.find(function(m){return m.id===masterId;}) : null;
+  var titleEl = document.createElement("div");
+  titleEl.style.flex = "1";
+  titleEl.innerHTML = '<div style="font-family:JetBrains Mono,monospace;font-size:9px;letter-spacing:2px;color:#8a82a8;font-weight:700;text-transform:uppercase">EDITOR</div><div style="font-family:Bricolage Grotesque,sans-serif;font-weight:800;font-size:16px;color:#F5F1E8">Lezioni di ' + (master ? master.name : masterId) + '</div>';
+  header.appendChild(titleEl);
+  
+  var addBtn = document.createElement("button");
+  addBtn.style.cssText = "background:linear-gradient(135deg,#B872E0,#FBBA00);border:none;border-radius:50px;padding:8px 14px;color:#15102a;font-weight:800;font-size:12px;cursor:pointer;font-family:Geist,sans-serif;flex-shrink:0";
+  addBtn.textContent = "+ Nuova";
+  addBtn.onclick = function(){ openLessonForm(masterId, null, function(){ refreshList(); }); };
+  header.appendChild(addBtn);
+  overlay.appendChild(header);
+  
+  var content = document.createElement("div");
+  content.id = "lesson-editor-content";
+  content.style.cssText = "padding:14px";
+  overlay.appendChild(content);
+  
+  async function refreshList(){
+    content.innerHTML = '<div style="text-align:center;padding:30px;color:#9896B8">Caricamento...</div>';
+    var lessons = await loadCustomMasterLessons(masterId);
+    var hcLessons = (master && master.lessons) ? master.lessons : [];
+    
+    content.innerHTML = "";
+    if(hcLessons.length){
+      var sec1Label = document.createElement("div");
+      sec1Label.style.cssText = "font-family:JetBrains Mono,monospace;font-size:9px;letter-spacing:2px;color:#8a82a8;font-weight:700;text-transform:uppercase;padding:4px 4px 8px";
+      sec1Label.textContent = "Lezioni base (read-only)";
+      content.appendChild(sec1Label);
+      hcLessons.forEach(function(l){
+        var row = document.createElement("div");
+        row.style.cssText = "display:flex;align-items:center;gap:12px;padding:12px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);border-radius:12px;margin-bottom:8px;opacity:0.7";
+        row.innerHTML = '<span style="font-size:18px;flex-shrink:0">' + (l.icon||"📖") + '</span><div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13px;color:#F5F1E8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + l.title + '</div><div style="font-size:11px;color:#8a82a8">' + (l.duration||"") + ' • ' + (l.difficulty||"") + '</div></div><span style="font-size:10px;color:#5a5478;font-family:JetBrains Mono,monospace">BASE</span>';
+        content.appendChild(row);
+      });
+    }
+    var sec2Label = document.createElement("div");
+    sec2Label.style.cssText = "font-family:JetBrains Mono,monospace;font-size:9px;letter-spacing:2px;color:#FBBA00;font-weight:700;text-transform:uppercase;padding:14px 4px 8px";
+    sec2Label.textContent = "Lezioni personalizzate (" + lessons.length + ")";
+    content.appendChild(sec2Label);
+    
+    if(!lessons.length){
+      var empty = document.createElement("div");
+      empty.style.cssText = "text-align:center;padding:24px 16px;color:#8a82a8;font-size:13px;background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.08);border-radius:12px";
+      empty.innerHTML = 'Nessuna lezione custom ancora.<br><span style="font-size:11px">Tap su "+ Nuova" per crearne una.</span>';
+      content.appendChild(empty); return;
+    }
+    
+    lessons.forEach(function(l){
+      var row = document.createElement("div");
+      row.style.cssText = "display:flex;align-items:center;gap:12px;padding:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;margin-bottom:8px";
+      row.innerHTML = '<span style="font-size:18px;flex-shrink:0">' + (l.icon||"📖") + '</span><div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13px;color:#F5F1E8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + l.title + '</div><div style="font-size:11px;color:#a8a2c8">' + (l.duration||"") + ' • ' + (l.difficulty||"") + '</div></div>';
+      var actions = document.createElement("div");
+      actions.style.cssText = "display:flex;gap:6px;flex-shrink:0";
+      var editBtn = document.createElement("button");
+      editBtn.style.cssText = "width:32px;height:32px;border-radius:10px;background:rgba(184,114,224,0.15);border:1px solid rgba(184,114,224,0.30);color:#B872E0;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center";
+      editBtn.innerHTML = "✏️";
+      editBtn.onclick = function(){ openLessonForm(masterId, l, function(){ refreshList(); }); };
+      actions.appendChild(editBtn);
+      var delBtn = document.createElement("button");
+      delBtn.style.cssText = "width:32px;height:32px;border-radius:10px;background:rgba(228,76,60,0.15);border:1px solid rgba(228,76,60,0.30);color:#E07172;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center";
+      delBtn.innerHTML = "🗑️";
+      delBtn.onclick = async function(){
+        if(!confirm("Eliminare questa lezione?")) return;
+        try{
+          await sbFetch("DELETE","dl_master_lessons?id=eq."+l.id, {});
+          if(typeof showToast === "function") showToast("Lezione eliminata",""); refreshList();
+        }catch(err){
+          if(typeof showToast === "function") showToast("Errore: "+(err.message||""),"");
+        }
+      };
+      actions.appendChild(delBtn);
+      row.appendChild(actions);
+      content.appendChild(row);
+    });
+  }
+  refreshList();
+  document.body.appendChild(overlay);
+}
+
+function openLessonForm(masterId, existing, onSaved){
+  try{ history.pushState({dlApp:true, overlay:"lesson-form"}, "", ""); }catch(e){}
+  
+  var overlay = document.createElement("div");
+  overlay.id = "lesson-form-overlay";
+  overlay.style.cssText = "position:fixed;inset:0;z-index:10004;background:rgba(21,16,42,0.92);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto";
+  
+  var card = document.createElement("div");
+  card.style.cssText = "background:#1c1738;border:1px solid rgba(255,255,255,0.08);border-radius:22px;padding:22px;max-width:480px;width:100%;max-height:90vh;overflow-y:auto";
+  card.innerHTML = '<div style="font-family:JetBrains Mono,monospace;font-size:10px;letter-spacing:2px;color:#FBBA00;font-weight:700;text-transform:uppercase;margin-bottom:6px">' + (existing ? "MODIFICA" : "NUOVA LEZIONE") + '</div><div style="font-family:Bricolage Grotesque,sans-serif;font-weight:800;font-size:20px;color:#F5F1E8;margin-bottom:18px">' + (existing ? existing.title : "Crea lezione") + '</div>';
+  
+  function makeField(label, type, value, id){
+    var w = document.createElement("div");
+    w.style.cssText = "margin-bottom:12px";
+    w.innerHTML = '<label style="display:block;font-family:JetBrains Mono,monospace;font-size:9px;font-weight:700;letter-spacing:1.5px;color:#8a82a8;text-transform:uppercase;margin-bottom:6px">' + label + '</label>';
+    var inp;
+    if(type === "textarea"){
+      inp = document.createElement("textarea");
+      inp.style.cssText = "width:100%;min-height:80px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);border-radius:12px;color:#F5F1E8;padding:10px 12px;font-family:Geist,sans-serif;font-size:13px;outline:none;resize:vertical;box-sizing:border-box;line-height:1.5";
+    } else {
+      inp = document.createElement("input");
+      inp.type = type;
+      inp.style.cssText = "width:100%;height:42px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);border-radius:12px;color:#F5F1E8;padding:0 12px;font-family:Geist,sans-serif;font-size:13px;outline:none;box-sizing:border-box";
+    }
+    inp.id = id;
+    if(value !== undefined && value !== null) inp.value = value;
+    w.appendChild(inp);
+    return w;
+  }
+  
+  card.appendChild(makeField("Titolo *", "text", existing ? existing.title : "", "lf-title"));
+  card.appendChild(makeField("Descrizione", "textarea", existing ? existing.description : "", "lf-desc"));
+  card.appendChild(makeField("Durata (es. '8 min')", "text", existing ? existing.duration : "10 min", "lf-duration"));
+  card.appendChild(makeField("Difficolta (Base/Medio/Avanzato)", "text", existing ? existing.difficulty : "Medio", "lf-difficulty"));
+  card.appendChild(makeField("Icona (emoji)", "text", existing ? existing.icon : "📖", "lf-icon"));
+  card.appendChild(makeField("Contenuto (testo lezione)", "textarea", existing ? existing.content : "", "lf-content"));
+  card.appendChild(makeField("Ordine (numero)", "number", existing ? existing.sort_order : 99, "lf-order"));
+  
+  var btnRow = document.createElement("div");
+  btnRow.style.cssText = "display:flex;gap:10px;margin-top:18px";
+  var cancelBtn = document.createElement("button");
+  cancelBtn.style.cssText = "flex:1;height:44px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);border-radius:12px;color:#F5F1E8;font-weight:700;font-size:13px;cursor:pointer;font-family:Geist,sans-serif";
+  cancelBtn.textContent = "Annulla";
+  cancelBtn.onclick = function(){ overlay.remove(); try{history.back();}catch(e){} };
+  btnRow.appendChild(cancelBtn);
+  
+  var saveBtn = document.createElement("button");
+  saveBtn.style.cssText = "flex:2;height:44px;background:linear-gradient(135deg,#B872E0,#FBBA00);border:none;border-radius:12px;color:#15102a;font-weight:800;font-size:13px;cursor:pointer;font-family:Geist,sans-serif";
+  saveBtn.textContent = existing ? "Aggiorna" : "Crea";
+  saveBtn.onclick = async function(){
+    var title = document.getElementById("lf-title").value.trim();
+    if(!title){ if(typeof showToast === "function") showToast("Titolo obbligatorio",""); return; }
+    saveBtn.disabled = true; saveBtn.textContent = "...";
+    var body = {
+      master_id: masterId,
+      title: title,
+      description: document.getElementById("lf-desc").value.trim(),
+      duration: document.getElementById("lf-duration").value.trim() || "10 min",
+      difficulty: document.getElementById("lf-difficulty").value.trim() || "Medio",
+      icon: document.getElementById("lf-icon").value.trim() || "📖",
+      content: document.getElementById("lf-content").value.trim(),
+      sort_order: parseInt(document.getElementById("lf-order").value) || 99
+    };
+    try{
+      if(existing){
+        await sbFetch("PATCH","dl_master_lessons?id=eq."+existing.id, {body: body});
+      } else {
+        body.created_at = new Date().toISOString();
+        body.created_by = A.user.id;
+        await sbFetch("POST","dl_master_lessons", {body: body});
+      }
+      if(typeof showToast === "function") showToast(existing ? "Aggiornata" : "Creata", "✓");
+      overlay.remove(); try{history.back();}catch(e){}
+      if(typeof onSaved === "function") onSaved();
+    }catch(e){
+      saveBtn.disabled = false; saveBtn.textContent = existing ? "Aggiorna" : "Crea";
+      if(typeof showToast === "function") showToast("Errore: " + (e.message||"").slice(0,80), "");
+    }
+  };
+  btnRow.appendChild(saveBtn);
+  card.appendChild(btnRow);
+  
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+}
+
+/* ─── EDIT PROFILE ─── */
+function openEditProfile(){
+  if(!A.user){ showToast("Accedi prima",""); return; }
+  try{ history.pushState({dlApp:true, overlay:"edit-profile"}, "", ""); }catch(e){}
+  
+  var overlay = document.createElement("div");
+  overlay.id = "edit-profile-overlay";
+  overlay.style.cssText = "position:fixed;inset:0;z-index:10003;background:#15102a;overflow-y:auto";
+  
+  var header = document.createElement("div");
+  header.style.cssText = "padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:12px;background:#1c1738;position:sticky;top:0;z-index:2";
+  var backBtn = document.createElement("button");
+  backBtn.style.cssText = "width:36px;height:36px;border-radius:12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);color:#F5F1E8;font-size:18px;cursor:pointer;flex-shrink:0";
+  backBtn.textContent = "\u2190";
+  backBtn.onclick = function(){ var ov = document.getElementById("edit-profile-overlay"); if(ov) ov.remove(); try{history.back();}catch(e){} };
+  header.appendChild(backBtn);
+  var titleEl = document.createElement("div");
+  titleEl.style.flex = "1";
+  titleEl.innerHTML = '<div style="font-family:JetBrains Mono,monospace;font-size:9px;letter-spacing:2px;color:#8a82a8;font-weight:700;text-transform:uppercase">PROFILO</div><div style="font-family:Bricolage Grotesque,sans-serif;font-weight:800;font-size:16px;color:#F5F1E8">Modifica</div>';
+  header.appendChild(titleEl);
+  overlay.appendChild(header);
+  
+  var content = document.createElement("div");
+  content.style.cssText = "padding:20px;max-width:480px;margin:0 auto";
+  
+  // Avatar preview
+  var avatarRow = document.createElement("div");
+  avatarRow.style.cssText = "display:flex;align-items:center;gap:14px;margin-bottom:24px;padding:14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:14px";
+  var avatarEl = document.createElement("div");
+  avatarEl.style.cssText = "width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#814393,#FBBA00);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:26px;flex-shrink:0;overflow:hidden";
+  if(A.user.avatar && A.user.avatar.indexOf("http")===0){
+    avatarEl.innerHTML = '<img src="'+A.user.avatar+'" style="width:100%;height:100%;object-fit:cover">';
+  } else {
+    avatarEl.textContent = (A.user.name||"?").charAt(0).toUpperCase();
+  }
+  avatarRow.appendChild(avatarEl);
+  var avatarInfo = document.createElement("div");
+  avatarInfo.style.flex = "1";
+  avatarInfo.innerHTML = '<div style="font-weight:700;font-size:14px;color:#F5F1E8">Foto profilo</div><div style="font-size:11px;color:#8a82a8;margin-top:2px">JPG, PNG o GIF, max 5MB</div>';
+  avatarRow.appendChild(avatarInfo);
+  var avatarFileInput = document.createElement("input");
+  avatarFileInput.type = "file"; avatarFileInput.accept = "image/*";
+  avatarFileInput.style.display = "none";
+  var changeBtn = document.createElement("button");
+  changeBtn.style.cssText = "padding:8px 14px;background:rgba(184,114,224,0.15);border:1px solid rgba(184,114,224,0.40);border-radius:50px;color:#B872E0;font-weight:700;font-size:12px;cursor:pointer;font-family:Geist,sans-serif;flex-shrink:0";
+  changeBtn.textContent = "Cambia";
+  changeBtn.onclick = function(){ avatarFileInput.click(); };
+  avatarFileInput.onchange = async function(e){
+    var f = e.target.files[0]; if(!f) return;
+    changeBtn.disabled = true; changeBtn.textContent = "...";
+    try{
+      var blob = (typeof compressImage === "function") ? await compressImage(f, 400, 0.85) : f;
+      var fname = "av_" + A.user.id + "_" + Date.now() + ".jpg";
+      var url = await sbUpload("Posts", fname, blob);
+      if(url){
+        await sbFetch("PATCH","dl_users?id=eq."+A.user.id, {body:{avatar: url}});
+        A.user.avatar = url;
+        avatarEl.innerHTML = '<img src="'+url+'" style="width:100%;height:100%;object-fit:cover">';
+        showToast("Avatar aggiornato","\u2713");
+      } else throw new Error("upload fallito");
+    }catch(err){
+      showToast("Errore: " + (err.message||"").slice(0,60),"");
+    }finally{
+      changeBtn.disabled = false; changeBtn.textContent = "Cambia";
+    }
+  };
+  avatarRow.appendChild(changeBtn);
+  avatarRow.appendChild(avatarFileInput);
+  content.appendChild(avatarRow);
+  
+  // Fields
+  function makeField(label, type, value, id, placeholder){
+    var w = document.createElement("div");
+    w.style.cssText = "margin-bottom:14px";
+    w.innerHTML = '<label style="display:block;font-family:JetBrains Mono,monospace;font-size:9px;font-weight:700;letter-spacing:1.5px;color:#8a82a8;text-transform:uppercase;margin-bottom:6px">' + label + '</label>';
+    var inp;
+    if(type === "textarea"){
+      inp = document.createElement("textarea");
+      inp.style.cssText = "width:100%;min-height:80px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);border-radius:12px;color:#F5F1E8;padding:10px 14px;font-family:Geist,sans-serif;font-size:14px;outline:none;resize:vertical;box-sizing:border-box;line-height:1.5";
+    } else {
+      inp = document.createElement("input");
+      inp.type = type;
+      inp.style.cssText = "width:100%;height:46px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);border-radius:12px;color:#F5F1E8;padding:0 14px;font-family:Geist,sans-serif;font-size:14px;outline:none;box-sizing:border-box";
+    }
+    inp.id = id;
+    if(placeholder) inp.placeholder = placeholder;
+    if(value !== undefined && value !== null) inp.value = value;
+    w.appendChild(inp);
+    return w;
+  }
+  
+  content.appendChild(makeField("Nome", "text", A.user.name || "", "ep-name", "Il tuo nome o nickname"));
+  content.appendChild(makeField("Bio", "textarea", A.user.bio || "", "ep-bio", "Raccontati in poche parole..."));
+  content.appendChild(makeField("Email", "email", A.user.email || "", "ep-email", ""));
+  // Disable email if from Google/Apple (cannot change OAuth email)
+  setTimeout(function(){
+    var emailField = document.getElementById("ep-email");
+    if(emailField && A.user.provider && A.user.provider !== "email"){
+      emailField.disabled = true;
+      emailField.style.opacity = "0.5";
+      emailField.title = "Email gestita da " + A.user.provider;
+    }
+  }, 50);
+  
+  var btnRow = document.createElement("div");
+  btnRow.style.cssText = "display:flex;gap:10px;margin-top:24px";
+  var cancelBtn = document.createElement("button");
+  cancelBtn.style.cssText = "flex:1;height:48px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);border-radius:14px;color:#F5F1E8;font-weight:700;font-size:14px;cursor:pointer;font-family:Geist,sans-serif";
+  cancelBtn.textContent = "Annulla";
+  cancelBtn.onclick = function(){ var ov = document.getElementById("edit-profile-overlay"); if(ov) ov.remove(); try{history.back();}catch(e){} };
+  btnRow.appendChild(cancelBtn);
+  
+  var saveBtn = document.createElement("button");
+  saveBtn.style.cssText = "flex:2;height:48px;background:linear-gradient(135deg,#B872E0,#FBBA00);border:none;border-radius:14px;color:#15102a;font-weight:800;font-size:14px;cursor:pointer;font-family:Geist,sans-serif;box-shadow:0 8px 24px rgba(184,114,224,0.30)";
+  saveBtn.textContent = "Salva";
+  saveBtn.onclick = async function(){
+    var name = document.getElementById("ep-name").value.trim();
+    var bio = document.getElementById("ep-bio").value.trim();
+    if(!name){ showToast("Il nome e obbligatorio",""); return; }
+    
+    saveBtn.disabled = true; saveBtn.textContent = "Salvataggio...";
+    var updates = { name: name, bio: bio };
+    
+    var emailEl = document.getElementById("ep-email");
+    if(emailEl && !emailEl.disabled && emailEl.value.trim() && emailEl.value.trim() !== A.user.email){
+      updates.email = emailEl.value.trim().toLowerCase();
+    }
+    
+    try{
+      await sbFetch("PATCH","dl_users?id=eq."+A.user.id, {body: updates});
+      A.user.name = updates.name;
+      A.user.bio = bio;
+      if(updates.email) A.user.email = updates.email;
+      try{ localStorage.setItem("dl:user", JSON.stringify(A.user)); }catch(e){}
+      showToast("Profilo aggiornato","\u2713");
+      var ov = document.getElementById("edit-profile-overlay"); if(ov) ov.remove();
+      try{history.back();}catch(e){}
+      if(typeof renderProfile === "function") renderProfile();
+    }catch(e){
+      saveBtn.disabled = false; saveBtn.textContent = "Salva";
+      showToast("Errore: "+(e.message||"").slice(0,80),"");
+    }
+  };
+  btnRow.appendChild(saveBtn);
+  content.appendChild(btnRow);
+  
+  overlay.appendChild(content);
+  document.body.appendChild(overlay);
+}
+
+/* ─── ANIMATION HELPERS ─── */
+
+// Trigger heart pop + burst on a like button
+function animateHeartLike(btnEl){
+  if(!btnEl) return;
+  // Find the heart icon (the emoji or icon)
+  var icon = btnEl.querySelector(".heart-icon") || btnEl;
+  icon.classList.remove("dl-heart-pop");
+  void icon.offsetWidth;
+  icon.classList.add("dl-heart-pop");
+  
+  // Create burst
+  var wrap = btnEl.style.position ? btnEl : null;
+  if(!wrap){
+    btnEl.style.position = "relative";
+    wrap = btnEl;
+  }
+  var burst = document.createElement("div");
+  burst.className = "dl-heart-burst";
+  wrap.appendChild(burst);
+  setTimeout(function(){ burst.remove(); }, 500);
+}
+
+// Count up a number from 0 to target over duration
+function animateCountUp(el, target, duration){
+  if(!el) return;
+  target = parseInt(target) || 0;
+  duration = duration || 600;
+  var start = parseInt(el.textContent) || 0;
+  if(start === target) return;
+  var startTime = performance.now();
+  function tick(now){
+    var t = Math.min((now - startTime) / duration, 1);
+    // ease-out cubic
+    var eased = 1 - Math.pow(1 - t, 3);
+    el.textContent = Math.round(start + (target - start) * eased);
+    if(t < 1) requestAnimationFrame(tick);
+    else el.textContent = target;
+  }
+  el.classList.add("dl-count-up");
+  setTimeout(function(){ el.classList.remove("dl-count-up"); }, 350);
+  requestAnimationFrame(tick);
+}
+
+// Animate token gain
+function animateTokenGain(amount){
+  var tokenEl = document.getElementById("dash-tokens");
+  if(tokenEl){
+    var current = parseInt(tokenEl.textContent) || 0;
+    animateCountUp(tokenEl, current + amount, 800);
+    var parent = tokenEl.closest("div[onclick]") || tokenEl.parentElement;
+    if(parent){
+      var star = parent.querySelector("span:first-child");
+      if(star){
+        star.classList.remove("dl-token-flip");
+        void star.offsetWidth;
+        star.classList.add("dl-token-flip");
+      }
+    }
+  }
+}
+
+// Confetti burst (call on level up, badge earned, etc.)
+function showConfetti(count){
+  count = count || 30;
+  var colors = ["#FBBA00", "#B872E0", "#FF3DA5", "#66E0B5", "#E07172", "#fff"];
+  for(var i = 0; i < count; i++){
+    var p = document.createElement("div");
+    p.className = "dl-confetti-piece";
+    p.style.left = (Math.random() * 100) + "vw";
+    p.style.background = colors[Math.floor(Math.random() * colors.length)];
+    p.style.animationDelay = (Math.random() * 0.5) + "s";
+    p.style.animationDuration = (1.8 + Math.random() * 1.5) + "s";
+    p.style.transform = "rotate(" + (Math.random() * 360) + "deg)";
+    document.body.appendChild(p);
+    setTimeout((function(piece){ return function(){ piece.remove(); }; })(p), 4000);
+  }
+}
+
+// Apply fire-pulse to streak icon when streak > 0
+function refreshStreakAnim(){
+  var card = document.getElementById("dash-streak-card");
+  if(!card) return;
+  var fireIcon = card.querySelector("div:first-child");
+  var streak = parseInt(document.getElementById("dash-streak-days") && document.getElementById("dash-streak-days").textContent) || 0;
+  if(fireIcon){
+    if(streak > 0) fireIcon.classList.add("dl-fire-pulse");
+    else fireIcon.classList.remove("dl-fire-pulse");
+  }
+}
+
+// Apply fade-in to a freshly-rendered list of items
+function animateListFadeIn(container, selector){
+  if(!container) return;
+  var items = container.querySelectorAll(selector || "> *");
+  items.forEach(function(el, idx){
+    el.style.animationDelay = (idx * 0.04) + "s";
+    el.classList.add("dl-fade-in");
+  });
 }
 
 function init(){
